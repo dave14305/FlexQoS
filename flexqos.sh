@@ -974,6 +974,7 @@ install() {
 		chmod 755 "$SCRIPTPATH"
 	fi
 	install_webui
+	generate_bwdpi_arrays
 	Auto_FirewallStart
 	Auto_ServiceEventEnd
 	Auto_Crontab
