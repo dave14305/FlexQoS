@@ -25,7 +25,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
-<script type="text/javascript" src="/ext/table.js"></script>
+<script type="text/javascript" src="/ext/flexqos/table.js"></script>
 <script type="text/javascript" src="/ext/flexqos_arrays.js"></script>
 <style>
 /*
