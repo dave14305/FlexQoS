@@ -828,10 +828,10 @@ remove_webui() {
 
 install_webui() {
 	if [ -z "$1" ]; then
-		download_file "${GIT_URL}/${SCRIPTNAME}.asp" "$WEBUIPATH"
+		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
 		[ -d "${ADDON_DIR}/table" ] && mkdir -p "${ADDON_DIR}/table"
-		download_file "${GIT_URL}/table.js" "${ADDON_DIR}/table/table.js"
-		download_file "${GIT_URL}/tableValidator.js" "${ADDON_DIR}/table/tableValidator.js"
+		download_file "table.js" "${ADDON_DIR}/table/table.js"
+		download_file "tableValidator.js" "${ADDON_DIR}/table/tableValidator.js"
 	fi
 	am_get_webui_page "$WEBUIPATH"
 	if [ "$am_webui_page" = "none" ]; then
