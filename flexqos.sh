@@ -745,13 +745,13 @@ prompt_restart() {
 	echo -n " Would you like to [Restart QoS] for modifications to take effect? [1=Yes 2=No] : "
 	read -r yn
 	if [ "$yn" = "1" ]; then
-		if /bin/grep -q -x "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then		#RMerlin install
+		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then		#RMerlin install
 			service "restart_qos;restart_firewall"
 		fi
 		echo ""
 	else
 		echo ""
-		if /bin/grep -q -x "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then		#RMerlin install
+		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then		#RMerlin install
 			echo "  Remember: [ Restart QoS ] for modifications to take effect"
 			echo ""
 		fi
