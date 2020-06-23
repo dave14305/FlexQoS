@@ -829,7 +829,7 @@ remove_webui() {
 install_webui() {
 	if [ -z "$1" ]; then
 		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
-		[ -d "${ADDON_DIR}/table" ] && mkdir -p "${ADDON_DIR}/table"
+		[ ! -d "${ADDON_DIR}/table" ] && mkdir -p "${ADDON_DIR}/table"
 		download_file "table.js" "${ADDON_DIR}/table/table.js"
 		download_file "tableValidator.js" "${ADDON_DIR}/table/tableValidator.js"
 	fi
