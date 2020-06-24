@@ -85,6 +85,8 @@ appdb_static_rules() {
 	echo "Applying AppDB static rules"
 	${tc} filter add dev br0 protocol all prio 10 u32 match mark 0x803f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_down functionality
 	${tc} filter add dev eth0 protocol all prio 10 u32 match mark 0x403f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_up functionality
+	${tc} filter add dev br0 protocol all prio 50 u32 match mark 0x801A0000 0xc03f0000 flowid "$Downloads"		# Used for Advertisement
+	${tc} filter add dev eth0 protocol all prio 50 u32 match mark 0x401A0000 0xc03f0000 flowid "$Downloads"		# Used for Advertisement
 } # appdb_static_rules
 
 custom_rates() {
@@ -368,7 +370,7 @@ EOF
 	fi
 
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
-		tmp_appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
+		tmp_appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4"
 		tmp_appdb_rules="${tmp_appdb_rules}<${r1}>${d1}<${r2}>${d2}<${r3}>${d3}<${r4}>${d4}"
 		tmp_appdb_rules=$(echo "$tmp_appdb_rules" | sed 's/<>//g')
 		am_settings_set ${SCRIPTNAME}_appdb "$tmp_appdb_rules"
