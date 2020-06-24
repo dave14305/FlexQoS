@@ -275,6 +275,7 @@ appdb(){
 }
 
 scriptinfo() {
+	echo ""
 	echo "FlexQoS v${version} released ${release}"
 } # scriptinfo
 
@@ -1206,7 +1207,6 @@ Check_Lock() {
 	lock="true"
 } # Check_Lock
 
-logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
 arg1="$(echo "$1" | sed 's/^-//')"
 if [ -z "$2" ]; then
 	wan="$(nvram get wan0_ifname)"
@@ -1217,10 +1217,12 @@ fi
 case "$arg1" in
 	'start')
 		# triggered from firewall-start with wan iface passed
+		logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
 		startup "$2"
 		;;
 	'check')
 		# triggered from cron or service-event-end without wan iface
+		logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
 		startup
 		;;
 	'install'|'enable')		# INSTALLS AND TURNS ON SCRIPT
@@ -1244,7 +1246,7 @@ case "$arg1" in
 	'update')
 		update
 		;;
-	'menu')
+	'menu'|'')
 		menu
 		;;
 	*)
