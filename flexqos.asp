@@ -1009,6 +1009,8 @@ function addAppDBRow(obj, head){
 function validAppDBForm(){
 	if(!Block_chars(document.form.appdb_mark_x, ["<" ,">"]))
 		return false;
+	if(document.form.appdb_mark_x.value.length != 6)
+		return false;
 	return true;
 }
 
