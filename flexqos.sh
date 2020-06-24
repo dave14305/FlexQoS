@@ -277,6 +277,7 @@ appdb(){
 scriptinfo() {
 	echo ""
 	echo "FlexQoS v${version} released ${release}"
+	echo ""
 } # scriptinfo
 
 debug(){
@@ -646,7 +647,6 @@ parse_iptablerule() {
 about() {
 	# clear
 	scriptinfo
-	echo ""
 	echo "License"
 	echo "  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0)."
 	echo "  https://opensource.org/licenses/GPL-3.0"
@@ -812,6 +812,7 @@ menu() {
 }
 
 remove_webui() {
+	echo "Removing WebUI..."
 	am_get_webui_page "$WEBUIPATH"
 
 	if [ -n "$am_webui_page" ] && [ "$am_webui_page" != "none" ]; then
@@ -1010,7 +1011,6 @@ install() {
 	echo "FlexQoS installation complete!"
 
 	scriptinfo
-	echo ""
 	echo "Advanced configuration available via:"
 	if [ "$(nvram get http_enable)" = "1" ]; then
 		echo "https://$(nvram get lan_hostame).$(nvram get lan_domain):$(nvram get https_lanport)/$am_webui_page"
@@ -1021,20 +1021,24 @@ install() {
 } # install
 
 uninstall() {
+	echo "Removing entries from Merlin user scripts..."
 	sed -i '/FlexQoS/d' /jffs/scripts/firewall-start 2>/dev/null
 	sed -i '/FlexQoS/d' /jffs/scripts/service-event-end 2>/dev/null
+	echo "Removing aliases and shortcuts..."
 	sed -i "/${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
 	rm -f /opt/bin/${SCRIPTNAME}
+	echo "Removing cron job..."
 	cru d "$SCRIPTNAME"
-	rm -f "$SCRIPTPATH"
-
 	remove_webui
-	rm -f "$WEBUIPATH"
-
+	echo "Removing FlexQoS settings..."
 	sed -i "/^${SCRIPTNAME}_/d" /jffs/addons/custom_settings.txt
 	# restore FreshJR_QOS nvram variables if saved during installation
-	[ -f ${ADDON_DIR}/restore_freshjr_nvram.sh ] && sh ${ADDON_DIR}/restore_freshjr_nvram.sh
-	rm -r "$ADDON_DIR"
+	if [ -f ${ADDON_DIR}/restore_freshjr_nvram.sh ]; then
+		echo "Restoring FreshJR_QOS nvram settings..."
+		sh ${ADDON_DIR}/restore_freshjr_nvram.sh
+	fi
+	echo "Deleting FlexQoS directory..."
+	rm -rf "$ADDON_DIR"
 	echo "FlexQoS has been uninstalled"
 } # uninstall
 
@@ -1174,22 +1178,18 @@ startup() {
 show_help() {
 	# clear
 	scriptinfo
-	echo ""
 	echo "You have entered an invalid command"
 	echo ""
-	echo "  Available commands:"
+	echo "Available commands:"
 	echo ""
 	echo "  ${SCRIPTNAME} -about              explains functionality"
+	echo "  ${SCRIPTNAME} -appdb string       search appdb for application marks"
 	echo "  ${SCRIPTNAME} -update             checks for updates"
-	echo ""
 	echo "  ${SCRIPTNAME} -install            install   script"
 	echo "  ${SCRIPTNAME} -uninstall          uninstall script & delete from disk"
-	echo ""
 	echo "  ${SCRIPTNAME} -enable             enable    script"
 	echo "  ${SCRIPTNAME} -disable            disable   script but do not delete from disk"
-	echo ""
 	echo "  ${SCRIPTNAME} -debug              print debug info"
-	echo ""
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
 	echo ""
 } # show_help
