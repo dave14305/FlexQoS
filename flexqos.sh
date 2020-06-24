@@ -825,9 +825,9 @@ remove_webui() {
 				rm /www/user/"$am_webui_page"
 			fi
 		fi
-		for i in $(/bin/grep -l FlexQoS /www/user/user*.asp 2>/dev/null)
+		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp | while read -r oldfile
 		do
-			rm "$i"
+			rm "$oldfile"
 		done
 	fi
 	rm -rf /www/user/${SCRIPTNAME}		# remove js helper scripts
@@ -844,6 +844,11 @@ install_webui() {
 	if [ "$am_webui_page" = "none" ]; then
 		logger -t "FlexQoS" "No API slots available to install web page"
 	elif [ ! -f /www/user/"$am_webui_page" ]; then
+		# remove previous pages
+		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp | while read -r oldfile
+		do
+			rm "$oldfile"
+		done
 		cp "$WEBUIPATH" /www/user/"$am_webui_page"
 		if [ ! -f /tmp/menuTree.js ]; then
 			cp /www/require/modules/menuTree.js /tmp/
