@@ -1195,6 +1195,12 @@ show_help() {
 	echo "  ${SCRIPTNAME} -debug              print debug info"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
 	echo ""
+	echo "Advanced configuration available via:"
+	if [ "$(nvram get http_enable)" = "1" ]; then
+		echo "https://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get https_lanport)/$am_webui_page"
+	else
+		echo "http://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get http_lanport)/$am_webui_page"
+	fi
 } # show_help
 
 generate_bwdpi_arrays() {
