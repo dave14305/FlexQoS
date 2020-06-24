@@ -925,6 +925,10 @@ setup_aliases() {
 } # setup_aliases
 
 Uninstall_FreshJR() {
+	if [ ! -f /jffs/scripts/FreshJR_QOS ]; then
+		# FreshJR_QOS not installed
+		return
+	fi
 	echo "Removing old FreshJR_QOS files. Reinstall with amtm if necessary."
 	# Remove profile aliases
 	echo -n "Removing profile aliases..."
