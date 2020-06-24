@@ -713,9 +713,11 @@ update() {
 	echo "Checking for updates"
 	echo ""
 	url="${GIT_URL}/${SCRIPTNAME}.sh"
-	remotever=$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e s/version=//)
+	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
+	localmd5="$(md5sum "$0" | awk '{print $1}')"
+	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/flexqos.sh" | md5sum | awk '{print $1}')"
 
-	if [ "$version" != "$remotever" ]; then
+	if [ "$version" != "$remotever" ] || [ "$localmd5" != "$remotemd5" ]; then
 		echo " FlexQoS v${remotever} is now available!"
 		echo ""
 		echo -n " Would you like to update now? [1=Yes 2=No] : "
