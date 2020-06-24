@@ -293,36 +293,34 @@ debug(){
 		undf_prio=2
 	fi
 
-	logger -t "FlexQoS" -s "Undf Prio: $undf_prio"
-	logger -t "FlexQoS" -s "Undf FlowID: $undf_flowid"
-	logger -t "FlexQoS" -s "Classes Present: $ClassesPresent"
-	logger -t "FlexQoS" -s "Down Band: $DownCeil"
-	logger -t "FlexQoS" -s "Up Band  : $UpCeil"
-	logger -t "FlexQoS" -s "***********"
-	logger -t "FlexQoS" -s "Net Control = $Net"
-	logger -t "FlexQoS" -s "Work-From-Home = $VOIP"
-	logger -t "FlexQoS" -s "Gaming = $Gaming"
-	logger -t "FlexQoS" -s "Others = $Others"
-	logger -t "FlexQoS" -s "Web Surfing = $Web"
-	logger -t "FlexQoS" -s "Streaming = $Streaming"
-	logger -t "FlexQoS" -s "Downloads = $Downloads"
-	logger -t "FlexQoS" -s "Defaults = $Defaults"
-	logger -t "FlexQoS" -s "***********"
-	logger -t "FlexQoS" -s "Downrates -- $DownRate0, $DownRate1, $DownRate2, $DownRate3, $DownRate4, $DownRate5, $DownRate6, $DownRate7"
-	logger -t "FlexQoS" -s "Downceils -- $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
-	logger -t "FlexQoS" -s "Downbursts -- $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
-	logger -t "FlexQoS" -s "DownCbursts -- $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
-	logger -t "FlexQoS" -s "***********"
-	logger -t "FlexQoS" -s "Uprates -- $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
-	logger -t "FlexQoS" -s "Upceils -- $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
-	logger -t "FlexQoS" -s "Upbursts -- $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
-	logger -t "FlexQoS" -s "UpCbursts -- $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
-	logger -t "FlexQoS" -s "***********"
+	echo "Undf Prio: $undf_prio"
+	echo "Undf FlowID: $undf_flowid"
+	echo "Classes Present: $ClassesPresent"
+	echo "Down Band: $DownCeil"
+	echo "Up Band  : $UpCeil"
+	echo "***********"
+	echo "Net Control = $Net"
+	echo "Work-From-Home = $VOIP"
+	echo "Gaming = $Gaming"
+	echo "Others = $Others"
+	echo "Web Surfing = $Web"
+	echo "Streaming = $Streaming"
+	echo "Downloads = $Downloads"
+	echo "Defaults = $Defaults"
+	echo "***********"
+	echo "Downrates -- $DownRate0, $DownRate1, $DownRate2, $DownRate3, $DownRate4, $DownRate5, $DownRate6, $DownRate7"
+	echo "Downceils -- $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
+	echo "Downbursts -- $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
+	echo "DownCbursts -- $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
+	echo "***********"
+	echo "Uprates -- $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
+	echo "Upceils -- $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
+	echo "Upbursts -- $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
+	echo "UpCbursts -- $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
 	write_iptables_rules
-	logger -t "FlexQoS" -s < /tmp/${SCRIPTNAME}_iprules
-	logger -t "FlexQoS" -s "***********"
+	cat /tmp/${SCRIPTNAME}_iprules
 	write_appdb_rules
-	logger -t "FlexQoS" -s < /tmp/${SCRIPTNAME}_tcrules
+	cat /tmp/${SCRIPTNAME}_tcrules
 }
 
 convert_nvram(){
