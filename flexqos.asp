@@ -1106,7 +1106,7 @@ function show_iptables_rules(){
 					"title" : "Local IP/CIDR",
 					"maxlength" : "18",
 					"valueMust" : false,
-					"placeholder": "192.168.1.254 192.168.1.10/31 !192.168.1.254",
+					"placeholder": "192.168.1.100 !192.168.1.100 192.168.1.100/31 !192.168.1.100/31",
 					"validator" : "dualWanRoutingRules"
 				},
 				{
@@ -1114,7 +1114,7 @@ function show_iptables_rules(){
 					"title" : "Remote IP/CIDR",
 					"maxlength" : "18",
 					"valueMust" : false,
-					"placeholder": "8.8.8.8 8.8.0.0/16 !8.8.0.0/16",
+					"placeholder": "9.9.9.9 !9.9.9.9 9.9.9.0/24 !9.9.9.0/24",
 					"validator" : "dualWanRoutingRules"
 				},
 				{
@@ -1127,7 +1127,7 @@ function show_iptables_rules(){
 					"title" : "Local Port",
 					"maxlength" : "36",
 					"valueMust" : false,
-					"placeholder": "1234 12345:23456 1234,5678,91011",
+					"placeholder": "443 !443 1234:5678 !1234:5678 53,123,853 !53,123,853",
 					"validator" : "portRange"
 				},
 				{
@@ -1135,7 +1135,7 @@ function show_iptables_rules(){
 					"title" : "Remote Port",
 					"maxlength" : "36",
 					"valueMust" : false,
-					"placeholder": "1234 12345:23456 1234,5678,91011",
+					"placeholder": "443 !443 1234:5678 !1234:5678 53,123,853 !53,123,853",
 					"validator" : "portRange"
 				},
 				{
@@ -1143,7 +1143,7 @@ function show_iptables_rules(){
 					"title" : "Mark",
 					"maxlength" : "6",
 					"valueMust" : false,
-					"placeholder": "111111 or 11****",
+					"placeholder": "XXYYYY XX=Category(hex) YYYY=ID(hex or ****)",
 					"validator" : "qosMark"
 				},
 				{
@@ -1152,7 +1152,7 @@ function show_iptables_rules(){
 					"option" : {"Net Control" : "0", "Gaming" : "1", "Streaming" : "2", "Work-From-Home" : "3", "Web Surfing" : "4", "File Downloads" : "5", "Others" : "6", "Game Downloads" : "7" }
 				}
 			],
-			maximum: 32
+			maximum: 24
 		},
 		clickRawEditPanel: {
 			inputs : [
@@ -1538,7 +1538,7 @@ function SetCurrentPage() {
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 	<thead>
 		<tr>
-			<td colspan="4">AppDB Redirection Rules&nbsp;(Max Limit : 99)</td>
+			<td colspan="4">AppDB Redirection Rules&nbsp;(Max Limit : 32)</td>
 		</tr>
 	</thead>
 	<tbody>
@@ -1559,7 +1559,7 @@ function SetCurrentPage() {
 			</select>
 		</td>
 		<td width="12%">
-			<div><input type="button" class="add_btn" onClick="addRow_AppDB_Group(99);" value=""></div>
+			<div><input type="button" class="add_btn" onClick="addRow_AppDB_Group(32);" value=""></div>
 		</td>
 	</tr>
 </tbody>
