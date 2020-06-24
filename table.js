@@ -174,7 +174,7 @@ ruleValidation : Valid rule data special rule, the value is function name from t
 4. Call table API
 tableApi.genTableAPI(tableStruct);
 */
-document.write('<script type="text/javascript" src="/user/flexqos/tableValidator.js"></script>');
+document.write('<script type="text/javascript" src="/ext/flexqos/tableValidator.js"></script>');
 var tableSorter = {
 "UserSorted" : false,
 "sortFlag" : false,
