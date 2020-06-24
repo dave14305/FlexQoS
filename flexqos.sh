@@ -244,7 +244,7 @@ appdb(){
 	/bin/grep -m 25 -i "$1" /tmp/bwdpi/bwdpi.app.db | while read -r line; do
 		echo "$line" | cut -f 4 -d ","
 		cat_decimal=$(echo "$line" | cut -f 1 -d "," )
-		cat_hex=$( printf "%02x" "$cat_decimal" )
+		cat_hex=$( printf "%02X" "$cat_decimal" )
 		case "$cat_decimal" in
 		'9'|'18'|'19'|'20')
 			echo " Originally:  Net Control"
@@ -269,7 +269,7 @@ appdb(){
 			;;
 		esac
 		echo -n " Mark:        ${cat_hex}"
-		echo "$line" | cut -f 2 -d "," | awk '{printf("%04x \n",$1)}'
+		echo "$line" | cut -f 2 -d "," | awk '{printf("%04X \n",$1)}'
 		echo ""
 	done
 }
@@ -384,6 +384,7 @@ EOF
 			echo "nvram set fb_email_dbg=\"$(nvram get fb_email_dbg)\""
 			echo "nvram commit"
 		} > "${ADDON_DIR}/restore_freshjr_nvram.sh"
+		echo "FreshJR_QOS settings backed up to ${ADDON_DIR}/restore_freshjr_nvram.sh"
 	fi
 	nvram set fb_comment=""
 	nvram set fb_email_dbg=""
@@ -750,17 +751,18 @@ update() {
 
 prompt_restart() {
 	echo ""
-	echo -n " Would you like to [Restart QoS] for modifications to take effect? [1=Yes 2=No] : "
+	echo -n "Would you like to restart QoS for modifications to take effect? [Y=Yes N=No]: "
 	read -r yn
-	if [ "$yn" = "1" ]; then
-		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then		#RMerlin install
+	if [ "$yn" = "Y" ] || [ "$yn" = "y" ]; then
+		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then
+			echo "Restarting QoS and Firewall..."
 			service "restart_qos;restart_firewall"
 		fi
 		echo ""
 	else
 		echo ""
-		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then		#RMerlin install
-			echo "  Remember: [ Restart QoS ] for modifications to take effect"
+		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then
+			echo "Remember to restart QoS later for modifications to take effect"
 			echo ""
 		fi
 	fi
@@ -791,9 +793,9 @@ menu() {
 			# clear
 			echo "FlexQoS v${version} released ${release}"
 			echo ""
-			echo -n " Confirm you want to uninstall FlexQoS [1=Yes 2=No] : "
+			echo -n " Confirm you want to uninstall FlexQoS [Y=Yes N=No] : "
 			read -r yn
-			if [ "$yn" = "1" ]; then
+			if [ "$yn" = "Y" ] || [ "$yn" = "y" ]; then
 				echo ""
 				sh ${SCRIPTPATH} -uninstall
 				echo ""
@@ -836,11 +838,13 @@ remove_webui() {
 
 install_webui() {
 	if [ -z "$1" ]; then
+		echo "Downloading WebUI files..."
 		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
 		[ ! -d "${ADDON_DIR}/table" ] && mkdir -p "${ADDON_DIR}/table"
 		download_file "table.js" "${ADDON_DIR}/table/table.js"
 		download_file "tableValidator.js" "${ADDON_DIR}/table/tableValidator.js"
 	fi
+	echo "Mounting WebUI page..."
 	am_get_webui_page "$WEBUIPATH"
 	if [ "$am_webui_page" = "none" ]; then
 		logger -t "FlexQoS" "No API slots available to install web page"
@@ -918,8 +922,10 @@ setup_aliases() {
 	# shortcuts to launching FlexQoS
 	sed -i "/${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
 	if [ -d /opt/bin ]; then
+		echo "Adding ${SCRIPTNAME} link in Entware /opt/bin..."
 		ln -sf "$SCRIPTPATH" /opt/bin/${SCRIPTNAME}
 	else
+		echo "Adding ${SCRIPTNAME} alias in profile.add..."
 		alias ${SCRIPTNAME}="sh ${SCRIPTPATH} -menu"
 		echo "alias ${SCRIPTNAME}=\"sh ${SCRIPTPATH} -menu\"" >> /jffs/configs/profile.add
 	fi
@@ -960,6 +966,7 @@ Uninstall_FreshJR() {
 } # Uninstall_FreshJR
 
 Firmware_Check() {
+	echo "Checking firmware version..."
 	local fwplatform="$(uname -o)"
 	local fwver="$(nvram get buildno)"
 	local fwmaj="$(echo "$fwver" | cut -d. -f1)"
@@ -978,9 +985,11 @@ Firmware_Check() {
 
 install() {
 	# clear
+	echo "Installing FlexQoS..."
 	Firmware_Check
 	Uninstall_FreshJR
 	if ! [ -d "$ADDON_DIR" ]; then
+		echo "Creating directories..."
 		mkdir -p "$ADDON_DIR"
 		chmod 755 "$ADDON_DIR"
 	fi
@@ -992,15 +1001,22 @@ install() {
 	fi
 	install_webui
 	generate_bwdpi_arrays
+	echo "Adding FlexQoS entries to Merlin user scripts..."
 	Auto_FirewallStart
 	Auto_ServiceEventEnd
+	echo "Adding nightly cron job..."
 	Auto_Crontab
 	setup_aliases
+	echo "FlexQoS installation complete!"
 
 	scriptinfo
 	echo ""
-	echo -n " Advanced configuration available via: "
-	echo "http://$(nvram get lan_ipaddr_rt):$(nvram get http_lanport)/$am_webui_page"		# TODO add logic to detect https only
+	echo "Advanced configuration available via:"
+	if [ "$(nvram get http_enable)" = "1" ]; then
+		echo "https://$(nvram get lan_hostame).$(nvram get lan_domain):$(nvram get https_lanport)/$am_webui_page"
+	else
+		echo "http://$(nvram get lan_hostame).$(nvram get lan_domain):$(nvram get http_lanport)/$am_webui_page"
+	fi
 	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart
 } # install
 
@@ -1224,6 +1240,9 @@ case "$arg1" in
 		# triggered from cron or service-event-end without wan iface
 		logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
 		startup
+		;;
+	'appdb')
+		appdb "$2"
 		;;
 	'install'|'enable')		# INSTALLS AND TURNS ON SCRIPT
 		install
