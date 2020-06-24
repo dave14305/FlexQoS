@@ -1178,7 +1178,7 @@ generate_bwdpi_arrays() {
 		awk -F, '{ printf("\"%02X%04X\", ",$1,$2) } END { printf "\"\" ]\;" }' /tmp/bwdpi/bwdpi.app.db
 		awk -F, 'BEGIN { printf "var catdb_label_array = [ \"Untracked\", "} { printf("\"%s\", ",$2) }' /tmp/bwdpi/bwdpi.cat.db
 		awk -F, '{ printf("\"%s\", ",$4) } END { printf "\"\" ]\;" }' /tmp/bwdpi/bwdpi.app.db
-	} > /www/ext/${SCRIPTNAME}_arrays.js
+	} > "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js"
 	fi
 }
 
