@@ -1175,7 +1175,7 @@ show_help() {
 
 generate_bwdpi_arrays() {
 	# generate if not exist, plus after wrs restart (signature update)
-	if ! [ -f /www/user/ext/${SCRIPTNAME}_arrays.js ] || [ /tmp/bwdpi.app.db -nt /www/user/ext/${SCRIPTNAME}_arrays.js ]; then
+	if ! [ -f "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js" ] || [ /tmp/bwdpi.app.db -nt "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js" ]; then
 	{
 		awk -F, 'BEGIN { printf "var catdb_mark_array = [ \"000000\", "} { printf("\"%02X****\", ",$1) }' /tmp/bwdpi/bwdpi.cat.db
 		awk -F, '{ printf("\"%02X%04X\", ",$1,$2) } END { printf "\"\" ]\;" }' /tmp/bwdpi/bwdpi.app.db
