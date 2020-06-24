@@ -1285,7 +1285,7 @@ function set_FlexQoS_mod_vars()
 		if ( custom_settings.flexqos_appdb == undefined )
 		{
 			// start with default appdb rules which can be edited/deleted later by user
-			appdb_rulelist_array = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4";
+			appdb_rulelist_array = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5";
 			var FreshJR_nvram = decodeURIComponent('<% nvram_char_to_ascii("",fb_email_dbg); %>').split(">");
 			for (var j=1;j<5;j++) {
 				var appdb_temp_rule = "";

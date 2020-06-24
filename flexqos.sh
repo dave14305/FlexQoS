@@ -451,12 +451,18 @@ parse_tcrule() {
 
 	{
 		if [ "$id" = "****" ] || [ "$1" = "000000" ]; then
-			# delete existing rule
-			echo "${tc} filter del dev br0 parent 1: prio $currprio > /dev/null 2>&1"
-			echo "${tc} filter del dev eth0 parent 1: prio $currprio > /dev/null 2>&1"
-			# add new rule at same priority
-			echo "${tc} filter add dev br0 protocol all prio $currprio u32 match mark $DOWN_mark flowid $flowid"
-			echo "${tc} filter add dev eth0 protocol all prio $currprio u32 match mark $UP_mark flowid $flowid"
+			if [ -n "$currprio" ]; then
+				# delete existing rule
+				echo "${tc} filter del dev br0 parent 1: prio $currprio > /dev/null 2>&1"
+				echo "${tc} filter del dev eth0 parent 1: prio $currprio > /dev/null 2>&1"
+				# add new rule at same priority
+				echo "${tc} filter add dev br0 protocol all prio $currprio u32 match mark $DOWN_mark flowid $flowid"
+				echo "${tc} filter add dev eth0 protocol all prio $currprio u32 match mark $UP_mark flowid $flowid"
+			else
+				# use undefined prio
+				echo "${tc} filter add dev br0 protocol all prio $prio u32 match mark $DOWN_mark flowid $flowid"
+				echo "${tc} filter add dev eth0 protocol all prio $prio u32 match mark $UP_mark flowid $flowid"
+			fi
 		else
 			# add new rule for individual app one priority level higher (-1)
 			echo "${tc} filter add dev br0 protocol all prio $prio u32 match mark $DOWN_mark flowid $flowid"
@@ -1086,9 +1092,9 @@ startup() {
 			write_iptables_rules
 			iptables_static_rules 2>&1 | logger -t "FlexQoS"
 			if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
-				logger -t "FlexQoS" "Applying custom user rules"
+				logger -t "FlexQoS" "Applying custom iptables rules"
 				. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "FlexQoS"
-				logger -t "FlexQoS" "Finished applying custom user rules"
+				logger -t "FlexQoS" "Finished applying custom iptables rules"
 			fi
 
 			sleepdelay=0
@@ -1124,7 +1130,11 @@ startup() {
 			set_tc_variables 	#needs to be set before parse_tcrule
 			write_appdb_rules
 			appdb_static_rules 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
-			[ -f /tmp/${SCRIPTNAME}_tcrules ] && . /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
+			if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
+				logger -t "FlexQoS" "Applying custom AppDB rules"
+				. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
+				logger -t "FlexQoS" "Finished applying custom AppDB rules"
+			fi
 
 			if [ "$ClassesPresent" -lt "8" ]; then
 				logger -t "FlexQoS" "Adaptive QoS not fully done setting up prior to modification script"
