@@ -1063,7 +1063,7 @@ function show_iptables_rules(){
 		data: iptables_temp_array,
 		container: "iptables_rules_block",
 		title: "iptables Rules",
-		//titieHint: "Add your custom rules using the button above.",
+		titieHint: "Edit existing rules by clicking in the table below.",
 		capability: {
 			add: true,
 			del: true,
@@ -1107,7 +1107,7 @@ function show_iptables_rules(){
 					"maxlength" : "18",
 					"valueMust" : false,
 					"placeholder": "192.168.1.254 192.168.1.10/31 !192.168.1.254",
-					"validator" : "ipAddress"
+					"validator" : "dualWanRoutingRules"
 				},
 				{
 					"editMode" : "text",
@@ -1115,7 +1115,7 @@ function show_iptables_rules(){
 					"maxlength" : "18",
 					"valueMust" : false,
 					"placeholder": "8.8.8.8 8.8.0.0/16 !8.8.0.0/16",
-					"validator" : "ipAddress"
+					"validator" : "dualWanRoutingRules"
 				},
 				{
 					"editMode" : "select",
@@ -1160,13 +1160,13 @@ function show_iptables_rules(){
 					"editMode" : "text",
 					"maxlength" : "18",
 					"valueMust" : false,
-					"validator" : "ipAddress"
+					"validator" : "dualWanRoutingRules"
 				},
 				{
 					"editMode" : "text",
 					"maxlength" : "18",
 					"valueMust" : false,
-					"validator" : "ipAddress"
+					"validator" : "dualWanRoutingRules"
 				},
 				{
 					"editMode" : "select",
@@ -1546,7 +1546,7 @@ function SetCurrentPage() {
 		<th width="auto"><div class="table_text">Application</div></a></th>
 		<th width="9%"><a href="javascript:void(0);" onClick="overlib(marksyntax, 500, 500);" onmouseout="nd();"><div class="table_text">Mark</div></a></th>
 		<th width="20%"><a href="javascript:void(0);" onClick="overlib(classsyntax, 300, 500);" onmouseout="nd();"><div class="table_text">Class</div></a></th>
-		<th width="12%">Add / Del</th>
+		<th width="12%">Edit</th>
 	</tr>
 	<tr>
 		<td width="auto" class="appdb_desc"><div id="appdb_desc_x"></div>
