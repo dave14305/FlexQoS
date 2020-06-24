@@ -742,8 +742,6 @@ update() {
 
 	echo "Installing: FlexQoS v${remotever}"
 	echo ""
-	echo "Curl Output:"
-	curl "${GIT_URL}/${SCRIPTNAME}.sh" -o "$SCRIPTPATH" --create-dirs && curl "${GIT_URL}/${SCRIPTNAME}.asp" -o "$WEBUIPATH" && sh "$SCRIPTPATH" -install
 	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
 	exec sh "$SCRIPTPATH" -install
 	exit
