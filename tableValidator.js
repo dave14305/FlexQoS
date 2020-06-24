@@ -437,11 +437,13 @@ var tableValidator = {
 
 				return true;
 			}
-			else if(keyPressed == 97 || keyPressed == 65) { //a or A
-				return true;
-			}
-			else if(keyPressed == 108 || keyPressed == 76) { // l or L
-				return true;
+			else if (keyPressed == 33) { // exclamation !
+				if(objValue.length > 0 && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
+					$obj.val('!' + objValue);
+				}
+				else if (objValue.length == 0)
+					return true;
+				return false;
 			}
 			return false;
 		},
@@ -451,6 +453,8 @@ var tableValidator = {
 			_value = $.trim(_value);
 			_value = _value.toLowerCase();
 			_$obj.val(_value);
+			var _firstChar = _value.charAt(0);
+			_value = _value.replace(/^\!/g, "");
 			if(_value == "") {
 				if(_$obj.hasClass("valueMust"))
 					hintMsg = "Fields cannot be blank.";
@@ -461,15 +465,15 @@ var tableValidator = {
 				var startIPAddr = tableValid_ipAddrToIPDecimal("0.0.0.0");
 				var endIPAddr = tableValid_ipAddrToIPDecimal("255.255.255.255");
 				var ipNum = 0;
-				if(_value == "all") {
-					hintMsg = HINTPASS;
-				}
-				else if(_value.search("/") == -1) {	// only IP
+				if(_value.search("/") == -1) {	// only IP
 					ipNum = tableValid_ipAddrToIPDecimal(_value);
 					if(ipNum > startIPAddr && ipNum < endIPAddr) {
 						hintMsg = HINTPASS;
 						//convert number to ip address
-						_$obj.val(tableValid_decimalToIPAddr(ipNum));
+						if(_firstChar=="!")
+							_$obj.val(_firstChar + tableValid_decimalToIPAddr(ipNum));
+						else
+							_$obj.val(tableValid_decimalToIPAddr(ipNum));
 					}
 					else {
 						hintMsg = _value + " is not a valid IP address!";
@@ -491,7 +495,10 @@ var tableValidator = {
 							else {
 								hintMsg = HINTPASS;
 								//convert number to ip address
-								_$obj.val(tableValid_decimalToIPAddr(ipNum) + "/" + mask_tmp);
+								if(_firstChar=="!")
+									_$obj.val(_firstChar + tableValid_decimalToIPAddr(ipNum) + "/" + mask_tmp);
+								else
+									_$obj.val(tableValid_decimalToIPAddr(ipNum) + "/" + mask_tmp);
 							}
 						}
 						else {
