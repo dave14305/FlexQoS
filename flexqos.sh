@@ -198,18 +198,18 @@ EOF
 	UpCeil="$(printf "%.0f" "$(nvram get qos_obw)")"
 
 	i=0
-	while [ $i -lt 8 ]
+	while [ "$i" -lt "8" ]
 	do
-		eval "DownRate$i=$((DownCeil\*Cat${i}DownBandPercent/100))"
-		eval "UpRate$i=$((UpCeil\*Cat${i}UpBandPercent/100))"
-		eval "DownCeil$i=$((DownCeil\*Cat${i}DownCeilPercent/100))"
-		eval "UpCeil$i=$((UpCeil\*Cat${i}UpCeilPercent/100))"
+		eval "DownRate$i=\$((DownCeil\*Cat${i}DownBandPercent/100))"
+		eval "UpRate$i=\$((UpCeil\*Cat${i}UpBandPercent/100))"
+		eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
+		eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
 		i="$((i+1))"
 	done
 
 	ClassesPresent=0
 	#read existing burst/cburst per download class
-	while read -r class burst cburst;
+	while read -r class burst cburst
 	do
 		ClassesPresent=$((ClassesPresent+1))
 		eval "DownBurst${class}=$burst"
@@ -219,7 +219,7 @@ $(tc class show dev br0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).*
 EOF
 
 	#read existing burst/cburst per upload class
-	while read -r class burst cburst;
+	while read -r class burst cburst
 	do
 		eval "UpBurst${class}=$burst"
 		eval "UpCburst${class}=$cburst"
