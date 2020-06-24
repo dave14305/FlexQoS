@@ -39,6 +39,9 @@ text-align: left;
 .data_tr {
 height: 32px;
 }
+.list_table td {
+font-family: Arial, Verdana, Helvetica;
+}
 span.cat0{
 background-color:#B3645B;
 }
@@ -106,9 +109,6 @@ text-overflow: ellipsis;
 .input_option{
 	border-left-width:1px;
 	border-right-width:1px;
-}
-td.appdb_desc{
-	font-family: "Lucida Console";
 }
 </style>
 
@@ -1241,12 +1241,12 @@ function FlexQoS_mod_toggle()
 	if (FlexQoS_div.style.display == "none")
 	{
 		FlexQoS_div.style.display = "block";
-		FlexQoS_toggle.innerHTML = "FlexQoS Mod <small>(Hide Modification)</small>";
+		FlexQoS_toggle.innerHTML = "FlexQoS <small>(Close)</small>";
 	}
 	else
 	{
 		FlexQoS_div.style.display = "none";
-		FlexQoS_toggle.innerHTML = "FlexQoS Mod <small>(Customize)</small>";
+		FlexQoS_toggle.innerHTML = "FlexQoS <small>(Customize)</small>";
 	}
 }
 
@@ -1531,12 +1531,12 @@ function SetCurrentPage() {
 <tr>
 <td valign="top">
 <div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS Traffic Classification</div>
-<div id="FlexQoS_mod_toggle" style="float:right; color:#FFCC00; display:inline-block; margin:5px; cursor:pointer;" onclick='FlexQoS_mod_toggle()'>FlexQoS Mod <small>(Customize)</small></div>
+<div id="FlexQoS_mod_toggle" style="float:right; color:#FFCC00; display:inline-block; margin:5px; cursor:pointer;" onclick='FlexQoS_mod_toggle()'>FlexQoS <small>(Customize)</small></div>
 <div style="margin-bottom:10px" class="splitLine"></div>
 
 <!-- FlexQoS UI Start-->
 <div id="FlexQoS_mod" style="display:none;">
-<div style="display:inline-block; margin:0px 0px 10px 5px; font-size:14px; text-shadow: 1px 1px 0px black;"><b>QoS Modification</b></div>
+<div style="display:inline-block; margin:0px 0px 10px 5px; font-size:14px; text-shadow: 1px 1px 0px black;"><b>QoS Customization</b></div>
 <div style="display:inline-block; margin:-2px 5px 0px 0px; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_apply();"><span style="margin-left:10px; padding:0 0 0" align="center">Apply</span></div>
 <div id="iptables_rules_block" style=""></div>
 
@@ -1554,7 +1554,7 @@ function SetCurrentPage() {
 		<th width="12%">Edit</th>
 	</tr>
 	<tr>
-		<td width="auto" class="appdb_desc"><div id="appdb_desc_x"></div>
+		<td width="auto"><div id="appdb_desc_x"></div>
 		</td>
 		<td width="9%">
 			<input type="text" maxlength="6" class="input_6_table" name="appdb_mark_x" onfocusout='validate_mark(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' autocomplete="off" autocorrect="off" autocapitalize="off">
