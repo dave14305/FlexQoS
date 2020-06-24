@@ -1710,7 +1710,7 @@ function SetCurrentPage() {
 <tbody>
 <tr>
 <th width="100px">Filter By Device:</th>
-<td bgcolor="#475a5f">
+<td bgcolor="#475a5f" style="text-align: left;">
 <select name="devicefilter" id="devicefilter" style="min-width: 300px; margin:2px 0px 2px 5px" width=100px class="input_option" onchange="deviceFilter = this.value; get_data();">
 <option value="*" > </option>
 </select>
