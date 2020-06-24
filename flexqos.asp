@@ -1001,6 +1001,18 @@ function rate2kbs(rate)
 	return 0
 }
 
+function check_duplicate(){
+	var rule_num = document.getElementById('appdb_rulelist_table').rows.length;
+	var item_num = document.getElementById('appdb_rulelist_table').rows[0].cells.length;
+	for(i=0; i<rule_num; i++){
+		if(document.getElementById('appdb_rulelist_table').rows[i].cells[1].innerHTML == document.form.appdb_mark_x.value) {
+			alert("A rule for this mark already exists.");
+			return true;
+		} else
+			return false;
+	}
+} // check_duplicate
+
 function addAppDBRow(obj, head){
 	if(head == 1)
 		appdb_rulelist_array += "<"
@@ -1026,6 +1038,8 @@ function addRow_AppDB_Group(upper){
 			alert("This table only allows " + upper + " items!");
 			return;
 		}
+		if(check_duplicate() == true)
+			return false;
 		addAppDBRow(document.form.appdb_mark_x, 1);
 		addAppDBRow(document.form.appdb_class_x, 0);
 		document.getElementById('appdb_desc_x').innerHTML="";
