@@ -1070,88 +1070,81 @@ check_qos_tc() {
 } # check_qos_tc
 
 startup() {
-	if [ "$(nvram get qos_enable)" = "1" ] && [ "$(nvram get qos_type)" = "1" ]; then
-		for pid in $(pidof ${SCRIPTNAME}); do
-			if [ "$pid" != $$ ]; then
-				if ! ps -w | /bin/grep -q "^\s*${pid}\s.*\(install\|menu\)"; then		#kill all previous instances of script (-install, -menu instances are whitelisted)
-					kill "$pid"
-					logger -t "FlexQoS" "Delayed Start Canceled (${pid})"
-				fi
-			fi
-		done
-
-		install_webui mount
-		generate_bwdpi_arrays
-		get_config
-
-		if [ -n "$1" ]; then
-			#iptables rules will only be reapplied on firewall "start" due to receiving interface name
-
-			write_iptables_rules
-			iptables_static_rules 2>&1 | logger -t "FlexQoS"
-			if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
-				logger -t "FlexQoS" "Applying custom iptables rules"
-				. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "FlexQoS"
-				logger -t "FlexQoS" "Finished applying custom iptables rules"
-			fi
-
-			sleepdelay=0
-			while [ "$(tc class show dev br0 | /bin/grep -c "parent 1:1 ")" -lt 8 ] && [ "$(tc class show dev eth0 | /bin/grep -c "parent 1:1 ")" -lt 8 ];
-			do
-				[ "$sleepdelay" = "0" ] && logger -t "FlexQoS" "TC Modification Delayed Start"
-				sleep 10s
-				if [ "$sleepdelay" -gt 300 ]; then
-					logger -t "FlexQoS" "TC Modification Delay reached maximum 300 seconds"
-					break
-				fi
-				sleepdelay=$((sleepdelay+10))
-			done
-			logger -t "FlexQoS" "TC Modification delayed for $sleepdelay seconds"
-		fi
-
-		current_undf_rule="$(tc filter show dev br0 | /bin/grep "00ffff" -B1)"
-		if [ -n "$current_undf_rule" ]; then
-			undf_flowid=$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2 | head -1)
-			undf_prio=$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2 | head -1)
-		else
-			undf_flowid=""
-			undf_prio=2
-		fi
-
-		# if TC modifcations have not been applied then run modification script
-		if [ "$undf_flowid" = "1:17" ] || [ -z "$undf_flowid" ]; then
-			if [ -z "$1" ]; then
-				# check action was called without a WAN interface passed
-				logger -t "FlexQoS" "Scheduled Persistence Check -> Reapplying Changes"
-			fi # check
-
-			set_tc_variables 	#needs to be set before parse_tcrule
-			write_appdb_rules
-			appdb_static_rules 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
-			if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
-				logger -t "FlexQoS" "Applying custom AppDB rules"
-				. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
-				logger -t "FlexQoS" "Finished applying custom AppDB rules"
-			fi
-
-			if [ "$ClassesPresent" -lt "8" ]; then
-				logger -t "FlexQoS" "Adaptive QoS not fully done setting up prior to modification script"
-				logger -t "FlexQoS" "(Skipping class modification, delay trigger time period needs increase)"
-			else
-				if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
-					custom_rates 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
-				fi
-			fi # Classes less than 8
-		else # 1:17
-			if [ "$1" = "check" ]; then
-				logger -t "FlexQoS" "Scheduled Persistence Check -> No modifications necessary"
-			else
-				logger -t "FlexQoS" "No TC modifications necessary"
-			fi
-		fi # 1:17
-	else	# Adaptive QoS enabled?
+	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
 		logger -t "FlexQoS" "Adaptive QoS is not enabled. Skipping FlexQoS startup."
-	fi # adaptive qos enabled
+		return 1
+	fi # adaptive qos not enabled
+
+	Check_Lock
+	install_webui mount
+	generate_bwdpi_arrays
+	get_config
+
+	if [ -n "$1" ]; then
+		#iptables rules will only be reapplied on firewall "start" due to receiving interface name
+
+		write_iptables_rules
+		iptables_static_rules 2>&1 | logger -t "FlexQoS"
+		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
+			logger -t "FlexQoS" "Applying custom iptables rules"
+			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "FlexQoS"
+			logger -t "FlexQoS" "Finished applying custom iptables rules"
+		fi
+
+		sleepdelay=0
+		while [ "$(tc class show dev br0 | /bin/grep -c "parent 1:1 ")" -lt 8 ] && [ "$(tc class show dev eth0 | /bin/grep -c "parent 1:1 ")" -lt 8 ];
+		do
+			[ "$sleepdelay" = "0" ] && logger -t "FlexQoS" "TC Modification Delayed Start"
+			sleep 10s
+			if [ "$sleepdelay" -gt 300 ]; then
+				logger -t "FlexQoS" "TC Modification Delay reached maximum 300 seconds"
+				break
+			fi
+			sleepdelay=$((sleepdelay+10))
+		done
+		logger -t "FlexQoS" "TC Modification delayed for $sleepdelay seconds"
+	fi
+
+	current_undf_rule="$(tc filter show dev br0 | /bin/grep "00ffff" -B1)"
+	if [ -n "$current_undf_rule" ]; then
+		undf_flowid=$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2 | head -1)
+		undf_prio=$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2 | head -1)
+	else
+		undf_flowid=""
+		undf_prio=2
+	fi
+
+	# if TC modifcations have not been applied then run modification script
+	if [ "$undf_flowid" = "1:17" ] || [ -z "$undf_flowid" ]; then
+		if [ -z "$1" ]; then
+			# check action was called without a WAN interface passed
+			logger -t "FlexQoS" "Scheduled Persistence Check -> Reapplying Changes"
+		fi # check
+
+		set_tc_variables 	#needs to be set before parse_tcrule
+		write_appdb_rules
+		appdb_static_rules 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
+		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
+			logger -t "FlexQoS" "Applying custom AppDB rules"
+			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
+			logger -t "FlexQoS" "Finished applying custom AppDB rules"
+		fi
+
+		if [ "$ClassesPresent" -lt "8" ]; then
+			logger -t "FlexQoS" "Adaptive QoS not fully done setting up prior to modification script"
+			logger -t "FlexQoS" "(Skipping class modification, delay trigger time period needs increase)"
+		else
+			if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
+				custom_rates 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
+			fi
+		fi # Classes less than 8
+	else # 1:17
+		if [ "$1" = "check" ]; then
+			logger -t "FlexQoS" "Scheduled Persistence Check -> No modifications necessary"
+		else
+			logger -t "FlexQoS" "No TC modifications necessary"
+		fi
+	fi # 1:17
 } # startup
 
 show_help() {
@@ -1189,7 +1182,24 @@ generate_bwdpi_arrays() {
 	fi
 }
 
-logger -t "FlexQoS" "$0 called with $# args: $*"
+Kill_Lock() {
+	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" ]; then
+		logger -t "$SCRIPTNAME" "[*] Killing Delayed Process (pid=$(sed -n '1p' /tmp/${SCRIPTNAME}.lock))"
+		logger -t "$SCRIPTNAME" "[*] $(ps | awk -v pid="$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" '$1 == pid')"
+		kill "$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)"
+	fi
+	rm -rf /tmp/${SCRIPTNAME}.lock
+} # Kill_Lock
+
+Check_Lock() {
+	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" ] && [ "$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" != "$$" ]; then
+		Kill_Lock
+	fi
+	echo "$$" > /tmp/${SCRIPTNAME}.lock
+	lock="true"
+} # Check_Lock
+
+logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
 arg1="$(echo "$1" | sed 's/^-//')"
 if [ -z "$2" ]; then
 	wan="$(nvram get wan0_ifname)"
@@ -1234,3 +1244,5 @@ case "$arg1" in
 		show_help
 		;;
 esac
+
+if [ "$lock" = "true" ]; then rm -rf "/tmp/${SCRIPTNAME}.lock"; fi
