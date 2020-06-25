@@ -1,4 +1,4 @@
-# FlexQoS - Flexible QoS Enhancement Script for Adaptive QOS on ASUS Routers running ASUSWRT-Merlin
+# FlexQoS - Flexible QoS Enhancement Script for Adaptive QOS on ASUSWRT-Merlin
 
 This script has been tested on ASUS RT-AC68U, running ASUSWRT-Merlin 384.18, using Adaptive QoS with Manual Bandwidth Settings
 
@@ -29,3 +29,15 @@ In your SSH Client:
 In your SSH Client:
 
 ``` /jffs/addons/flexqos/flexqos.sh -uninstall ```
+
+[![Unbound UI](https://i.imgur.com/m0N9EwF.png "Unbound UI")](https://i.imgur.com/m0N9EwF.png "Unbound UI")
+
+## Screenshots
+###Traffic Pie Chart
+[![Traffic Pie Chart](https://i.imgur.com/htAkaDq.png "Traffic Pie Chart")](https://i.imgur.com/htAkaDq.png "Traffic Pie Chart")
+
+###Customization Tables
+[![Customization Tables](https://i.imgur.com/cvus7VE.png "Customization Tables")](https://i.imgur.com/cvus7VE.png "Customization Tables")
+
+###Create New Rule
+[![Create New Rule](https://i.imgur.com/dbpABjg.png "Create New Rule")](https://i.imgur.com/dbpABjg.png "Create New Rule")
