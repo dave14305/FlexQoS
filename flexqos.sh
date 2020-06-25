@@ -1,6 +1,6 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.5
+version=0.6
 release=06/25/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
@@ -604,7 +604,7 @@ parse_iptablerule() {
 	esac
 
 	{
-		if [ "$PROTO" = "both" ]; then
+		if [ "$PROTO" = "-p both" ]; then
 			# download ipv4
 			echo "iptables -D POSTROUTING -t mangle -o br0 ${DOWN_Lip} ${DOWN_Rip} ${PROTO//both/tcp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst} >/dev/null 2>&1"
 			echo "iptables -A POSTROUTING -t mangle -o br0 ${DOWN_Lip} ${DOWN_Rip} ${PROTO//both/tcp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst}"
