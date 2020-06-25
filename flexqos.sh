@@ -319,8 +319,10 @@ debug(){
 	echo "Upceils -- $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
 	echo "Upbursts -- $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
 	echo "UpCbursts -- $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
+	echo "iptables settings: $(am_settings_get flexqos_iptables)"
 	write_iptables_rules
 	cat /tmp/${SCRIPTNAME}_iprules
+	echo "appdb rules: $(am_settings_get flexqos_appdb)"
 	write_appdb_rules
 	cat /tmp/${SCRIPTNAME}_tcrules
 }
