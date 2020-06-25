@@ -1176,13 +1176,13 @@ function show_iptables_rules(){
 			inputs : [
 				{
 					"editMode" : "text",
-					"maxlength" : "18",
+					"maxlength" : "19",
 					"valueMust" : false,
 					"validator" : "dualWanRoutingRules"
 				},
 				{
 					"editMode" : "text",
-					"maxlength" : "18",
+					"maxlength" : "19",
 					"valueMust" : false,
 					"validator" : "dualWanRoutingRules"
 				},
