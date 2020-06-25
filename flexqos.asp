@@ -1295,10 +1295,12 @@ function set_FlexQoS_mod_vars()
 				if (iptables_temp_rule != "<>>both>>>>0")
 					iptables_rulelist_array += iptables_temp_rule;
 				}
-				gameCIDR=FreshJR_nvram[8].toString();
-				if (gameCIDR.length > 1)
-				 	iptables_rulelist_array = "<"+gameCIDR+">>both>>!80,443>000000>1" + iptables_rulelist_array;
-				FreshJR_nvram = "";
+				if (FreshJR_nvram[8]) {
+					gameCIDR=FreshJR_nvram[8].toString();
+					if (gameCIDR.length > 1)
+						iptables_rulelist_array = "<"+gameCIDR+">>both>>!80,443>000000>1" + iptables_rulelist_array;
+					FreshJR_nvram = "";
+				}
 			}
 		else // rules are migrated to new API variables
 			iptables_rulelist_array = custom_settings.flexqos_iptables;
@@ -1308,20 +1310,22 @@ function set_FlexQoS_mod_vars()
 			// start with default appdb rules which can be edited/deleted later by user
 			appdb_rulelist_array = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5";
 			var FreshJR_nvram = decodeURIComponent('<% nvram_char_to_ascii("",fb_email_dbg); %>').split(">");
-			for (var j=1;j<5;j++) {
-				var appdb_temp_rule = "";
-				FreshJR_nvram[j] = FreshJR_nvram[j].split(";");
-				for (var k=0;k<FreshJR_nvram[j].length;k++) {
-					if (k==0)
-						appdb_temp_rule += "<";
-					else
-						appdb_temp_rule += ">";
-					appdb_temp_rule += FreshJR_nvram[j][k];
-				} // for inner loop
-			if (appdb_temp_rule != "<>0")
-				appdb_rulelist_array += appdb_temp_rule;
+			if (FreshJR_nvram.length > 5) {
+				for (var j=1;j<5;j++) {
+					var appdb_temp_rule = "";
+					FreshJR_nvram[j] = FreshJR_nvram[j].split(";");
+					for (var k=0;k<FreshJR_nvram[j].length;k++) {
+						if (k==0)
+							appdb_temp_rule += "<";
+						else
+							appdb_temp_rule += ">";
+						appdb_temp_rule += FreshJR_nvram[j][k];
+					} // for inner loop
+				if (appdb_temp_rule != "<>0")
+					appdb_rulelist_array += appdb_temp_rule;
+				}
+				FreshJR_nvram = "";
 			}
-			FreshJR_nvram = "";
 		}
 		else
 			appdb_rulelist_array = custom_settings.flexqos_appdb;
@@ -1350,7 +1354,10 @@ function set_FlexQoS_mod_vars()
 		if ( custom_settings.flexqos_bandwidth == undefined )
 		{
 			var FreshJR_nvram = decodeURIComponent('<% nvram_char_to_ascii("",fb_email_dbg); %>').split(">");
-			bandwidth = "<" + FreshJR_nvram[7].replace(/\;/g,">") + "<" + FreshJR_nvram[8].replace(/\;/g,">") + "<" + FreshJR_nvram[9].replace(/\;/g,">") + "<" + FreshJR_nvram[10].replace(/\;/g,">");
+			if (FreshJR_nvram.length > 10)
+				bandwidth = "<" + FreshJR_nvram[7].replace(/\;/g,">") + "<" + FreshJR_nvram[8].replace(/\;/g,">") + "<" + FreshJR_nvram[9].replace(/\;/g,">") + "<" + FreshJR_nvram[10].replace(/\;/g,">");
+			else
+				bandwidth = "<5>20>15>10>10>30>5>5<100>100>100>100>100>100>100>100<5>20>15>30>10>10>5>5<100>100>100>100>100>100>100>100";
 			FreshJR_nvram = "";
 		}
 		else
