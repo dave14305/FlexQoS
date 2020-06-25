@@ -14,7 +14,7 @@ This script has been tested on ASUS RT-AC68U, running ASUSWRT-Merlin 384.18, usi
 
 ## Full Overview:
 
-See <a href="https://www.snbforums.com/threads/release-freshjr-adaptive-qos-improvements-custom-rules-and-inner-workings.36836/" rel="nofollow">SmallNetBuilder Forums</a> for more information & discussion
+See <a href="https://www.snbforums.com/threads/64882/" rel="nofollow">SmallNetBuilder Forums</a> for more information & discussion
 
 ## Installation:
 
