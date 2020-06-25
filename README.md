@@ -30,9 +30,8 @@ In your SSH Client:
 
 ``` /jffs/addons/flexqos/flexqos.sh -uninstall ```
 
-[![Unbound UI](https://i.imgur.com/m0N9EwF.png "Unbound UI")](https://i.imgur.com/m0N9EwF.png "Unbound UI")
-
 ## Screenshots
+
 ###Traffic Pie Chart
 [![Traffic Pie Chart](https://i.imgur.com/htAkaDq.png "Traffic Pie Chart")](https://i.imgur.com/htAkaDq.png "Traffic Pie Chart")
 
