@@ -945,7 +945,7 @@ Uninstall_FreshJR() {
 	echo -n "Removing cron job..."
 	cru d FreshJR_QOS 2>/dev/null && echo "Done." || echo "Failed!"
 	# Remove mount
-	if mount | /bin/grep -q www_FreshJR_QoS_Stats.asp; then
+	if mount | /bin/grep -q QoS_Stats.asp; then
 		echo -n "Removing old webui mount..."
 		umount /www/QoS_Stats.asp 2>/dev/null && echo "Done." || echo "Failed!"
 	fi
