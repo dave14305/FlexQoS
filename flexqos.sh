@@ -1045,8 +1045,17 @@ uninstall() {
 } # uninstall
 
 get_config() {
+	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables)" ]; then
+		am_settings_set "${SCRIPTNAME}_iptables" "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
+	fi
 	iptables_rules="$(am_settings_get ${SCRIPTNAME}_iptables)"
+	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
+		am_settings_set "${SCRIPTNAME}_appdb" "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
+	fi
 	appdb_rules="$(am_settings_get ${SCRIPTNAME}_appdb)"
+	if [ -z "$(am_settings_get ${SCRIPTNAME}_bandwidth)" ]; then
+		am_settings_set "${SCRIPTNAME}_bandwidth" "<5>20>15>10>10>30>5>5<100>100>100>100>100>100>100>100<5>20>15>30>10>10>5>5<100>100>100>100>100>100>100>100"
+	fi
 	read \
 		drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7 \
 		dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7 \
