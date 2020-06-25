@@ -1122,7 +1122,7 @@ function show_iptables_rules(){
 				{
 					"editMode" : "text",
 					"title" : "Local IP/CIDR",
-					"maxlength" : "18",
+					"maxlength" : "19",
 					"valueMust" : false,
 					"placeholder": "192.168.1.100 !192.168.1.100 192.168.1.100/31 !192.168.1.100/31",
 					"validator" : "dualWanRoutingRules"
@@ -1130,7 +1130,7 @@ function show_iptables_rules(){
 				{
 					"editMode" : "text",
 					"title" : "Remote IP/CIDR",
-					"maxlength" : "18",
+					"maxlength" : "19",
 					"valueMust" : false,
 					"placeholder": "9.9.9.9 !9.9.9.9 9.9.9.0/24 !9.9.9.0/24",
 					"validator" : "dualWanRoutingRules"

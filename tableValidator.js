@@ -179,7 +179,7 @@ var tableValidator = {
 				return true;
 			}
 			else if (keyPressed == 33) { // exclamation !
-				if(objValue.length > 0 && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
+				if(objValue.length > 0 && objValue.length < $obj[0].attributes.maxlength.value && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
 					$obj.val('!' + objValue);
 				}
 				else if (objValue.length == 0)
@@ -438,7 +438,7 @@ var tableValidator = {
 				return true;
 			}
 			else if (keyPressed == 33) { // exclamation !
-				if(objValue.length > 0 && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
+				if(objValue.length > 0 && objValue.length < $obj[0].attributes.maxlength.value && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
 					$obj.val('!' + objValue);
 				}
 				else if (objValue.length == 0)
