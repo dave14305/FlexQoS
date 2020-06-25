@@ -215,7 +215,7 @@ EOF
 		eval "DownBurst${class}=$burst"
 		eval "DownCburst${class}=$cburst"
 	done <<EOF
-$(tc class show dev br0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+b).* cburst ([0-9]+b)/\1 \2 \3/g')
+$(tc class show dev br0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
 EOF
 
 	#read existing burst/cburst per upload class
@@ -224,7 +224,7 @@ EOF
 		eval "UpBurst${class}=$burst"
 		eval "UpCburst${class}=$cburst"
 	done <<EOF
-$(tc class show dev eth0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+b).* cburst ([0-9]+b)/\1 \2 \3/g')
+$(tc class show dev eth0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
 EOF
 
 	#read parameters for fakeTC
