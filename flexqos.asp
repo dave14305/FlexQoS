@@ -1003,14 +1003,13 @@ function rate2kbs(rate)
 
 function check_duplicate(){
 	var rule_num = document.getElementById('appdb_rulelist_table').rows.length;
-	var item_num = document.getElementById('appdb_rulelist_table').rows[0].cells.length;
 	for(i=0; i<rule_num; i++){
 		if(document.getElementById('appdb_rulelist_table').rows[i].cells[1].innerHTML == document.form.appdb_mark_x.value) {
 			alert("A rule for this mark already exists.");
 			return true;
-		} else
-			return false;
+		}
 	}
+	return false;
 } // check_duplicate
 
 function addAppDBRow(obj, head){
