@@ -1471,15 +1471,27 @@ function FlexQoS_mod_apply() {
 			}
 		}
 	}
+
+	if (iptables_rulelist_array.length > 2999) {
+		alert("Total iptables rules exceeds 2999 bytes! Please delete or consolidate!");
+		return
+	}
+	if (appdb_rulelist_array.length > 2999) {
+		alert("Total AppDB rules exceeds 2999 bytes! Please delete or consolidate!");
+		return
+	}
 	custom_settings.flexqos_iptables = iptables_rulelist_array;
 	custom_settings.flexqos_appdb = appdb_rulelist_array;
 	custom_settings.flexqos_bandwidth = bandwidth;
 
 	/* Store object as a string in the amng_custom hidden input field */
-	document.getElementById('amng_custom').value = JSON.stringify(custom_settings);
-
-	document.form.action_script.value = "restart_qos;restart_firewall";
-	document.form.submit();
+	if (JSON.stringify(custom_settings).length < 8192) {
+		document.getElementById('amng_custom').value = JSON.stringify(custom_settings);
+		document.form.action_script.value = "restart_qos;restart_firewall";
+		document.form.submit();
+	}
+	else
+		alert("Settings for all addons exceeds 8K limit! Cannot save!");
 }
 
 function validate_mark(input)
