@@ -371,7 +371,7 @@ EOF
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
 		tmp_appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
 		tmp_appdb_rules="${tmp_appdb_rules}<${r1}>${d1}<${r2}>${d2}<${r3}>${d3}<${r4}>${d4}"
-		tmp_appdb_rules=$(echo "$tmp_appdb_rules" | sed 's/<>//g')
+		tmp_appdb_rules=$(echo "$tmp_appdb_rules" | sed 's/<>0//g')
 		am_settings_set ${SCRIPTNAME}_appdb "$tmp_appdb_rules"
 	fi
 
