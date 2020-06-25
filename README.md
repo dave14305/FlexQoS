@@ -32,11 +32,11 @@ In your SSH Client:
 
 ## Screenshots
 
-###Traffic Pie Chart
+### Traffic Pie Chart
 [![Traffic Pie Chart](https://i.imgur.com/htAkaDq.png "Traffic Pie Chart")](https://i.imgur.com/htAkaDq.png "Traffic Pie Chart")
 
-###Customization Tables
+### Customization Tables
 [![Customization Tables](https://i.imgur.com/cvus7VE.png "Customization Tables")](https://i.imgur.com/cvus7VE.png "Customization Tables")
 
-###Create New Rule
+### Create New Rule
 [![Create New Rule](https://i.imgur.com/dbpABjg.png "Create New Rule")](https://i.imgur.com/dbpABjg.png "Create New Rule")
