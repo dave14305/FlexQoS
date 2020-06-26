@@ -1132,20 +1132,21 @@ startup() {
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "FlexQoS"
 			logger -t "FlexQoS" "Finished applying custom iptables rules"
 		fi
-
-		sleepdelay=0
-		while check_qos_tc;
-		do
-			[ "$sleepdelay" = "0" ] && logger -t "FlexQoS" "TC Modification Delayed Start"
-			sleep 10s
-			if [ "$sleepdelay" -gt 300 ]; then
-				logger -t "FlexQoS" "TC Modification Delay reached maximum 300 seconds"
-				break
-			fi
-			sleepdelay=$((sleepdelay+10))
-		done
-		logger -t "FlexQoS" "TC Modification delayed for $sleepdelay seconds"
 	fi
+
+	sleepdelay=0
+	while check_qos_tc;
+	do
+		[ "$sleepdelay" = "0" ] && logger -t "FlexQoS" "TC Modification Delayed Start"
+		sleep 10s
+		if [ "$sleepdelay" -ge "300" ]; then
+			logger -t "FlexQoS" "TC Modification Delay reached maximum 300 seconds"
+			break
+		else
+			sleepdelay=$((sleepdelay+10))
+		fi
+	done
+	[ "$sleepdelay" -gt "0" ] && logger -t "FlexQoS" "TC Modification delayed for $sleepdelay seconds"
 
 	current_undf_rule="$(tc filter show dev br0 | /bin/grep "00ffff" -B1)"
 	if [ -n "$current_undf_rule" ]; then
