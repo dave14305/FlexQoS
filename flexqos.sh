@@ -846,8 +846,9 @@ install_webui() {
 		[ ! -d "${ADDON_DIR}/table" ] && mkdir -p "${ADDON_DIR}/table"
 		download_file "table.js" "${ADDON_DIR}/table/table.js"
 		download_file "tableValidator.js" "${ADDON_DIR}/table/tableValidator.js"
+	else
+		echo "Mounting WebUI page..."
 	fi
-	echo "Mounting WebUI page..."
 	am_get_webui_page "$WEBUIPATH"
 	if [ "$am_webui_page" = "none" ]; then
 		logger -t "FlexQoS" "No API slots available to install web page"
@@ -1130,7 +1131,6 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logger -t "FlexQoS" "Applying custom iptables rules"
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "FlexQoS"
-			logger -t "FlexQoS" "Finished applying custom iptables rules"
 		fi
 	fi
 
@@ -1170,7 +1170,6 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logger -t "FlexQoS" "Applying custom AppDB rules"
 			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
-			logger -t "FlexQoS" "Finished applying custom AppDB rules"
 		fi
 
 		if [ "$ClassesPresent" -lt "8" ]; then
