@@ -28,9 +28,6 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <script type="text/javascript" src="/ext/flexqos/table.js"></script>
 <script type="text/javascript" src="/ext/flexqos/flexqos_arrays.js"></script>
 <style>
-.data_tr {
-height: 32px;
-}
 .list_table td {
 font-family: Arial, Verdana, Helvetica;
 }
@@ -75,10 +72,6 @@ display:none;
 div.t_item:active span.t_mark{
 display:inline;
 }
-.input_option{
-	border-left-width:1px;
-	border-right-width:1px;
-}
 </style>
 
 <script>
@@ -87,6 +80,7 @@ var device = {};		// devices database --> device["IP"] = { mac: "AA:BB:CC:DD:EE:
 var clientlist = <% get_clientlist_from_json_database(); %>;		// data from /jffs/nmp_cl_json.js (used to correlate mac addresses to corresponding device names  )
 var tablesize = 500;		//max size of tracked connections table
 var tabledata;		//tabled of tracked connections after device-filtered
+var filter = Array(6);
 var sortmode=6;		//current sort mode of tracked connections table (default =6)
 var dhcp_start = "<% nvram_get("dhcp_start"); %>";
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
@@ -217,6 +211,11 @@ function cidr_end(addr) {
 	return (dec_ip|dec_mask)>>>0;
 };
 
+function set_filter(field, o) {
+	filter[field] = o.value.toLowerCase();
+	draw_conntrack_table();
+}
+
 function draw_conntrack_table() {
 	//bwdpi_conntrack[i][0] = protocol
 	//bwdpi_conntrack[i][1] = Source IP
@@ -243,7 +242,7 @@ function draw_conntrack_table() {
 			bwdpi_conntrack[i][5] =	'<div  class="t_item">' +
 									'<span class="t_label catrow cat' + qos_class + '"' + size + '>' + label + '</span>' +		//sort by Container Destination
 									'<span class="t_mark  catrow cat' + qos_class + '"' + size + '>MARK:' + mark + '</span>' +
-									'<div>';
+									'</div>';
 
 			if (bwdpi_conntrack[i][1].indexOf(":") >= 0) {
 				bwdpi_conntrack[i][1] = compIPV6(bwdpi_conntrack[i][1]);
@@ -274,7 +273,7 @@ function draw_conntrack_table() {
 			}
 			else
 			{
-				if (bwdpi_conntrack[i][1].length > 36)
+				if (bwdpi_conntrack[i][1].length > 32)
 					bwdpi_conntrack[i][1] = '<div style=\"font-size: 80%;\">' + bwdpi_conntrack[i][1] + '</div>'
 			}
 
@@ -381,22 +380,22 @@ function updateTable()
 	for(var i = 0; i < tabledata.length; i++){
 		if(tabledata[i])
 		{
-			code += '<tr class="row_tr data_tr">'
+			code += '<tr>'
 			+ '<td>' + tabledata[i][0] +'</td>'
 			+ '<td>' + tabledata[i][1] +'</td>'
 			+ '<td>' + tabledata[i][2] +'</td>'
-			+ '<td' + (tabledata[i][3].length > 36 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
+			+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
 			+ '<td>' + tabledata[i][4] +'</td>'
 			+ '<td>' + tabledata[i][5] +'</td></tr>';
 		}
 		else
 		{
-			code += '<tr class="row_tr data_tr"></tr>';
+			code += '<tr></tr>';
 		}
 	}
 	if (tabledata[tablesize - 1] )
 	{
-		code += '<tr class="row_tr data_tr"><td style="text-align:center; font-weight:bold;" colspan="7">Reached table limit.  Please use device filter.</td>'
+		code += '<tr><td style="text-align:center; font-weight:bold;" colspan="7">Reached table limit.  Please use device filter.</td></tr>'
 	}
 	tbl.innerHTML = code;
 }
@@ -1730,7 +1729,28 @@ function SetCurrentPage() {
 <!-- FlexQoS Device Filter End-->
 <!-- FlexQoS Connection Table Start-->
 
-<!-- <table cellpadding="4" class="tableApi_table" id="tracked_connections"> -->
+<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections</td></tr></thead>
+	<tr>
+		<th width="5%">Proto</th>
+		<th width="28%">Source IP</th>
+		<th width="6%">Port</th>
+		<th width="28%">Destination IP</th>
+		<th width="6%">Port</th>
+		<th width="27%">Application</th>
+	</tr>
+	<tr>
+		<td><select class="input_option" onchange="set_filter(0, this);">
+			<option value="">any</option>
+			<option value="tcp">tcp</option>
+			<option value="udp">udp</option>
+		</select></td>
+		<td><input type="text" class="input_15_table" maxlength="39" oninput="set_filter(1, this);"></input></td>
+		<td><input type="text" class="input_6_table" maxlength="5" oninput="set_filter(2, this);"></input></td>
+		<td><input type="text" class="input_15_table" maxlength="39" oninput="set_filter(3, this);"></input></td>
+		<td><input type="text" class="input_6_table" maxlength="5" oninput="set_filter(4, this);"></input></td>
+		<td><input type="text" class="input_18_table" maxlength="48" oninput="set_filter(5, this);"></input></td>
+	</tr>
+</table>
 <table cellpadding="4" class="FormTable_table" id="tracked_connections">
 <thead>
    <td colspan="6">Tracked connections</td>
