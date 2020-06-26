@@ -737,7 +737,7 @@ update() {
 		echo -n " Would you like to overwrite your existing installation anyway? [1=Yes 2=No] : "
 		read -r yn
 		echo ""
-		if ! [ "$yn" = "1"  ]; then
+		if ! [ "$yn" = "1" ]; then
 			echo " No Changes have been made"
 			echo ""
 			return 0
@@ -753,9 +753,9 @@ update() {
 
 prompt_restart() {
 	echo ""
-	echo -n "Would you like to restart QoS for modifications to take effect? [Y=Yes N=No]: "
+	echo -n "Would you like to restart QoS for modifications to take effect? [1=Yes 2=No]: "
 	read -r yn
-	if [ "$yn" = "Y" ] || [ "$yn" = "y" ]; then
+	if [ "$yn" = "1" ]; then
 		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then
 			echo "Restarting QoS and Firewall..."
 			service "restart_qos;restart_firewall"
@@ -795,9 +795,9 @@ menu() {
 			# clear
 			echo "FlexQoS v${version} released ${release}"
 			echo ""
-			echo -n " Confirm you want to uninstall FlexQoS [Y=Yes N=No] : "
+			echo -n " Confirm you want to uninstall FlexQoS [1=Yes 2=No] : "
 			read -r yn
-			if [ "$yn" = "Y" ] || [ "$yn" = "y" ]; then
+			if [ "$yn" = "1" ]; then
 				echo ""
 				sh ${SCRIPTPATH} -uninstall
 				echo ""
