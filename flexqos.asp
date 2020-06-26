@@ -1320,7 +1320,7 @@ function set_FlexQoS_mod_vars()
 							appdb_temp_rule += ">";
 						appdb_temp_rule += FreshJR_nvram[j][k];
 					} // for inner loop
-				if (appdb_temp_rule != "<>0")
+				if (appdb_temp_rule != "<>0" || appdb_temp_rule != "<>")
 					appdb_rulelist_array += appdb_temp_rule;
 				}
 				FreshJR_nvram = "";
@@ -1342,7 +1342,7 @@ function set_FlexQoS_mod_vars()
 		appdb_temp_array = appdb_rulelist_array.split("<");
 		appdb_temp_array.shift();
 		for (var a=0; a<appdb_temp_array.length;a++) {
-			if (appdb_temp_array[a] != "") {
+			if (appdb_temp_array[a].length == 8) {
 				appdb_temp_array[a]=appdb_temp_array[a].split(">");
 				appdb_temp_array[a].unshift(catdb_label_array[catdb_mark_array.indexOf(appdb_temp_array[a][0])]);
 				rules.push(create_rule("", "", "", "", "", appdb_temp_array[a][1], appdb_temp_array[a][2]));
