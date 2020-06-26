@@ -1021,7 +1021,7 @@ install() {
                 proto="http"
         fi
         if [ -n "$(nvram get lan_domain)" ]; then
-                domain="$(nvram get lan_hostname).$(nvram get lan_domain)""
+                domain="$(nvram get lan_hostname).$(nvram get lan_domain)"
         else
                 domain="$(nvram get lan_ipaddr)"
         fi
