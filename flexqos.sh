@@ -1103,9 +1103,9 @@ write_appdb_rules() {
 check_qos_tc() {
 	dlclasscnt="$(tc class show dev br0 | /bin/grep -c "parent 1:1 ")" # should be 8
 	ulclasscnt="$(tc class show dev eth0 | /bin/grep -c "parent 1:1 ")" # should be 8
-	dlfiltercnt="$(tc filter show dev br0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 40
-	ulfiltercnt="$(tc filter show dev eth0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 40
-	if [ "$dlclasscnt" -lt "8" ] || [ "$ulclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "40" ] || [ "$ulfiltercnt" -lt "40" ]; then
+	dlfiltercnt="$(tc filter show dev br0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+	ulfiltercnt="$(tc filter show dev eth0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+	if [ "$dlclasscnt" -lt "8" ] || [ "$ulclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ "$ulfiltercnt" -lt "39" ]; then
 		return 0
 	fi
 	return 1
