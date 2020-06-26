@@ -1017,7 +1017,7 @@ install() {
 	if [ "$(nvram get http_enable)" = "1" ]; then
 		echo "https://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get https_lanport)/$am_webui_page"
 	else
-		echo "http://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get http_lanport)/$am_webui_page"
+		echo "http://$(nvram get lan_ipaddr):$(nvram get http_lanport)/$am_webui_page"
 	fi
 	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart
 } # install
