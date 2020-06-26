@@ -884,8 +884,8 @@ Auto_ServiceEventEnd() {
 	if [ ! -x "/jffs/scripts/service-event-end" ]; then
 		chmod 755 /jffs/scripts/service-event-end
 	fi
-	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*sh ${SCRIPTPATH}"; then
-		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then sh ${SCRIPTPATH} -check; fi # FlexQoS Addition"
+	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*\{ sh ${SCRIPTPATH}"; then
+		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
