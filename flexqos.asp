@@ -1205,10 +1205,10 @@ function show_appdb_rules() {
 					code +='<td width="20%">'+ class_title[appdb_rulelist_col[j]] +'</td>';
 				} else {
 					code +='<td width="auto">'+ catdb_label_array[catdb_mark_array.indexOf(appdb_rulelist_col[j])] +'</td>';
-					code +='<td width="9%">'+ appdb_rulelist_col[j] +'</td>';
+					code +='<td width="10%">'+ appdb_rulelist_col[j] +'</td>';
 				}
 			}
-			code +='<td width="12%"><input class="edit_btn" onclick="edit_appdb_Row(this);" value=""/>';
+			code +='<td width="15%"><input class="edit_btn" onclick="edit_appdb_Row(this);" value=""/>';
 			code +='<input class="remove_btn" onclick="del_appdb_Row(this);" value=""/></td></tr>';
 		}
 	}
@@ -1551,21 +1551,21 @@ function SetCurrentPage() {
 	<tbody>
 	<tr>
 		<th width="auto"><div class="table_text">Application</div></a></th>
-		<th width="9%"><a href="javascript:void(0);" onClick="overlib(marksyntax, 500, 500);" onmouseout="nd();"><div class="table_text">Mark</div></a></th>
+		<th width="10%"><a href="javascript:void(0);" onClick="overlib(marksyntax, 500, 500);" onmouseout="nd();"><div class="table_text">Mark</div></a></th>
 		<th width="20%"><a href="javascript:void(0);" onClick="overlib(classsyntax, 300, 500);" onmouseout="nd();"><div class="table_text">Class</div></a></th>
-		<th width="12%">Edit</th>
+		<th width="15%">Edit</th>
 	</tr>
 	<tr>
 		<td width="auto"><div id="appdb_desc_x"></div>
 		</td>
-		<td width="9%">
+		<td width="10%">
 			<input type="text" maxlength="6" class="input_6_table" name="appdb_mark_x" onfocusout='validate_mark(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' autocomplete="off" autocorrect="off" autocapitalize="off">
 		</td>
 		<td width="20%">
 			<select name="appdb_class_x" id="appdb_class_x" class="input_option">
 			</select>
 		</td>
-		<td width="12%">
+		<td width="15%">
 			<div><input type="button" class="add_btn" onClick="addRow_AppDB_Group(32);" value=""></div>
 		</td>
 	</tr>
@@ -1718,7 +1718,7 @@ function SetCurrentPage() {
 <table cellpadding="4" class="tableApi_table" style="margin-bottom:10px;" id="filter_device">
 <tbody>
 <tr>
-<th width="100px">Filter By Device:</th>
+<th width="110px">Filter By Device:</th>
 <td bgcolor="#475a5f" style="text-align: left;">
 <select name="devicefilter" id="devicefilter" style="min-width: 300px; margin:2px 0px 2px 5px" width=100px class="input_option" onchange="deviceFilter = this.value; get_data();">
 <option value="*" > </option>
