@@ -301,11 +301,11 @@ function draw_conntrack_table() {
 			{
 				bwdpi_conntrack[i][1] =
 				//'<div  title="' + bwdpi_conntrack[i][1].split('.')[3].padStart(3, '#') + '" class="localdeviceip">' + bwdpi_conntrack[i][1] + '</div>' +
-					'<div  title="' + bwdpi_conntrack[i][1] + '" class="localdeviceip">' + device[bwdpi_conntrack[i][1]].name + '</div>'
+					'<div  title="' + bwdpi_conntrack[i][1] + '">' + device[bwdpi_conntrack[i][1]].name + '</div>'
 			}
 			else
 			{
-				if (bwdpi_conntrack[i][1].length > 24)
+				if (bwdpi_conntrack[i][1].length > 36)
 					bwdpi_conntrack[i][1] = '<div style=\"font-size: 80%;\">' + bwdpi_conntrack[i][1] + '</div>'
 			}
 
@@ -416,7 +416,7 @@ function updateTable()
 			+ '<td>' + tabledata[i][0] +'</td>'
 			+ '<td>' + tabledata[i][1] +'</td>'
 			+ '<td>' + tabledata[i][2] +'</td>'
-			+ '<td' + (tabledata[i][3].length > 24 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
+			+ '<td' + (tabledata[i][3].length > 36 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
 			+ '<td>' + tabledata[i][4] +'</td>'
 			+ '<td>' + tabledata[i][5] +'</td></tr>';
 		}
