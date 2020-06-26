@@ -28,14 +28,6 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <script type="text/javascript" src="/ext/flexqos/table.js"></script>
 <script type="text/javascript" src="/ext/flexqos/flexqos_arrays.js"></script>
 <style>
-/*
-.tableApi_table th {
-height: 22px;
-text-align: left;
-}
-.tableApi_table td {
-text-align: left;
-} */
 .data_tr {
 height: 32px;
 }
@@ -71,40 +63,17 @@ padding: 4px 8px 4px 8px; color: white !important;
 border-radius: 5px; border: 1px #2C2E2F solid;
 white-space: nowrap;
 }
-
 div.t_item{
 cursor:default;
 }
 span.t_mark{
 display:none;
 }
-
 div.t_item:active span.t_label{
 display:none;
 }
 div.t_item:active span.t_mark{
 display:inline;
-}
-
-div.localdeviceip{
-display:inline-block;
-width:50%;
-}
-span.devicename{
-display:inline-block;
-font-size:75%;
-width:50%;
-vertical-align: middle;
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
-}
-
-.input_15_table{
-	margin-left:0px;
-}
-.input_6_table{
-	margin-left:0px;
 }
 .input_option{
 	border-left-width:1px;
@@ -1254,12 +1223,12 @@ function FlexQoS_mod_toggle()
 	if (FlexQoS_div.style.display == "none")
 	{
 		FlexQoS_div.style.display = "block";
-		FlexQoS_toggle.innerHTML = "FlexQoS <small>(Close)</small>";
+		FlexQoS_toggle.innerHTML = "Close";
 	}
 	else
 	{
 		FlexQoS_div.style.display = "none";
-		FlexQoS_toggle.innerHTML = "FlexQoS <small>(Customize)</small>";
+		FlexQoS_toggle.innerHTML = "Customize";
 	}
 }
 
@@ -1267,7 +1236,7 @@ function set_FlexQoS_mod_vars()
 {
 	if (qos_mode != 2) {
 		var element = document.getElementById('FlexQoS_mod_toggle')
-		element.innerHTML="FlexQoS Mod <small>(Adaptive QoS is Disabled)</small>";
+		element.innerHTML="Adaptive QoS is Disabled";
 		element.removeAttribute("onclick");
 		element.style.cursor = "";
 	}
@@ -1563,13 +1532,14 @@ function SetCurrentPage() {
 <tr>
 <td valign="top">
 <div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS Traffic Classification</div>
-<div id="FlexQoS_mod_toggle" style="float:right; color:#FFCC00; display:inline-block; margin:5px; cursor:pointer;" onclick='FlexQoS_mod_toggle()'>FlexQoS <small>(Customize)</small></div>
+<!-- <div id="FlexQoS_mod_toggle" style="float:right; color:#FFCC00; display:inline-block; margin:5px; cursor:pointer;" onclick='FlexQoS_mod_toggle()'>Customize</div> -->
+<div id="FlexQoS_mod_toggle" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_toggle();"><span style="padding:0 0 0" align="center">Customize</span></div>
 <div style="margin-bottom:10px" class="splitLine"></div>
 
 <!-- FlexQoS UI Start-->
 <div id="FlexQoS_mod" style="display:none;">
 <div style="display:inline-block; margin:0px 0px 10px 5px; font-size:14px; text-shadow: 1px 1px 0px black;"><b>QoS Customization</b></div>
-<div style="display:inline-block; margin:-2px 5px 0px 0px; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_apply();"><span style="margin-left:10px; padding:0 0 0" align="center">Apply</span></div>
+<div style="margin:0px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_apply();"><span style="padding:0 0 0 0" align="center">Apply</span></div>
 <div id="iptables_rules_block" style=""></div>
 
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
