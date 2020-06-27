@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.7.0
-release=06/26/2020
+version=0.7.1
+release=06/27/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -1216,12 +1216,16 @@ show_help() {
 
 generate_bwdpi_arrays() {
 	# generate if not exist, plus after wrs restart (signature update)
-	if ! [ -f "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js" ] || [ /tmp/bwdpi.app.db -nt "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js" ]; then
+	if [ ! -f "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js" ] || [ /tmp/bwdpi/bwdpi.app.db -nt "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js" ]; then
 	{
-		awk -F, 'BEGIN { printf "var catdb_mark_array = [ \"000000\", "} { printf("\"%02X****\", ",$1) }' /tmp/bwdpi/bwdpi.cat.db
-		awk -F, '{ printf("\"%02X%04X\", ",$1,$2) } END { printf "\"\" ]\;" }' /tmp/bwdpi/bwdpi.app.db
-		awk -F, 'BEGIN { printf "var catdb_label_array = [ \"Untracked\", "} { printf("\"%s\", ",$2) }' /tmp/bwdpi/bwdpi.cat.db
-		awk -F, '{ printf("\"%s\", ",$4) } END { printf "\"\" ]\;" }' /tmp/bwdpi/bwdpi.app.db
+		printf "var catdb_mark_array = [ \"000000\""
+		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db
+		awk -F, '{ printf(", \"%02X%04X\"",$1,$2) }' /tmp/bwdpi/bwdpi.app.db
+		printf ", \"\" ];"
+		printf "var catdb_label_array = [ \"Untracked\""
+		awk -F, '{ printf(", \"%s\"",$2) }' /tmp/bwdpi/bwdpi.cat.db
+		awk -F, '{ printf(", \"%s\"",$4) }' /tmp/bwdpi/bwdpi.app.db
+		printf ", \"\" ];"
 	} > "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js"
 	fi
 }
