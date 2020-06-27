@@ -1221,11 +1221,11 @@ generate_bwdpi_arrays() {
 		printf "var catdb_mark_array = [ \"000000\""
 		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db
 		awk -F, '{ printf(", \"%02X%04X\"",$1,$2) }' /tmp/bwdpi/bwdpi.app.db
-                printf ", \"\" ];"
-                printf "var catdb_label_array = [ \"Untracked\""
-                awk -F, '{ printf(", \"%s\"",$2) }' /tmp/bwdpi/bwdpi.cat.db
-                awk -F, '{ printf(", \"%s\"",$4) }' /tmp/bwdpi/bwdpi.app.db
-                printf ", \"\" ];"
+		printf ", \"\" ];"
+		printf "var catdb_label_array = [ \"Untracked\""
+		awk -F, '{ printf(", \"%s\"",$2) }' /tmp/bwdpi/bwdpi.cat.db
+		awk -F, '{ printf(", \"%s\"",$4) }' /tmp/bwdpi/bwdpi.app.db
+		printf ", \"\" ];"
 	} > "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js"
 	fi
 }
