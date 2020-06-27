@@ -1016,21 +1016,21 @@ install() {
 	scriptinfo
 	echo "Advanced configuration available via:"
 	if [ "$(nvram get http_enable)" = "1" ]; then
-                proto="https"		
+                htproto="https"		
 	else
-                proto="http"
+                htproto="http"
         fi
         if [ -n "$(nvram get lan_domain)" ]; then
-                domain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+                htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
         else
-                domain="$(nvram get lan_ipaddr)"
+                htdomain="$(nvram get lan_ipaddr)"
         fi
-        if [ "$(nvram get "$proto"_lanport)" = "80" ] || [ "$(nvram get "$proto"_lanport = "443" ]; then
+        if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
                 lanport=""
         else
-                lanport=":$(nvram get "$proto"_lanport)"
+                lanport=":$(nvram get "$htproto"_lanport)"
         fi
-	echo "$proto://$domain$lanport/$am_webui_page"	
+	echo "$htproto://$htdomain$lanport/$am_webui_page"	
 
 	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart
 } # install
