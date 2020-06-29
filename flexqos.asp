@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v0.8 released 06/29/2020
+FlexQoS v0.8.1 released 06/29/2020
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -239,12 +239,12 @@ function draw_conntrack_table() {
 	}
 	showhide("tracked_filters", 1);
 
-	if (tracklen > maxrendered) {
-		document.getElementById('refreshrate').value = "0";
-		refreshRate = 0;
-		document.getElementById('toomanyconns').style.display = "";
-		document.getElementById('refreshrate').disabled = true;
-	}
+//	if (tracklen > maxrendered) {
+//		document.getElementById('refreshrate').value = "0";
+//		refreshRate = 0;
+//		document.getElementById('toomanyconns').style.display = "";
+//		document.getElementById('refreshrate').disabled = true;
+//	}
 
 	for (var i = 0; (i < tracklen && shownlen < maxshown); i++)
 	{
