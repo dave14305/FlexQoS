@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.7.1
-release=06/27/2020
+version=0.8.0
+release=06/29/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -722,7 +722,7 @@ update() {
 	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/flexqos.sh" | md5sum | awk '{print $1}')"
 
 	if [ "$version" != "$remotever" ] || [ "$localmd5" != "$remotemd5" ]; then
-		echo " FlexQoS v${remotever} is now available!"
+		echo " FlexQoS v${remotever} (${remotemd5}) is now available!"
 		echo ""
 		echo -n " Would you like to update now? [1=Yes 2=No] : "
 		read -r yn
@@ -744,7 +744,7 @@ update() {
 		fi
 	fi
 
-	echo "Installing: FlexQoS v${remotever}"
+	echo "Installing: FlexQoS v${remotever} (${remotemd5})"
 	echo ""
 	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
 	exec sh "$SCRIPTPATH" -install
@@ -1016,10 +1016,22 @@ install() {
 	scriptinfo
 	echo "Advanced configuration available via:"
 	if [ "$(nvram get http_enable)" = "1" ]; then
-		echo "https://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get https_lanport)/$am_webui_page"
+                htproto="https"		
 	else
-		echo "http://$(nvram get lan_ipaddr):$(nvram get http_lanport)/$am_webui_page"
-	fi
+                htproto="http"
+        fi
+        if [ -n "$(nvram get lan_domain)" ]; then
+                htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+        else
+                htdomain="$(nvram get lan_ipaddr)"
+        fi
+        if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
+                lanport=""
+        else
+                lanport=":$(nvram get "$htproto"_lanport)"
+        fi
+	echo "$htproto://$htdomain$lanport/$am_webui_page"	
+
 	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart
 } # install
 
