@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.7.0
-release=06/26/2020
+version=0.8.0
+release=06/29/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -33,7 +33,7 @@ release=06/26/2020
 
 # Global variables
 GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
-GIT_BRANCH="develop"
+GIT_BRANCH="master"
 GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 SCRIPTNAME="flexqos"
 ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
