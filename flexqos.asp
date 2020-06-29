@@ -529,7 +529,7 @@ function populate_classmenu(){
 }
 
 function populate_devicefilter(){
-	var code = '<option value="*" > </option>';
+	var code = '<option value=""> </option>';
 
 	//Presort clients before adding clients into devicefilter to make it easier to read
 	keysSorted = Object.keys(device).sort(function(a,b){ return ip2dec(a)-ip2dec(b) })									// sort by IP
@@ -1752,7 +1752,7 @@ function SetCurrentPage() {
 		</select></td>
 <!--		<td><input type="text" class="input_18_table" maxlength="39" oninput="set_filter(1, this);"></input></td> -->
 		<td><select id="devicefilter" style="width: 192px" class="input_option" onchange="set_filter(1, this);">
-				<option value="*" > </option>
+				<option value=""> </option>
 			</select>
 		</td>
 		<td><input type="text" class="input_6_table" maxlength="5" oninput="set_filter(2, this);"></input></td>
