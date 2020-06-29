@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v0.8.1 released 06/29/2020
+FlexQoS v0.8.2 released 06/29/2020
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -275,7 +275,7 @@ function draw_conntrack_table() {
 			bwdpi_conntrack[i][5] =	qos_class + '_' + bwdpi_conntrack[i][5];
 
 		//SHOW LOCAL DEVICES AT LEFT SIDE OF TABLE (FLIP POSITION IF REQUIRED)
-		if (bwdpi_conntrack[i][3].startsWith(dhcp_start) || bwdpi_conntrack[i][3].startsWith(ipv6prefix))
+		if (bwdpi_conntrack[i][3].startsWith(dhcp_start))
 		{
 			var temp = bwdpi_conntrack[i][3];
 			bwdpi_conntrack[i][3] = bwdpi_conntrack[i][1];
