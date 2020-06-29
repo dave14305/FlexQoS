@@ -229,9 +229,8 @@ function draw_conntrack_table() {
 	//bwdpi_conntrack[i][5] = Pre-formatted Title
 	//bwdpi_conntrack[i][6] = Traffic ID
 	//bwdpi_conntrack[i][7] = Traffic Category
-	tabledata = new Array(tablesize);
+	tabledata = [];
 	var tracklen, shownlen = 0;
-	var k = 0;
 	tracklen = bwdpi_conntrack.length;
 	if (tracklen == 0 ) {
 		showhide("tracked_filters", 0);
@@ -287,11 +286,10 @@ function draw_conntrack_table() {
 			bwdpi_conntrack[i][2] = temp;
 		}
 
-		tabledata[k] = bwdpi_conntrack[i];
-		k++;
+		tabledata.push(bwdpi_conntrack[i]);
 	}
-	k <= 30 ? tabledata.length = 30 : tabledata.length = k ;		//table will always contain at least 30 blank entries to maintain some scroll distance
 	//draw table
+	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
 	updateTable()
 }
 
@@ -414,9 +412,9 @@ function updateTable()
 			code += '<tr></tr>';
 		}
 	}
-	if (tabledata[tablesize - 1] )
+	if (tabledata.length == maxshown)
 	{
-		code += '<tr><td style="text-align:center; font-weight:bold;" colspan="7">Reached table limit.  Please use device filter.</td></tr>'
+		code += '<tr><td colspan="6"><span style="text-align: center;">List truncated to ' + maxshown + ' elements - use a filter</td></tr>';
 	}
 	tbl.innerHTML = code;
 }
@@ -1763,7 +1761,7 @@ function SetCurrentPage() {
 </table>
 <table cellpadding="4" class="FormTable_table" id="tracked_connections">
 <thead>
-   <td colspan="6">Tracked connections</td>
+   <td id="tracked_connections_total" colspan="6">Tracked connections</td>
 </thead>
 <tbody id="tableContainer">
    <tr class="row_title">
