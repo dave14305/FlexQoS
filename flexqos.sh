@@ -725,7 +725,7 @@ update() {
 		if [ "$version" != "$remotever" ]; then
 			echo " FlexQoS v${remotever} is now available!"
 		else
-			echo " FlexQoS has received an hotfix."
+			echo " FlexQoS hotfix is available."
 		fi
 		echo -n " Would you like to update now? [1=Yes 2=No] : "
 		read -r yn
