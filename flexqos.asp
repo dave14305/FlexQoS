@@ -404,7 +404,7 @@ function updateTable()
 			+ '<td>' + tabledata[i][2] + '</td>'
 			+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
 			+ '<td>' + tabledata[i][4] + '</td>'
-			+ '<td class=\"t_item\"' + 'title="' + labels_array[qos_class] + '">'
+			+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
 			+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
 			+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
 			+ '</td></tr>';
@@ -515,7 +515,7 @@ function update_devicenames(leasearray)
 			}
 
 			//update device filter drop down formated values
-			document.getElementById(ip).innerHTML = ip.padEnd(21) + device[ip].name;
+			document.getElementById(ip).innerHTML = ip.padEnd(21," ").replace(/ /g,"&nbsp;") + device[ip].name;
 		}
 	});
 }
@@ -536,7 +536,7 @@ function populate_devicefilter(){
 	//keysSorted = Object.keys(device).sort(function(a,b){ return device[a].name.localeCompare(device[b].name) })		// sort by device name
 	for (i = 0; i < keysSorted.length; i++) {
 		key = keysSorted[i];
-		code += '<option id="' + key + '" value="' + key + '">' + key.replace(ipv6prefix,"").padEnd(21) + device[key].name + "</option>\n";
+		code += '<option id="' + key + '" value="' + key + '">' + key.replace(ipv6prefix,"").padEnd(21," ").replace(/ /g,"&nbsp;") + device[key].name + "</option>\n";
 	}
 	document.getElementById('devicefilter').innerHTML=code;
 }
@@ -1751,7 +1751,7 @@ function SetCurrentPage() {
 			<option value="udp">udp</option>
 		</select></td>
 <!--		<td><input type="text" class="input_18_table" maxlength="39" oninput="set_filter(1, this);"></input></td> -->
-		<td><select id="devicefilter" style="width: 192px" class="input_option" onchange="set_filter(1, this);">
+		<td><select id="devicefilter" style="max-width: 168px" class="input_option" onchange="set_filter(1, this);">
 				<option value=""> </option>
 			</select>
 		</td>
