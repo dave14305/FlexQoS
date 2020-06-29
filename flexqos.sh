@@ -721,9 +721,12 @@ update() {
 	localmd5="$(md5sum "$0" | awk '{print $1}')"
 	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/flexqos.sh" | md5sum | awk '{print $1}')"
 
-	if [ "$version" != "$remotever" ] || [ "$localmd5" != "$remotemd5" ]; then
-		echo " FlexQoS v${remotever} (${remotemd5}) is now available!"
-		echo ""
+	if [ "$localmd5" != "$remotemd5" ]; then
+		if [ "$version" != "$remotever" ]; then
+			echo " FlexQoS v${remotever} is now available!"
+		else
+			echo " FlexQoS has received an hotfix."
+		fi
 		echo -n " Would you like to update now? [1=Yes 2=No] : "
 		read -r yn
 		echo ""
@@ -744,7 +747,7 @@ update() {
 		fi
 	fi
 
-	echo "Installing: FlexQoS v${remotever} (${remotemd5})"
+	echo "Installing: FlexQoS v${remotever}"
 	echo ""
 	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
 	exec sh "$SCRIPTPATH" -install
