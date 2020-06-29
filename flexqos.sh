@@ -1,6 +1,6 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.8.1
+version=0.8.3
 release=06/29/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #

@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v0.8.2 released 06/29/2020
+FlexQoS v0.8.3 released 06/29/2020
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -254,6 +254,19 @@ function draw_conntrack_table() {
 		if (bwdpi_conntrack[i][3].indexOf(":") >= 0) {
 			bwdpi_conntrack[i][3] = compIPV6(bwdpi_conntrack[i][3]);
 		}
+
+		//SHOW LOCAL DEVICES AT LEFT SIDE OF TABLE (FLIP POSITION IF REQUIRED)
+		if (bwdpi_conntrack[i][3].startsWith(dhcp_start))
+		{
+			var temp = bwdpi_conntrack[i][3];
+			bwdpi_conntrack[i][3] = bwdpi_conntrack[i][1];
+			bwdpi_conntrack[i][1] = temp;
+
+			temp = bwdpi_conntrack[i][4];
+			bwdpi_conntrack[i][4] = bwdpi_conntrack[i][2];
+			bwdpi_conntrack[i][2] = temp;
+		}
+
 		// Filter in place?
 		var filtered = 0;
 		for (j = 0; j < 6; j++) {
@@ -273,18 +286,6 @@ function draw_conntrack_table() {
 			qos_class = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
 		if ( ! bwdpi_conntrack[i][5].startsWith(qos_class+'_') )
 			bwdpi_conntrack[i][5] =	qos_class + '_' + bwdpi_conntrack[i][5];
-
-		//SHOW LOCAL DEVICES AT LEFT SIDE OF TABLE (FLIP POSITION IF REQUIRED)
-		if (bwdpi_conntrack[i][3].startsWith(dhcp_start))
-		{
-			var temp = bwdpi_conntrack[i][3];
-			bwdpi_conntrack[i][3] = bwdpi_conntrack[i][1];
-			bwdpi_conntrack[i][1] = temp;
-
-			temp = bwdpi_conntrack[i][4];
-			bwdpi_conntrack[i][4] = bwdpi_conntrack[i][2];
-			bwdpi_conntrack[i][2] = temp;
-		}
 
 		tabledata.push(bwdpi_conntrack[i]);
 	}
