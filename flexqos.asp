@@ -280,8 +280,6 @@ function draw_conntrack_table() {
 						if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
 							filtered = 1;
 				}
-				if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
-					filtered = 1;
 				if (filtered) continue;
 			}
 		}
