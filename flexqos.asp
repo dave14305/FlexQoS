@@ -60,16 +60,16 @@ padding: 4px 8px 4px 8px; color: white !important;
 border-radius: 5px; border: 1px #2C2E2F solid;
 white-space: nowrap;
 }
-div.t_item{
+td.t_item{
 cursor:default;
 }
 span.t_mark{
 display:none;
 }
-div.t_item:active span.t_label{
+td.t_item:active span.t_label{
 display:none;
 }
-div.t_item:active span.t_mark{
+td.t_item:active span.t_mark{
 display:inline;
 }
 </style>
@@ -84,6 +84,8 @@ var filter = Array(6);
 var sortmode=6;		//current sort mode of tracked connections table (default =6)
 var dhcp_start = "<% nvram_get("dhcp_start"); %>";
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
+var ipv6prefix = "<% nvram_get("ipv6_prefix"); %>".replace(/::$/,":");
+
 var iptables_rulelist_array="";
 var iptables_temp_array=[];
 var appdb_temp_array=[];
@@ -146,9 +148,11 @@ if (qos_mode == 2) {
 var pie_obj_ul, pie_obj_dl;
 var refreshRate;
 var timedEvent = 0;
+var filter = Array(6);
+const maxshown = 500;
+const maxrendered = 750;
 var color = ["#B3645B", "#B98F53", "#C6B36A", "#849E75", "#4C8FC0",  "#7C637A", "#2B6692",  "#6C604F"];
-//var bwdpi_conntrack = [];		//this variable is later updated via ajax call
-//get_tcclass_array(); %>;
+var labels_array = [];
 var pieOptions = {
 	segmentShowStroke: false,
 	segmentStrokeColor: "#000",
@@ -226,62 +230,67 @@ function draw_conntrack_table() {
 	//bwdpi_conntrack[i][6] = Traffic ID
 	//bwdpi_conntrack[i][7] = Traffic Category
 	tabledata = new Array(tablesize);
-	var j = 0;
-	for (var i = 0; i < bwdpi_conntrack.length; i++)
-	{
-		if (( deviceFilter == "*" || deviceFilter == compIPV6(bwdpi_conntrack[i][1]) ) && ( j < tablesize ))
-		{
-			//format app name label into html
-			var label = bwdpi_conntrack[i][5];		(label.length > 27) ? size='style="font-size: 75%;"' : size = "" ;
-			//function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId)
-			var qos_class = eval_rule(bwdpi_conntrack[i][1], bwdpi_conntrack[i][3], bwdpi_conntrack[i][0], bwdpi_conntrack[i][2], bwdpi_conntrack[i][4], bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
-			if (qos_class == 99)
-				qos_class = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
-			var mark = (parseInt(bwdpi_conntrack[i][7]).toString(16).padStart(2,'0') + parseInt(bwdpi_conntrack[i][6]).toString(16).padStart(4,'0')).toUpperCase();
-			//bwdpi_conntrack[i][5] =  '<span title="' + label + '" class="catrow cat' + qos_class + '"' + size + '>' + label + '</span>';		//sort by AppID name
-			bwdpi_conntrack[i][5] =	'<div  class="t_item">' +
-									'<span class="t_label catrow cat' + qos_class + '"' + size + '>' + label + '</span>' +		//sort by Container Destination
-									'<span class="t_mark  catrow cat' + qos_class + '"' + size + '>MARK:' + mark + '</span>' +
-									'</div>';
-
-			if (bwdpi_conntrack[i][1].indexOf(":") >= 0) {
-				bwdpi_conntrack[i][1] = compIPV6(bwdpi_conntrack[i][1]);
-			}
-			if (bwdpi_conntrack[i][3].indexOf(":") >= 0) {
-				bwdpi_conntrack[i][3] = compIPV6(bwdpi_conntrack[i][3]);
-			}
-
-			//SHOW LOCAL DEVICES AT LEFT SIDE OF TABLE (FLIP POSITION IF REQUIRED)
-			if (bwdpi_conntrack[i][3].startsWith(dhcp_start))
-			{
-				var temp = bwdpi_conntrack[i][3];
-				bwdpi_conntrack[i][3] = bwdpi_conntrack[i][1];
-				bwdpi_conntrack[i][1] = temp;
-
-				temp = bwdpi_conntrack[i][4];
-				bwdpi_conntrack[i][4] = bwdpi_conntrack[i][2];
-				bwdpi_conntrack[i][2] = temp;
-			}
-
-			//PRETTY PRINT LOCAL DEVICE NAME NEXT TO IPv4 address
-			//(be placed after evaluation of custom rules due to injecting HTML into LocalIP field and breaking LocalIP data used for rule)
-			if (typeof device[bwdpi_conntrack[i][1]] != "undefined")
-			{
-				bwdpi_conntrack[i][1] =
-				//'<div  title="' + bwdpi_conntrack[i][1].split('.')[3].padStart(3, '#') + '" class="localdeviceip">' + bwdpi_conntrack[i][1] + '</div>' +
-					'<div  title="' + bwdpi_conntrack[i][1] + '">' + device[bwdpi_conntrack[i][1]].name + '</div>'
-			}
-			else
-			{
-				if (bwdpi_conntrack[i][1].length > 32)
-					bwdpi_conntrack[i][1] = '<div style=\"font-size: 80%;\">' + bwdpi_conntrack[i][1] + '</div>'
-			}
-
-			tabledata[j] = bwdpi_conntrack[i];
-			j++;
-		}
+	var tracklen, shownlen = 0;
+	var k = 0;
+	tracklen = bwdpi_conntrack.length;
+	if (tracklen == 0 ) {
+		showhide("tracked_filters", 0);
+		document.getElementById('tracked_connections').innerHTML = "";
+		return;
 	}
-	j <= 30 ? tabledata.length = 30 : tabledata.length = j ;		//table will always contain at least 30 blank entries to maintain some scroll distance
+	showhide("tracked_filters", 1);
+
+	if (tracklen > maxrendered) {
+		document.getElementById('refreshrate').value = "0";
+		refreshRate = 0;
+		document.getElementById('toomanyconns').style.display = "";
+		document.getElementById('refreshrate').disabled = true;
+	}
+
+	for (var i = 0; (i < tracklen && shownlen < maxshown); i++)
+	{
+		if (bwdpi_conntrack[i][1].indexOf(":") >= 0) {
+			bwdpi_conntrack[i][1] = compIPV6(bwdpi_conntrack[i][1]);
+		}
+		if (bwdpi_conntrack[i][3].indexOf(":") >= 0) {
+			bwdpi_conntrack[i][3] = compIPV6(bwdpi_conntrack[i][3]);
+		}
+		// Filter in place?
+		var filtered = 0;
+		for (j = 0; j < 6; j++) {
+			if (filter[j]) {
+				if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
+					filtered = 1;
+				if (filtered) continue;
+			}
+		}
+		if (filtered) continue;
+		shownlen++;
+
+//		if (( deviceFilter == "*" || deviceFilter == compIPV6(bwdpi_conntrack[i][1]) ) && ( j < tablesize ))
+		//function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId)
+		var qos_class = eval_rule(bwdpi_conntrack[i][1], bwdpi_conntrack[i][3], bwdpi_conntrack[i][0], bwdpi_conntrack[i][2], bwdpi_conntrack[i][4], bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
+		if (qos_class == 99)
+			qos_class = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
+		if ( ! bwdpi_conntrack[i][5].startsWith(qos_class+'_') )
+			bwdpi_conntrack[i][5] =	qos_class + '_' + bwdpi_conntrack[i][5];
+
+		//SHOW LOCAL DEVICES AT LEFT SIDE OF TABLE (FLIP POSITION IF REQUIRED)
+		if (bwdpi_conntrack[i][3].startsWith(dhcp_start) || bwdpi_conntrack[i][3].startsWith(ipv6prefix))
+		{
+			var temp = bwdpi_conntrack[i][3];
+			bwdpi_conntrack[i][3] = bwdpi_conntrack[i][1];
+			bwdpi_conntrack[i][1] = temp;
+
+			temp = bwdpi_conntrack[i][4];
+			bwdpi_conntrack[i][4] = bwdpi_conntrack[i][2];
+			bwdpi_conntrack[i][2] = temp;
+		}
+
+		tabledata[k] = bwdpi_conntrack[i];
+		k++;
+	}
+	k <= 30 ? tabledata.length = 30 : tabledata.length = k ;		//table will always contain at least 30 blank entries to maintain some scroll distance
 	//draw table
 	updateTable()
 }
@@ -380,13 +389,25 @@ function updateTable()
 	for(var i = 0; i < tabledata.length; i++){
 		if(tabledata[i])
 		{
+			qos_class = tabledata[i][5].split("_")[0];
+			label = tabledata[i][5].split("_")[1];
+			var mark = (parseInt(tabledata[i][7]).toString(16).padStart(2,'0') + parseInt(tabledata[i][6]).toString(16).padStart(4,'0')).toUpperCase();
+			if (device[tabledata[i][1]]) {
+				srchost = (device[tabledata[i][1]].name == "") ? tabledata[i][1] : device[tabledata[i][1]].name;
+			} else {
+				srchost = tabledata[i][1];
+			}
+
 			code += '<tr>'
-			+ '<td>' + tabledata[i][0] +'</td>'
-			+ '<td>' + tabledata[i][1] +'</td>'
-			+ '<td>' + tabledata[i][2] +'</td>'
+			+ '<td>' + tabledata[i][0] + '</td>'
+			+ '<td title="' + tabledata[i][1] + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
+			+ '<td>' + tabledata[i][2] + '</td>'
 			+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
-			+ '<td>' + tabledata[i][4] +'</td>'
-			+ '<td>' + tabledata[i][5] +'</td></tr>';
+			+ '<td>' + tabledata[i][4] + '</td>'
+			+ '<td class=\"t_item\"' + 'title="' + labels_array[qos_class] + '">'
+			+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
+			+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
+			+ '</td></tr>';
 		}
 		else
 		{
@@ -509,15 +530,13 @@ function populate_classmenu(){
 
 function populate_devicefilter(){
 	var code = '<option value="*" > </option>';
-	var ipv6prefix = "<% nvram_get("ipv6_prefix"); %>";
-	var ipv6strip = ipv6prefix.replace(/::$/,":");
 
 	//Presort clients before adding clients into devicefilter to make it easier to read
 	keysSorted = Object.keys(device).sort(function(a,b){ return ip2dec(a)-ip2dec(b) })									// sort by IP
 	//keysSorted = Object.keys(device).sort(function(a,b){ return device[a].name.localeCompare(device[b].name) })		// sort by device name
 	for (i = 0; i < keysSorted.length; i++) {
 		key = keysSorted[i];
-		code += '<option id="' + key + '" value="' + key + '">' + key.replace(ipv6strip,"").padEnd(21) + device[key].name + "</option>\n";
+		code += '<option id="' + key + '" value="' + key + '">' + key.replace(ipv6prefix,"").padEnd(21) + device[key].name + "</option>\n";
 	}
 	document.getElementById('devicefilter').innerHTML=code;
 }
@@ -880,7 +899,7 @@ function get_data() {
 function draw_chart(data_array, ctx, pie) {
 	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="padding-left:5px; width:76px;">Total</th><th style="padding-left:30px; padding-right:15px;">Rate</th><th style="padding-left:15px;">Packet rate</th></tr></thead>';
 	var values_array = [];
-	var labels_array = [];
+	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
 		var value = parseInt(data_array[i][1]);
 		var tcclass = parseInt(data_array[i][0]);
@@ -1686,6 +1705,7 @@ function SetCurrentPage() {
 <option value="5">5 seconds</option>
 <option value="10">10 seconds</option>
 </select>
+<span id="toomanyconns" style="display:none; color:#FFCC00;">Disabled - too many tracked connections.</span>
 </td>
 </tr>
 </table>
@@ -1713,28 +1733,14 @@ function SetCurrentPage() {
 </tr>
 </table>
 <br>
-<!-- FlexQoS Device Filter Start-->
-<table cellpadding="4" class="tableApi_table" style="margin-bottom:10px;" id="filter_device">
-<tbody>
-<tr>
-<th width="110px">Filter By Device:</th>
-<td bgcolor="#475a5f" style="text-align: left;">
-<select name="devicefilter" id="devicefilter" style="min-width: 300px; margin:2px 0px 2px 5px" width=100px class="input_option" onchange="deviceFilter = this.value; get_data();">
-<option value="*" > </option>
-</select>
-</td>
-</tr>
-</tbody>
-</table>
-<!-- FlexQoS Device Filter End-->
 <!-- FlexQoS Connection Table Start-->
 
 <table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections</td></tr></thead>
 	<tr>
 		<th width="5%">Proto</th>
-		<th width="28%">Source IP</th>
+		<th width="28%">Local IP</th>
 		<th width="6%">Port</th>
-		<th width="28%">Destination IP</th>
+		<th width="28%">Remote IP</th>
 		<th width="6%">Port</th>
 		<th width="27%">Application</th>
 	</tr>
@@ -1744,9 +1750,13 @@ function SetCurrentPage() {
 			<option value="tcp">tcp</option>
 			<option value="udp">udp</option>
 		</select></td>
-		<td><input type="text" class="input_15_table" maxlength="39" oninput="set_filter(1, this);"></input></td>
+<!--		<td><input type="text" class="input_18_table" maxlength="39" oninput="set_filter(1, this);"></input></td> -->
+		<td><select id="devicefilter" style="width: 192px" class="input_option" onchange="set_filter(1, this);">
+				<option value="*" > </option>
+			</select>
+		</td>
 		<td><input type="text" class="input_6_table" maxlength="5" oninput="set_filter(2, this);"></input></td>
-		<td><input type="text" class="input_15_table" maxlength="39" oninput="set_filter(3, this);"></input></td>
+		<td><input type="text" class="input_18_table" maxlength="39" oninput="set_filter(3, this);"></input></td>
 		<td><input type="text" class="input_6_table" maxlength="5" oninput="set_filter(4, this);"></input></td>
 		<td><input type="text" class="input_18_table" maxlength="48" oninput="set_filter(5, this);"></input></td>
 	</tr>
@@ -1757,12 +1767,12 @@ function SetCurrentPage() {
 </thead>
 <tbody id="tableContainer">
    <tr class="row_title">
-	  <th id="tProto" width="5%"  style="cursor: pointer;">Proto</th>
-	  <th id="tLip"   width="28%" style="cursor: pointer;">Source</th>
-	  <th id="tRip"   width="6%"  style="cursor: pointer;">SPort</th>
-	  <th id="tLport" width="28%" style="cursor: pointer;">Destination</th>
-	  <th id="tRport" width="6%"  style="cursor: pointer;">DPort</th>
-	  <th id="tLabel" width="27%"  style="cursor: pointer;">Application</th>
+	  <th width="5%"  style="cursor: pointer;">Proto</th>
+	  <th width="28%" style="cursor: pointer;">Local IP</th>
+	  <th width="6%"  style="cursor: pointer;">Port</th>
+	  <th width="28%" style="cursor: pointer;">Remote IP</th>
+	  <th width="6%"  style="cursor: pointer;">Port</th>
+	  <th width="27%" style="cursor: pointer;">Application</th>
    </tr>
 </tbody>
 </table>
