@@ -271,6 +271,15 @@ function draw_conntrack_table() {
 		var filtered = 0;
 		for (j = 0; j < 6; j++) {
 			if (filter[j]) {
+				switch (j) {
+					case 1:
+						if (bwdpi_conntrack[i][1].toLowerCase() != filter[1].toLowerCase())
+							filtered = 1;
+						break;
+					default:
+						if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
+							filtered = 1;
+				}
 				if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
 					filtered = 1;
 				if (filtered) continue;
