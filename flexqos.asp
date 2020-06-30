@@ -731,6 +731,7 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst){
 };
 
 function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
+	var last_matching_rule = 99;  // return 99 if no matches
 	// return the rules[i][18] when a match
 	for (i=0;i<rules.length;i++) {
 		//eval false if rule has no filters or destination specified
@@ -842,9 +843,9 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 		}
 
 		// console.log("rule matches current connection");
-		return rules[i][18];  // return the rule's target Class
+		last_matching_rule=rules[i][18];  // save the rule's target Class
 	} // for each rule in array
-	return 99;  // return 99 to indicate no matches
+	return last_matching_rule;
 }  // eval_rule
 
 function redraw() {
@@ -1323,16 +1324,6 @@ function set_FlexQoS_mod_vars()
 		else
 			appdb_rulelist_array = custom_settings.flexqos_appdb;
 
-		var r=0;
-		iptables_temp_array = iptables_rulelist_array.split("<");
-		iptables_temp_array.shift();
-		for (r=0;r<iptables_temp_array.length;r++){
-			if (iptables_temp_array[r] != "") {
-				iptables_temp_array[r]=iptables_temp_array[r].split(">");
-				rules.push(create_rule(iptables_temp_array[r][0], iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6]));
-			}
-		}
-
 		appdb_temp_array = appdb_rulelist_array.split("<");
 		appdb_temp_array.shift();
 		for (var a=0; a<appdb_temp_array.length;a++) {
@@ -1340,6 +1331,16 @@ function set_FlexQoS_mod_vars()
 				appdb_temp_array[a]=appdb_temp_array[a].split(">");
 				appdb_temp_array[a].unshift(catdb_label_array[catdb_mark_array.indexOf(appdb_temp_array[a][0])]);
 				rules.push(create_rule("", "", "", "", "", appdb_temp_array[a][1], appdb_temp_array[a][2]));
+			}
+		}
+
+		var r=0;
+		iptables_temp_array = iptables_rulelist_array.split("<");
+		iptables_temp_array.shift();
+		for (r=0;r<iptables_temp_array.length;r++){
+			if (iptables_temp_array[r] != "") {
+				iptables_temp_array[r]=iptables_temp_array[r].split(">");
+				rules.push(create_rule(iptables_temp_array[r][0], iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6]));
 			}
 		}
 
