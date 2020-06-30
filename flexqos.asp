@@ -1217,7 +1217,6 @@ function show_iptables_rules(){
 function show_appdb_rules() {
 	var appdb_rulelist_row = decodeURIComponent(appdb_rulelist_array).split('<');
 	var code = "";
-	var overlib_str = "";
 
 	code +='<table width="100%" border="1" cellspacing="0" cellpadding="4" align="center" class="list_table" id="appdb_rulelist_table">';
 	if(appdb_rulelist_row.length == 1)
@@ -1467,6 +1466,19 @@ function FlexQoS_mod_apply() {
 		}
 	}
 
+	appdb_temp_array = appdb_rulelist_array.split("<");
+	appdb_temp_array.shift();
+	var appdb_last_rules = "";
+	appdb_rulelist_array = "";
+	for (var a=0; a<appdb_temp_array.length;a++) {
+		if (appdb_temp_array[a].substr(2,4) == "****")
+			appdb_last_rules += '<' + appdb_temp_array[a];
+		else
+			appdb_rulelist_array += '<' + appdb_temp_array[a];
+	}
+	appdb_rulelist_array += appdb_last_rules;
+
+
 	if (iptables_rulelist_array.length > 2999) {
 		alert("Total iptables rules exceeds 2999 bytes! Please delete or consolidate!");
 		return
@@ -1509,6 +1521,7 @@ function validate_mark(input)
 		document.getElementById('appdb_desc_x').innerHTML=mark_desc;
 	else
 		document.getElementById('appdb_desc_x').innerHTML="Unknown Mark";
+	document.form.appdb_mark_x.value=input.toUpperCase();
 	return 1;
 }
 
