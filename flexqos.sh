@@ -719,9 +719,9 @@ update() {
 	url="${GIT_URL}/${SCRIPTNAME}.sh"
 	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
 	localmd5="$(md5sum "$0" | awk '{print $1}')"
-	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/flexqos.sh" | md5sum | awk '{print $1}')"
+	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.sh" | md5sum | awk '{print $1}')"
         localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
-        remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/flexqos.asp" | md5sum | awk '{print $1}')"
+        remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
 	if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
 		if [ "$version" != "$remotever" ]; then
 			echo " FlexQoS v${remotever} is now available!"
