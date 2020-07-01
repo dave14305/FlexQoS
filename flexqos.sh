@@ -690,6 +690,7 @@ about() {
 backup() {
 	case "$1" in
 		'doit')
+			[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && rm "${ADDON_DIR}/restore_flexqos_settings.sh"
 			{
 				echo ". /usr/sbin/helper.sh"
 				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
@@ -807,8 +808,8 @@ menu() {
 	echo "  (2) update       check for updates "
 	echo "  (3) debug        traffic control parameters"
 	echo "  (4) backup       do a backup of current appdb and rules list"
-	[ -n "${ADDON_DIR}/restore_flexqos_settings.sh" ] && echo "  (5) restore      restore old backup"
-	[ -n "${ADDON_DIR}/restore_flexqos_settings.sh" ] && echo "  (6) delete       remove old backup"
+	[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && echo "  (5) restore      restore old backup"
+	[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && echo "  (6) delete       remove old backup"
 	echo ""
 	echo "  (u) uninstall    uninstall script"
 	echo "  (e) exit"
@@ -1073,7 +1074,7 @@ install() {
         fi
 	echo "$htproto://$htdomain$lanport/$am_webui_page"	
 	
-	if [ -n "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
 		echo ""
 		echo -n "Backup found!"
 		echo -n "Would you like to restore it? [1=Yes 2=No]: "
@@ -1102,7 +1103,7 @@ uninstall() {
 		echo "Restoring FreshJR_QOS nvram settings..."
 		sh ${ADDON_DIR}/restore_freshjr_nvram.sh
 	fi
-	if [ -n "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
 		echo -n "Backup found!"
 		echo -n "Would you like to delete it? [1=Yes 2=No]: "
 		read -r yn
