@@ -458,7 +458,7 @@ parse_tcrule() {
 	fi
 
 	{
-		if [[ "$id" = "****" || "$1" = "000000" && -n "$currprio" ]]; then
+		if [ "$id" = "****" -o "$1" = "000000" ] && [ -n "$currprio" ]; then
 			# change existing rule
 			currhandledown="$(${tc} filter show dev br0 | /bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
 			currhandleup="$(${tc} filter show dev eth0 | /bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
