@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v0.8.4 released 06/30/2020
+FlexQoS v0.8.5 released 07/01/2020
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -732,6 +732,7 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst){
 
 function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 	var last_matching_rule = 99;  // return 99 if no matches
+	var first_appdb_matching_rule = 99; // return 99 if no matches
 	// return the rules[i][18] when a match
 	for (i=0;i<rules.length;i++) {
 		//eval false if rule has no filters or destination specified
@@ -843,9 +844,18 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 		}
 
 		// console.log("rule matches current connection");
-		last_matching_rule=rules[i][18];  // save the rule's target Class
+		if (first_appdb_matching_rule == 99 && ((rules[i][0] == 64) || (rules[i][0] == 128)))
+			// if this is the first matching appdb rule, save it for later in case no further iptables rules match
+			first_appdb_matching_rule = rules[i][18];
+		else
+			last_matching_rule=rules[i][18];  // save the rule's target Class
 	} // for each rule in array
-	return last_matching_rule;
+	// if we've gotten through all the rules and the only match was an appdb rule, return the first matching appdb rule
+	// otherwise, return the last matched iptables rule
+	if (last_matching_rule == 99 && first_appdb_matching_rule < 99)
+		return first_appdb_matching_rule;
+	else
+		return last_matching_rule;
 }  // eval_rule
 
 function redraw() {

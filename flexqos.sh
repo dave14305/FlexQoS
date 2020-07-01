@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.8.4
-release=06/30/2020
+version=0.8.5
+release=07/01/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -43,6 +43,12 @@ IPv6_enabled="$(nvram get ipv6_service)"
 
 if [ "$(am_settings_get flexqos_ver)" != "$version" ]; then
 	am_settings_set flexqos_ver "$version"
+fi
+
+if [ -e "/usr/sbin/realtc" ]; then
+	tc="realtc"
+else
+	tc="tc"
 fi
 
 # marks for iptable rules
@@ -113,12 +119,6 @@ custom_rates() {
 } # custom_rates
 
 set_tc_variables(){
-
-	if [ -e "/usr/sbin/realtc" ]; then
-		tc="realtc"
-	else
-		tc="tc"
-	fi
 
 	# read priority order of QoS categories as set by user in GUI
 	flowid=0
@@ -219,7 +219,7 @@ EOF
 		eval "DownBurst${class}=$burst"
 		eval "DownCburst${class}=$cburst"
 	done <<EOF
-$(tc class show dev br0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
+$(${tc} class show dev br0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
 EOF
 
 	#read existing burst/cburst per upload class
@@ -228,7 +228,7 @@ EOF
 		eval "UpBurst${class}=$burst"
 		eval "UpCburst${class}=$cburst"
 	done <<EOF
-$(tc class show dev eth0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
+$(${tc} class show dev eth0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
 EOF
 
 	#read parameters for fakeTC
@@ -290,13 +290,14 @@ debug(){
 	echo ""
 	get_config
 	set_tc_variables
-	current_undf_rule="$(tc filter show dev br0 | /bin/grep -v "/" | /bin/grep "000ffff" -B1)"
+	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
 	if [ -n "$current_undf_rule" ]; then
-		undf_flowid=$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2 | head -1)
-		undf_prio=$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2 | head -1)
+		undf_flowid="$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2)"
+		undf_prio="$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2)"
 	else
 		undf_flowid=""
-		undf_prio=2
+		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc03f0000" -B1 | head -1 | /bin/grep -o "pref.*" | cut -d" " -f2)"
+		undf_prio="$((undf_prio-1))"
 	fi
 
 	echo "Undf Prio: $undf_prio"
@@ -442,13 +443,14 @@ parse_tcrule() {
 
 	#prio field
 	if [ "$1" = "000000" ]; then
-		# special unidentified traffic rule
-		prio="$undf_prio"
+		# special mask for unidentified traffic
+		currmask="0xc000ffff"
 	else
-		# normal traffic redirection rule
-		prio="$(tc filter show dev br0 | /bin/grep -i "${cat}"0000 -B1 | /bin/grep 3f0000 -B1 | head -1 | cut -d " " -f7)"
+		currmask="0xc03f0000"
 	fi
+	prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80${cat}0000 ${currmask}" -B1 | head -1 | cut -d " " -f7)"
 	currprio=$prio
+
 	if [ -z "$prio" ]; then
 		prio="$undf_prio"
 	else
@@ -456,19 +458,12 @@ parse_tcrule() {
 	fi
 
 	{
-		if [ "$id" = "****" ] || [ "$1" = "000000" ]; then
-			if [ -n "$currprio" ]; then
-				# delete existing rule
-				echo "${tc} filter del dev br0 parent 1: prio $currprio > /dev/null 2>&1"
-				echo "${tc} filter del dev eth0 parent 1: prio $currprio > /dev/null 2>&1"
-				# add new rule at same priority
-				echo "${tc} filter add dev br0 protocol all prio $currprio u32 match mark $DOWN_mark flowid $flowid"
-				echo "${tc} filter add dev eth0 protocol all prio $currprio u32 match mark $UP_mark flowid $flowid"
-			else
-				# use undefined prio
-				echo "${tc} filter add dev br0 protocol all prio $prio u32 match mark $DOWN_mark flowid $flowid"
-				echo "${tc} filter add dev eth0 protocol all prio $prio u32 match mark $UP_mark flowid $flowid"
-			fi
+		if [[ "$id" = "****" || "$1" = "000000" && -n "$currprio" ]]; then
+			# change existing rule
+			currhandledown="$(${tc} filter show dev br0 | /bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
+			currhandleup="$(${tc} filter show dev eth0 | /bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
+			echo "${tc} filter change dev br0 prio $currprio protocol all handle $currhandledown u32 flowid $flowid"
+			echo "${tc} filter change dev eth0 prio $currprio protocol all handle $currhandleup u32 flowid $flowid"
 		else
 			# add new rule for individual app one priority level higher (-1)
 			echo "${tc} filter add dev br0 protocol all prio $prio u32 match mark $DOWN_mark flowid $flowid"
@@ -1120,10 +1115,10 @@ write_appdb_rules() {
 } # write_appdb_rules
 
 check_qos_tc() {
-	dlclasscnt="$(tc class show dev br0 | /bin/grep -c "parent 1:1 ")" # should be 8
-	ulclasscnt="$(tc class show dev eth0 | /bin/grep -c "parent 1:1 ")" # should be 8
-	dlfiltercnt="$(tc filter show dev br0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
-	ulfiltercnt="$(tc filter show dev eth0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+	dlclasscnt="$(${tc} class show dev br0 | /bin/grep -c "parent 1:1 ")" # should be 8
+	ulclasscnt="$(${tc} class show dev eth0 | /bin/grep -c "parent 1:1 ")" # should be 8
+	dlfiltercnt="$(${tc} filter show dev br0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+	ulfiltercnt="$(${tc} filter show dev eth0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
 	if [ "$dlclasscnt" -lt "8" ] || [ "$ulclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ "$ulfiltercnt" -lt "39" ]; then
 		return 0
 	fi
@@ -1166,13 +1161,14 @@ startup() {
 	done
 	[ "$sleepdelay" -gt "0" ] && logger -t "FlexQoS" "TC Modification delayed for $sleepdelay seconds"
 
-	current_undf_rule="$(tc filter show dev br0 | /bin/grep "00ffff" -B1)"
+	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
 	if [ -n "$current_undf_rule" ]; then
-		undf_flowid=$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2 | head -1)
-		undf_prio=$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2 | head -1)
+		undf_flowid="$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2)"
+		undf_prio="$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2)"
 	else
 		undf_flowid=""
-		undf_prio=2
+		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc03f0000" -B1 | head -1 | /bin/grep -o "pref.*" | cut -d" " -f2)"
+		undf_prio="$((undf_prio-1))"
 	fi
 
 	# if TC modifcations have not been applied then run modification script
