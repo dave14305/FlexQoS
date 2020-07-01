@@ -854,8 +854,6 @@ install_webui() {
 		[ ! -d "${ADDON_DIR}/table" ] && mkdir -p "${ADDON_DIR}/table"
 		download_file "table.js" "${ADDON_DIR}/table/table.js"
 		download_file "tableValidator.js" "${ADDON_DIR}/table/tableValidator.js"
-	else
-		echo "Mounting WebUI page..."
 	fi
 	am_get_webui_page "$WEBUIPATH"
 	if [ "$am_webui_page" = "none" ]; then
