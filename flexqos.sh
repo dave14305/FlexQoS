@@ -1109,13 +1109,20 @@ uninstall() {
 		read -r yn
 		if [ "$yn" = "1" ]; then
 			echo "Deleting Backup..."
-			echo "Deleting FlexQoS directory..."
-			rm -rf "$ADDON_DIR"
-		else
-			echo "Deleting FlexQoS folder contents except Backup file..."
-			find "$ADDON_DIR" -type f -not -name 'restore_flexqos_settings.sh' -delete
+			rm "${ADDON_DIR}/restore_flexqos_settings.sh"
 		fi
-	else		
+	else
+		echo -n "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
+		read -r yn
+		if [ "$yn" = "1" ]; then
+			echo "Backing up FlexQoS settings..."
+			backup doit
+		fi
+	fi
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+		echo "Deleting FlexQoS folder contents except Backup file..."
+		find "$ADDON_DIR" -type f -not -name 'restore_flexqos_settings.sh' -delete
+	else
 		echo "Deleting FlexQoS directory..."
 		rm -rf "$ADDON_DIR"
 	fi
