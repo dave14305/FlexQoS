@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.8.3
-release=06/29/2020
+version=0.9.0
+release=06/xx/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -40,6 +40,10 @@ ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
 IPv6_enabled="$(nvram get ipv6_service)"
+
+if [ "$(am_settings_get flexqos_ver)" != "$version" ]; then
+	am_settings_set flexqos_ver "$version"
+fi
 
 # marks for iptable rules
 # Note these marks are same as filter match/mask combo but have a 1 at the end.

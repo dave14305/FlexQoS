@@ -1260,6 +1260,9 @@ function FlexQoS_mod_toggle()
 
 function set_FlexQoS_mod_vars()
 {
+	if ( custom_settings.flexqos_ver != undefined )
+		document.getElementById("flexqos_version").innerHTML = " - v" + custom_settings.flexqos_ver;
+
 	if (qos_mode != 2) {
 		var element = document.getElementById('FlexQoS_mod_toggle')
 		element.innerHTML="Adaptive QoS is Disabled";
@@ -1571,7 +1574,7 @@ function SetCurrentPage() {
 <tbody bgcolor="#4D595D">
 <tr>
 <td valign="top">
-<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS Traffic Classification</div>
+<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS Traffic Classification<span id="flexqos_version" style="font-size: 85%"></span></div>
 <!-- <div id="FlexQoS_mod_toggle" style="float:right; color:#FFCC00; display:inline-block; margin:5px; cursor:pointer;" onclick='FlexQoS_mod_toggle()'>Customize</div> -->
 <div id="FlexQoS_mod_toggle" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_toggle();"><span style="padding:0 0 0" align="center">Customize</span></div>
 <div style="margin-bottom:10px" class="splitLine"></div>
