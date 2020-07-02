@@ -1051,6 +1051,7 @@ install() {
 	echo "FlexQoS installation complete!"
 
 	scriptinfo
+      am_get_webui_page "$WEBUIPATH"
 	echo "Advanced configuration available via:"
 	if [ "$(nvram get http_enable)" = "1" ]; then
                 htproto="https"		
