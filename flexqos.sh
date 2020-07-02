@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.8.5
-release=07/01/2020
+version=0.8.6
+release=07/02/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -685,23 +685,26 @@ about() {
 
 backup() {
 	case "$1" in
-		'doit')
+		'backup')
 			[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && rm "${ADDON_DIR}/restore_flexqos_settings.sh"
 			{
+				echo "#!/bin/sh"
+				echo "# backup date: $(date)"
 				echo ". /usr/sbin/helper.sh"
 				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
 				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\"" 
-			} > "${ADDON_DIR}/restore_flexqos_settings.sh"
-			echo "Backup done!"
+			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+			echo "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		;;
-		'restoreit')
-			sh "${ADDON_DIR}/restore_flexqos_settings.sh"
+		'restore')
+			sh "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			echo "Backup restored!"
+			prompt_restart
 		;;
-		'removeit')
+		'remove')
 			rm "${ADDON_DIR}/restore_flexqos_settings.sh"
-			echo "Backup deleted!"
+			echo "Backup deleted."
 		;;
 	esac
 }
@@ -803,9 +806,11 @@ menu() {
 	echo "  (1) about        explain functionality"
 	echo "  (2) update       check for updates "
 	echo "  (3) debug        traffic control parameters"
-	echo "  (4) backup       do a backup of current appdb and rules list"
-	[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && echo "  (5) restore      restore old backup"
-	[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && echo "  (6) delete       remove old backup"
+	echo "  (4) backup       backup settings"
+	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+		echo "  (5) restore      restore settings from backup"
+		echo "  (6) delete       remove backup"
+	fi
 	echo ""
 	echo "  (u) uninstall    uninstall script"
 	echo "  (e) exit"
@@ -823,13 +828,13 @@ menu() {
 			debug
 		;;
 		'4')
-			backup "doit"
+			backup "backup"
 		;;
 		'5')
-			backup "restoreit"
+			backup "restore"
 		;;
 		'6')
-			backup "removeit"
+			backup "remove"
 		;;
 		'u'|'U')
 			# clear
