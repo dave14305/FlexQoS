@@ -855,6 +855,19 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 	if (last_matching_rule == 99 && first_appdb_matching_rule < 99)
 		return first_appdb_matching_rule;
 	else
+		// TODO Need to account for an iptables match that uses a fixed mark that is also subject to an appdb redirection rule
+		// Take the iptables last_matching_rule and figure out the new mark used in the iptables rules:
+		//  0 = Net_mark_down="0x80090001"
+		//  3 = VOIP_mark_down="0x80060001"
+		//  1 = Gaming_mark_down="0x80080001"
+		//  6 = Others_mark_down="0x800a0001"
+		//  4 = Web_mark_down="0x80180001"
+		//  2 = Streaming_mark_down="0x80040001"
+		//  5 = Downloads_mark_down="0x80030001"
+		//  7 = Default_mark_down="0x803f0001"
+		// Get the new mark and loop through the rules again to see if 64 rule exists with the category or a 128 rule exists with the full mark.
+		// If found, return that class as the qos_class.
+		// Or evaluate iptables rules first, and save the last matching rule and change the cat and mark to reflect the redirected class (xx, 01).Continue to check 
 		return last_matching_rule;
 }  // eval_rule
 
@@ -1353,6 +1366,7 @@ function set_FlexQoS_mod_vars()
 		for (r=0;r<iptables_temp_array.length;r++){
 			if (iptables_temp_array[r] != "") {
 				iptables_temp_array[r]=iptables_temp_array[r].split(">");
+				// TODO - rewrite to unshift onto the array and stop matching after the first hit of iptables rules
 				rules.push(create_rule(iptables_temp_array[r][0], iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6]));
 			}
 		}
