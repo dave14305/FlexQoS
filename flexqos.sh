@@ -683,6 +683,29 @@ about() {
 	echo "  Use of this gaming rule REQUIRES devices to have a continous static ip assignment && this range needs to be passed into the script"
 }
 
+backup() {
+	case "$1" in
+		'doit')
+			[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+			{
+				echo ". /usr/sbin/helper.sh"
+				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
+				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
+				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\"" 
+			} > "${ADDON_DIR}/restore_flexqos_settings.sh"
+			echo "Backup done!"
+		;;
+		'restoreit')
+			sh "${ADDON_DIR}/restore_flexqos_settings.sh"
+			echo "Backup restored!"
+		;;
+		'removeit')
+			rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+			echo "Backup deleted!"
+		;;
+	esac
+}
+
 check_connection() {
 	livecheck="0"
 	while [ "$livecheck" != "2" ]; do
@@ -780,6 +803,10 @@ menu() {
 	echo "  (1) about        explain functionality"
 	echo "  (2) update       check for updates "
 	echo "  (3) debug        traffic control parameters"
+	echo "  (4) backup       do a backup of current appdb and rules list"
+	[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && echo "  (5) restore      restore old backup"
+	[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && echo "  (6) delete       remove old backup"
+	echo ""
 	echo "  (u) uninstall    uninstall script"
 	echo "  (e) exit"
 	echo ""
@@ -788,13 +815,22 @@ menu() {
 	case $input in
 		'1')
 			about
-			;;
+		;;
 		'2')
 			update
-			;;
+		;;
 		'3')
 			debug
-			;;
+		;;
+		'4')
+			backup "doit"
+		;;
+		'5')
+			backup "restoreit"
+		;;
+		'6')
+			backup "removeit"
+		;;
 		'u'|'U')
 			# clear
 			echo "FlexQoS v${version} released ${release}"
@@ -809,10 +845,10 @@ menu() {
 			fi
 			echo ""
 			echo "FlexQoS has NOT been uninstalled"
-			;;
+		;;
 		'e'|'E')
 			return
-			;;
+		;;
 	esac
 	menu
 }
@@ -1016,6 +1052,7 @@ install() {
 	echo "FlexQoS installation complete!"
 
 	scriptinfo
+      am_get_webui_page "$WEBUIPATH"
 	echo "Advanced configuration available via:"
 	if [ "$(nvram get http_enable)" = "1" ]; then
                 htproto="https"		
@@ -1033,7 +1070,16 @@ install() {
                 lanport=":$(nvram get "$htproto"_lanport)"
         fi
 	echo "$htproto://$htdomain$lanport/$am_webui_page"	
-
+	
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+		echo ""
+		echo -n "Backup found!"
+		echo -n "Would you like to restore it? [1=Yes 2=No]: "
+		read -r yn
+		if [ "$yn" = "1" ]; then
+			backup restoreit
+		fi
+	fi
 	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart
 } # install
 
@@ -1054,8 +1100,29 @@ uninstall() {
 		echo "Restoring FreshJR_QOS nvram settings..."
 		sh ${ADDON_DIR}/restore_freshjr_nvram.sh
 	fi
-	echo "Deleting FlexQoS directory..."
-	rm -rf "$ADDON_DIR"
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+		echo -n "Backup found!"
+		echo -n "Would you like to delete it? [1=Yes 2=No]: "
+		read -r yn
+		if [ "$yn" = "1" ]; then
+			echo "Deleting Backup..."
+			rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+		fi
+	else
+		echo -n "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
+		read -r yn
+		if [ "$yn" = "1" ]; then
+			echo "Backing up FlexQoS settings..."
+			backup doit
+		fi
+	fi
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+		echo "Deleting FlexQoS folder contents except Backup file..."
+		find "$ADDON_DIR" -type f -not -name 'restore_flexqos_settings.sh' -delete
+	else
+		echo "Deleting FlexQoS directory..."
+		rm -rf "$ADDON_DIR"
+	fi
 	echo "FlexQoS has been uninstalled"
 } # uninstall
 
