@@ -1082,7 +1082,7 @@ install() {
 		echo -n "Would you like to restore it? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
-			backup restoreit
+			backup restore
 		fi
 	fi
 	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart
@@ -1118,7 +1118,7 @@ uninstall() {
 		read -r yn
 		if [ "$yn" = "1" ]; then
 			echo "Backing up FlexQoS settings..."
-			backup doit
+			backup backup
 		fi
 	fi
 	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
