@@ -74,6 +74,7 @@ Default_mark_up="0x403f0001"
 
 iptables_static_rules() {
 	echo "Applying iptables static rules"
+	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	iptables -D POSTROUTING -t mangle -o br0 -m mark --mark 0x40000000/0xc0000000 -j MARK --set-xmark 0x80000000/0xC0000000 > /dev/null 2>&1		#VPN Fix - (Fixes download traffic showing up in upload section when router is acting as a VPN Client)
 	iptables -A POSTROUTING -t mangle -o br0 -m mark --mark 0x40000000/0xc0000000 -j MARK --set-xmark 0x80000000/0xC0000000
 	iptables -D OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
@@ -378,7 +379,7 @@ EOF
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
 		tmp_appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
 		tmp_appdb_rules="${tmp_appdb_rules}<${r1}>${d1}<${r2}>${d2}<${r3}>${d3}<${r4}>${d4}"
-		tmp_appdb_rules=$(echo "$tmp_appdb_rules" | sed 's/<>0//g')
+		tmp_appdb_rules=$(echo "$tmp_appdb_rules" | sed 's/<>0?//g')
 		am_settings_set ${SCRIPTNAME}_appdb "$tmp_appdb_rules"
 	fi
 
