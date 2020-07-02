@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v0.8.5 released 07/01/2020
+FlexQoS v0.8.6 released 07/02/2020
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -90,7 +90,8 @@ var iptables_rulelist_array="";
 var iptables_temp_array=[];
 var appdb_temp_array=[];
 var appdb_rulelist_array="";
-var rules = [];	// array for iptables rules
+var iptables_rules = [];	// array for iptables rules
+var appdb_rules = [];	// array for appdb rules
 var gameCIDR;		// CIDR/IP of game devices
 //Syntax Hints
 var ipsyntaxL = '<b>Syntax:</b> <p>&emsp;&nbsp;192.168.X.XXX</p> <p>&emsp;!192.168.X.XXX</p> <p>&nbsp;</p> <p>&emsp;&nbsp;192.168.X.XXX/CIDR</p> <p>&emsp;!192.168.X.XXX/CIDR</p>';
@@ -131,6 +132,16 @@ if (qos_mode == 2) {
 		[1, 3, 14],
 		[7, 10, 11, 21, 23],
 		[4, 13]
+	];
+	var flexqos_newmarks = [
+		[9, 1],   // 0 Net Control mark
+		[8, 1],   // 1 Gaming mark
+		[4, 1],   // 2 Streaming mark
+		[6, 1],   // 3 VoIP mark
+		[24, 1],  // 4 Web mark
+		[3, 1],   // 5 Downloads mark
+		[10, 1],  // 6 Others mark
+		[63, 1]   // 7 Defaults/Game Transferring mark
 	];
 
 	var c_net=bwdpi_app_rulelist_row.indexOf(cat_id_array[0].toString())
@@ -732,58 +743,58 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst){
 
 function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 	var last_matching_rule = 99;  // return 99 if no matches
-	var first_appdb_matching_rule = 99; // return 99 if no matches
-	// return the rules[i][18] when a match
-	for (i=0;i<rules.length;i++) {
+
+	// save the iptables_rules[i][18] when a match
+	for (i=0;i<iptables_rules.length;i++) {
 		//eval false if rule has no filters or destination specified
-		if (!rules[i] || !rules[i][0] || (rules[i][18]==undefined) )
+		if (!iptables_rules[i] || !iptables_rules[i][0] || (iptables_rules[i][18]==undefined) )
 		{
 			// console.log("rule is not configured");
 			continue;
 		}
 
-		if ( rules[i][1] && CProto != rules[i][1] && rules[i][1] != "both" )
+		if ( iptables_rules[i][1] && CProto != iptables_rules[i][1] && iptables_rules[i][1] != "both" )
 		{
 			// console.log("protocol mismatch");
 			continue;
 		}
 
 		//if rule has local/remote ports specified
-		if (rules[i][0] & 15)
+		if (iptables_rules[i][0] & 15)
 		{
-			if ((rules[i][0] & 15) <= 3 )							//if port rule is NOT a multiport match
+			if ((iptables_rules[i][0] & 15) <= 3 )							//if port rule is NOT a multiport match
 			{
-				if ( (rules[i][0] & 1) && !((CLport >= rules[i][3] && CLport <= rules[i][4])^(rules[i][2])) )
+				if ( (iptables_rules[i][0] & 1) && !((CLport >= iptables_rules[i][3] && CLport <= iptables_rules[i][4])^(iptables_rules[i][2])) )
 				{
 					// console.log("local port mismatch");
 					continue;
 				}
-				if ( (rules[i][0] & 2) && !((CRport >= rules[i][7] && CRport <= rules[i][8])^(rules[i][6])) )
+				if ( (iptables_rules[i][0] & 2) && !((CRport >= iptables_rules[i][7] && CRport <= iptables_rules[i][8])^(iptables_rules[i][6])) )
 				{
 					// console.log("remote port mismatch");
 					continue;
 				}
 			}
-			else if ((rules[i][0] & 15) == "4" )						//if port rule is ONLY a local multiport match
+			else if ((iptables_rules[i][0] & 15) == "4" )						//if port rule is ONLY a local multiport match
 			{
 				var match=false;
-				for (var j = 0; j < rules[i][5].length; j++) {
-					if(rules[i][5][j] == CLport) 	match=true;
+				for (var j = 0; j < iptables_rules[i][5].length; j++) {
+					if(iptables_rules[i][5][j] == CLport) 	match=true;
 				}
-				if (rules[i][2]) 					match=!(match);
+				if (iptables_rules[i][2]) 					match=!(match);
 				if (match == false)
 				{
 				  // console.log("local multiport mismatch");
 				  continue;
 				}
 			}
-			else if ((rules[i][0] & 15) == "8" )						//if port rule is ONLY a remote multiport match
+			else if ((iptables_rules[i][0] & 15) == "8" )						//if port rule is ONLY a remote multiport match
 			{
 				var match=false;
-				for (var j = 0; j < rules[i][9].length; j++) {
-			  	  if(rules[i][9][j] == CRport) 	match=true;
+				for (var j = 0; j < iptables_rules[i][9].length; j++) {
+				  if(iptables_rules[i][9][j] == CRport) 	match=true;
 				}
-				if (rules[i][6]) 				match=!(match);
+				if (iptables_rules[i][6]) 				match=!(match);
 				if (match == false)
 				{
 				  // console.log("remote multiport mismatch");
@@ -798,25 +809,25 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 		}
 
 		// if rule has mark cat specified
-		if ( (rules[i][0] & 64) && (rules[i][16] != CCat) )
+		if ( (iptables_rules[i][0] & 64) && (iptables_rules[i][16] != CCat) )
 		{
 			// console.log("category mismatch");
 			continue;
 		}
 
 		// if rule has mark id specified
-		if ( (rules[i][0] & 128) && (rules[i][17] != CId) )
+		if ( (iptables_rules[i][0] & 128) && (iptables_rules[i][17] != CId) )
 		{
 			// console.log("traffic ID mismatch");
 			continue;
 		}
 
 		// if rule has local IP specified and is not IPv6
-		if (rules[i][0] & 16)
+		if (iptables_rules[i][0] & 16)
 		{
 			if ( CLip.indexOf(":") < 0 ) {
 				var tmpCLip=ip2dec(CLip);
-				if ( !((tmpCLip >= rules[i][11] && tmpCLip <= rules[i][12])^(rules[i][10])) )
+				if ( !((tmpCLip >= iptables_rules[i][11] && tmpCLip <= iptables_rules[i][12])^(iptables_rules[i][10])) )
 				{
 					// console.log("local ip mismatch");
 					continue;
@@ -828,11 +839,11 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 		 }
 
 		// if rule has remote IP specified
-		if (rules[i][0] & 32)
+		if (iptables_rules[i][0] & 32)
 		{
 			if ( CRip.indexOf(":") < 0 ) {
 				var tmpCRip=ip2dec(CRip);
-				if ( !((tmpCRip >= rules[i][14] && tmpCRip <= rules[i][15])^(rules[i][13])) )
+				if ( !((tmpCRip >= iptables_rules[i][14] && tmpCRip <= iptables_rules[i][15])^(iptables_rules[i][13])) )
 				{
 				//console.log("remote ip mismatch");
 				continue;
@@ -844,18 +855,40 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 		}
 
 		// console.log("rule matches current connection");
-		if (first_appdb_matching_rule == 99 && ((rules[i][0] == 64) || (rules[i][0] == 128)))
-			// if this is the first matching appdb rule, save it for later in case no further iptables rules match
-			first_appdb_matching_rule = rules[i][18];
-		else
-			last_matching_rule=rules[i][18];  // save the rule's target Class
-	} // for each rule in array
-	// if we've gotten through all the rules and the only match was an appdb rule, return the first matching appdb rule
-	// otherwise, return the last matched iptables rule
-	if (last_matching_rule == 99 && first_appdb_matching_rule < 99)
-		return first_appdb_matching_rule;
-	else
-		return last_matching_rule;
+		// stop at first match and save class and new mark
+		last_matching_rule=iptables_rules[i][18];  // save the rule's target Class
+		CCat=flexqos_newmarks[last_matching_rule][0];
+		CId=flexqos_newmarks[last_matching_rule][1];
+		break;
+	} // for each iptables rule in array
+
+	for (i=0;i<appdb_rules.length;i++) {
+		if (!appdb_rules[i] || !appdb_rules[i][0] || (appdb_rules[i][18]==undefined) )
+		{
+			// console.log("rule is not configured");
+			continue;
+		}
+
+		// if rule has mark cat specified
+		if ( (appdb_rules[i][0] & 64) && (appdb_rules[i][16] != CCat) )
+		{
+			// console.log("category mismatch");
+			continue;
+		}
+
+		// if rule has mark id specified
+		if ( (appdb_rules[i][0] & 128) && (appdb_rules[i][17] != CId) )
+		{
+			// console.log("traffic ID mismatch");
+			continue;
+		}
+
+		// console.log("rule matches current connection");
+		return appdb_rules[i][18];
+	} // for each appdb rule in array
+	// if we reach here, we either have a connection that matches nothing and will return 99
+	// or an iptables connection whose new mark was not overridden by an appdb rule
+	return last_matching_rule;
 }  // eval_rule
 
 function redraw() {
@@ -1343,7 +1376,7 @@ function set_FlexQoS_mod_vars()
 			if (appdb_temp_array[a].length == 8) {
 				appdb_temp_array[a]=appdb_temp_array[a].split(">");
 				appdb_temp_array[a].unshift(catdb_label_array[catdb_mark_array.indexOf(appdb_temp_array[a][0])]);
-				rules.push(create_rule("", "", "", "", "", appdb_temp_array[a][1], appdb_temp_array[a][2]));
+				appdb_rules.push(create_rule("", "", "", "", "", appdb_temp_array[a][1], appdb_temp_array[a][2]));
 			}
 		}
 
@@ -1353,7 +1386,7 @@ function set_FlexQoS_mod_vars()
 		for (r=0;r<iptables_temp_array.length;r++){
 			if (iptables_temp_array[r] != "") {
 				iptables_temp_array[r]=iptables_temp_array[r].split(">");
-				rules.push(create_rule(iptables_temp_array[r][0], iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6]));
+				iptables_rules.unshift(create_rule(iptables_temp_array[r][0], iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6]));
 			}
 		}
 
