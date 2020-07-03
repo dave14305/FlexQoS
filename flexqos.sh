@@ -686,7 +686,7 @@ about() {
 backup() {
 	case "$1" in
 		'backup')
-			[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			{
 				echo "#!/bin/sh"
 				echo "# backup date: $(date)"
@@ -703,7 +703,7 @@ backup() {
 			prompt_restart
 		;;
 		'remove')
-			rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			echo "Backup deleted."
 		;;
 	esac
