@@ -1123,7 +1123,7 @@ uninstall() {
 	fi
 	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
 		echo "Deleting FlexQoS folder contents except Backup file..."
-		find "$ADDON_DIR" -type f -not -name 'restore_flexqos_settings.sh' -delete
+		/usr/bin/find "$ADDON_DIR" -type f ! -name restore_flexqos_settings.sh -exec rm {} +
 	else
 		echo "Deleting FlexQoS directory..."
 		rm -rf "$ADDON_DIR"
