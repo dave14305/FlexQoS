@@ -831,14 +831,18 @@ menu() {
 			backup "backup"
 		;;
 		'5')
-                      if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-			backup "restore"
-                      fi
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				backup "restore"
+			else
+				echo "No backup available"
+			fi
 		;;
 		'6')
-                       if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-			backup "remove"
-                       fi
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				backup "remove"
+			else
+				echo "No backup available"
+			fi
 		;;
 		'u'|'U')
 			# clear
