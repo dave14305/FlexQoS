@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v0.8.6 released 07/02/2020
+FlexQoS v0.9.0 released 07/05/2020
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -1728,6 +1728,11 @@ function set_FlexQoS_mod_vars()
 	}
 }
 
+function FlexQoS_reset_appdb() {
+	appdb_rulelist_array = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5";
+	show_appdb_rules();
+} // FlexQoS_reset_appdb
+
 function FlexQoS_mod_reset_down()
 {
 	document.getElementById('drp0').value=5;
@@ -1928,7 +1933,7 @@ function SetCurrentPage() {
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 	<thead>
 		<tr>
-			<td colspan="4">AppDB Redirection Rules&nbsp;(Max Limit : 32)</td>
+			<td colspan="4">AppDB Redirection Rules&nbsp;(Max Limit : 32)<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_reset_appdb()'>Reset</small></td>
 		</tr>
 	</thead>
 	<tbody>
