@@ -130,9 +130,13 @@ if (qos_mode == 2) {
 		[0, 5, 6, 15, 17],
 		[13, 24],
 		[1, 3, 14],
-		[7, 10, 11, 21, 23],
-		[4, 13]
+		[7, 10, 11, 21, 23]
 	];
+	if ( bwdpi_app_rulelist.indexOf("4,13<") < 0 )
+		cat_id_array.push([]);
+	else
+		cat_id_array.push([4, 13]);
+
 	var flexqos_newmarks = [
 		[9, 1],   // 0 Net Control mark
 		[8, 1],   // 1 Gaming mark
