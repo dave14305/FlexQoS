@@ -25,7 +25,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
-<script type="text/javascript" src="/ext/flexqos/table.js"></script>
+<script type="text/javascript" src="/js/table/table.js"></script>
 <script type="text/javascript" src="/ext/flexqos/flexqos_arrays.js"></script>
 <style>
 .list_table td {
@@ -113,6 +113,299 @@ if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
 } else { // invalid mode
 	var qos_mode = 0;
 }
+
+tableValidator.qosPortRange = {
+	keyPress : function($obj,event) {
+		var objValue = $obj.val();
+		var keyPressed = event.keyCode ? event.keyCode : event.which;
+		if (tableValid_isFunctionButton(event)) {
+			return true;
+		}
+		if ((keyPressed > 47 && keyPressed < 58)) {	//0~9
+			return true;
+		}
+		else if (keyPressed == 58 && objValue.length > 0) { // colon :
+			for(var i = 0; i < objValue.length; i++) {
+				var c = objValue.charAt(i);
+				if (c == ':' || c == ',')
+					return false;
+			}
+			return true;
+		}
+		else if (keyPressed == 33) { // exclamation !
+			if(objValue.length > 0 && objValue.length < $obj[0].attributes.maxlength.value && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
+				$obj.val('!' + objValue);
+			}
+			else if (objValue.length == 0)
+				return true;
+			return false;
+		}
+		else if (keyPressed == 44 && objValue.length > 0){ // comma ,
+			for(var i = 0; i < objValue.length; i++) {
+				var c = objValue.charAt(i);
+				if (c == ':')
+					return false;
+			}
+			return true;
+		}
+		return false;
+	},
+	blur : function(_$obj) {
+		var eachPort = function(num, min, max) {
+			if(num < min || num > max) {
+				return false;
+			}
+			return true;
+		};
+		var hintMsg = "";
+		var _value = _$obj.val();
+		_value = $.trim(_value);
+		_$obj.val(_value);
+
+		if(_value == "") {
+			if(_$obj.hasClass("valueMust"))
+				hintMsg = "Fields cannot be blank.";
+			else
+				hintMsg = HINTPASS;
+		}
+		else {
+			var mini = 1;
+			var maxi = 65535;
+			var PortRange = _value.replace(/^\!/g, "");
+			var singlerangere = new RegExp("^([0-9]{1,5})\:([0-9]{1,5})$", "gi");
+			var multiportre = new RegExp("^([0-9]{1,5})(\,[0-9]{1,5})+$", "gi");
+			if(singlerangere.test(PortRange)) {  // single port range
+				if(parseInt(RegExp.$1) >= parseInt(RegExp.$2)) {
+					hintMsg = _value + " is not a valid port range!";
+				}
+				else{
+					if(!eachPort(RegExp.$1, mini, maxi) || !eachPort(RegExp.$2, mini, maxi)) {
+						hintMsg = "Please enter a value between " + mini + " to " + maxi;
+					}
+					else
+						hintMsg =  HINTPASS;
+					}
+			}
+			else if (multiportre.test(PortRange)) {
+				var split = PortRange.split(",");
+				for (var i = 0; i < split.length; i++) {
+					if(!eachPort(split[i], mini, maxi)){
+						hintMsg = "Please enter a value between " + mini + " to " + maxi;
+					}
+					else
+						hintMsg =  HINTPASS;
+				}
+			}
+			else {
+				if(!tableValid_range(PortRange, mini, maxi)) {
+					hintMsg = "Please enter a value between " + mini + " to " + maxi;
+				}
+				else
+					hintMsg =  HINTPASS;
+			}
+		}
+		if(_$obj.next().closest(".hint").length) {
+			_$obj.next().closest(".hint").remove();
+		}
+		if(hintMsg != HINTPASS) {
+			var $hintHtml = $('<div>');
+			$hintHtml.addClass("hint");
+			$hintHtml.html(hintMsg);
+			_$obj.after($hintHtml);
+			_$obj.focus();
+			return false;
+		}
+		return true;
+	}
+};
+
+tableValidator.qosMark = {
+	keyPress : function($obj, event) {
+		var objValue = $obj.val();
+		var keyPressed = event.keyCode ? event.keyCode : event.which;
+		if (tableValid_isFunctionButton(event)) {
+			return true;
+		}
+		if ((keyPressed > 47 && keyPressed < 58) || (keyPressed > 64 && keyPressed < 71) || (keyPressed > 96 && keyPressed < 103)) {	//0~9 A~F
+			return true;
+		}
+		if (keyPressed == 42) { // *
+			if (objValue.length > 1) {
+				for(var i=0;i<objValue.length;i++) {
+					var c=objValue.charAt(i);
+					if (c == '*' && i < 2)
+						return false;
+				}
+				$obj.val(objValue.substr(0,2)+"****");
+			}
+		}
+		return false;
+	},
+	blur : function(_$obj) {
+		var hintMsg = "";
+		var _value = _$obj.val();
+		_value = $.trim(_value);
+		_$obj.val(_value);
+		if(_value == "") {
+			if(_$obj.hasClass("valueMust"))
+				hintMsg = "Fields cannot be blank.";
+			else
+				hintMsg = HINTPASS;
+		}
+		else {
+			var markre = new RegExp("^([0-9a-fA-F]{2})([0-9a-fA-F]{4}|[\*]{4})$", "gi");
+			if(markre.test(_value)) {
+				hintMsg = HINTPASS;
+			}
+			else {
+				hintMsg = "Please enter a valid mark or wildcard";
+			}
+		}
+		if(_$obj.next().closest(".hint").length) {
+			_$obj.next().closest(".hint").remove();
+		}
+		if(hintMsg != HINTPASS) {
+			var $hintHtml = $('<div>');
+			$hintHtml.addClass("hint");
+			$hintHtml.html(hintMsg);
+			_$obj.after($hintHtml);
+			_$obj.focus();
+			return false;
+		}
+		return true;
+	}
+};
+
+tableValidator.qosIPCIDR = { // only IP or IP plus netmask
+	keyPress : function($obj,event) {
+		var objValue = $obj.val();
+		var keyPressed = event.keyCode ? event.keyCode : event.which;
+		if (tableValid_isFunctionButton(event)) {
+			return true;
+		}
+		var i,j;
+		if((keyPressed > 47 && keyPressed < 58)){
+			j = 0;
+			for(i = 0; i < objValue.length; i++){
+				if(objValue.charAt(i) == '.'){
+					j++;
+				}
+			}
+			if(j < 3 && i >= 3){
+				if(objValue.charAt(i-3) != '.' && objValue.charAt(i-2) != '.' && objValue.charAt(i-1) != '.'){
+					$obj.val(objValue + '.');
+				}
+			}
+			return true;
+		}
+		else if(keyPressed == 46){
+			j = 0;
+			for(i = 0; i < objValue.length; i++){
+				if(objValue.charAt(i) == '.'){
+					j++;
+				}
+			}
+			if(objValue.charAt(i-1) == '.' || j == 3){
+				return false;
+			}
+			return true;
+		}
+		else if(keyPressed == 47){
+			j = 0;
+			for(i = 0; i < objValue.length; i++){
+				if(objValue.charAt(i) == '.'){
+					j++;
+				}
+			}
+			if( j < 3){
+				return false;
+			}
+			return true;
+		}
+		else if (keyPressed == 33) { // exclamation !
+			if(objValue.length > 0 && objValue.length < $obj[0].attributes.maxlength.value && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
+				$obj.val('!' + objValue);
+			}
+			else if (objValue.length == 0)
+				return true;
+			return false;
+		}
+		return false;
+	},
+	blur : function(_$obj) {
+		var hintMsg = "";
+		var _value = _$obj.val();
+		_value = $.trim(_value);
+		_value = _value.toLowerCase();
+		_$obj.val(_value);
+		var _firstChar = _value.charAt(0);
+		_value = _value.replace(/^\!/g, "");
+		if(_value == "") {
+			if(_$obj.hasClass("valueMust"))
+				hintMsg = "Fields cannot be blank.";
+			else
+				hintMsg = HINTPASS;
+		}
+		else {
+			var startIPAddr = tableValid_ipAddrToIPDecimal("0.0.0.0");
+			var endIPAddr = tableValid_ipAddrToIPDecimal("255.255.255.255");
+			var ipNum = 0;
+			if(_value.search("/") == -1) {	// only IP
+				ipNum = tableValid_ipAddrToIPDecimal(_value);
+				if(ipNum > startIPAddr && ipNum < endIPAddr) {
+					hintMsg = HINTPASS;
+					//convert number to ip address
+					if(_firstChar=="!")
+						_$obj.val(_firstChar + tableValid_decimalToIPAddr(ipNum));
+					else
+						_$obj.val(tableValid_decimalToIPAddr(ipNum));
+				}
+				else {
+					hintMsg = _value + " is not a valid IP address!";
+				}
+			}
+			else{ // IP plus netmask
+				if(_value.split("/").length > 2) {
+					hintMsg = _value + " is not a valid IP address!";
+				}
+				else {
+					var ip_tmp = _value.split("/")[0];
+					var mask_tmp = parseInt(_value.split("/")[1]);
+					ipNum = tableValid_ipAddrToIPDecimal(ip_tmp);
+					if(ipNum > startIPAddr && ipNum < endIPAddr) {
+						if(mask_tmp == "" || isNaN(mask_tmp))
+							hintMsg = _value + " is not a valid IP address!";
+						else if(mask_tmp == 0 || mask_tmp > 32)
+							hintMsg = _value + " is not a valid IP address!";
+						else {
+							hintMsg = HINTPASS;
+							//convert number to ip address
+							if(_firstChar=="!")
+								_$obj.val(_firstChar + tableValid_decimalToIPAddr(ipNum) + "/" + mask_tmp);
+							else
+								_$obj.val(tableValid_decimalToIPAddr(ipNum) + "/" + mask_tmp);
+						}
+					}
+					else {
+						hintMsg = _value + " is not a valid IP address!";
+					}
+				}
+			}
+		}
+		if(_$obj.next().closest(".hint").length) {
+			_$obj.next().closest(".hint").remove();
+		}
+		if(hintMsg != HINTPASS) {
+			var $hintHtml = $('<div>');
+			$hintHtml.addClass("hint");
+			$hintHtml.html(hintMsg);
+			_$obj.after($hintHtml);
+			_$obj.focus();
+			return false;
+		}
+		return true;
+	}
+};
 
 if (qos_mode == 2) {
 	var bwdpi_app_rulelist = "<% nvram_get("bwdpi_app_rulelist"); %>".replace(/&#60/g, "<");
@@ -1168,7 +1461,7 @@ function show_iptables_rules(){
 					"maxlength" : "19",
 					"valueMust" : false,
 					"placeholder": "192.168.1.100 !192.168.1.100 192.168.1.100/31 !192.168.1.100/31",
-					"validator" : "dualWanRoutingRules"
+					"validator" : "qosIPCIDR"
 				},
 				{
 					"editMode" : "text",
@@ -1176,7 +1469,7 @@ function show_iptables_rules(){
 					"maxlength" : "19",
 					"valueMust" : false,
 					"placeholder": "9.9.9.9 !9.9.9.9 9.9.9.0/24 !9.9.9.0/24",
-					"validator" : "dualWanRoutingRules"
+					"validator" : "qosIPCIDR"
 				},
 				{
 					"editMode" : "select",
@@ -1189,7 +1482,7 @@ function show_iptables_rules(){
 					"maxlength" : "36",
 					"valueMust" : false,
 					"placeholder": "443 !443 1234:5678 !1234:5678 53,123,853 !53,123,853",
-					"validator" : "portRange"
+					"validator" : "qosPortRange"
 				},
 				{
 					"editMode" : "text",
@@ -1197,7 +1490,7 @@ function show_iptables_rules(){
 					"maxlength" : "36",
 					"valueMust" : false,
 					"placeholder": "443 !443 1234:5678 !1234:5678 53,123,853 !53,123,853",
-					"validator" : "portRange"
+					"validator" : "qosPortRange"
 				},
 				{
 					"editMode" : "text",
@@ -1221,13 +1514,13 @@ function show_iptables_rules(){
 					"editMode" : "text",
 					"maxlength" : "19",
 					"valueMust" : false,
-					"validator" : "dualWanRoutingRules"
+					"validator" : "qosIPCIDR"
 				},
 				{
 					"editMode" : "text",
 					"maxlength" : "19",
 					"valueMust" : false,
-					"validator" : "dualWanRoutingRules"
+					"validator" : "qosIPCIDR"
 				},
 				{
 					"editMode" : "select",
@@ -1237,13 +1530,13 @@ function show_iptables_rules(){
 					"editMode" : "text",
 					"maxlength" : "36",
 					"valueMust" : false,
-					"validator" : "portRange"
+					"validator" : "qosPortRange"
 				},
 				{
 					"editMode" : "text",
 					"maxlength" : "36",
 					"valueMust" : false,
-					"validator" : "portRange"
+					"validator" : "qosPortRange"
 				},
 				{
 					"editMode" : "text",

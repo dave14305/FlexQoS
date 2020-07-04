@@ -33,7 +33,7 @@ release=07/03/2020
 
 # Global variables
 GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
-GIT_BRANCH="master"
+GIT_BRANCH="develop"
 GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 SCRIPTNAME="flexqos"
 ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
@@ -881,16 +881,15 @@ remove_webui() {
 			rm "$oldfile"
 		done
 	fi
-	rm -rf /www/user/${SCRIPTNAME}		# remove js helper scripts
+	rm -rf /www/ext/${SCRIPTNAME}		# remove js helper scripts
 }
 
 install_webui() {
 	if [ -z "$1" ]; then
 		echo "Downloading WebUI files..."
 		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
-		[ ! -d "${ADDON_DIR}/table" ] && mkdir -p "${ADDON_DIR}/table"
-		download_file "table.js" "${ADDON_DIR}/table/table.js"
-		download_file "tableValidator.js" "${ADDON_DIR}/table/tableValidator.js"
+		# cleanup obsolete dir for table files
+		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
 	fi
 	am_get_webui_page "$WEBUIPATH"
 	if [ "$am_webui_page" = "none" ]; then
@@ -913,7 +912,7 @@ install_webui() {
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
 	fi
-	ln -sf "${ADDON_DIR}/table" /www/user/${SCRIPTNAME}
+	[ ! -d "/www/ext/${SCRIPTNAME}" ] && mkdir -p "/www/ext/${SCRIPTNAME}"
 }
 
 Auto_ServiceEventEnd() {
@@ -1307,7 +1306,7 @@ show_help() {
 
 generate_bwdpi_arrays() {
 	# generate if not exist, plus after wrs restart (signature update)
-	if [ ! -f "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js" ] || [ /tmp/bwdpi/bwdpi.app.db -nt "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js" ]; then
+	if [ ! -f "/www/ext/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || [ /jffs/signature/rule.trf -nt "/www/ext/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ]; then
 	{
 		printf "var catdb_mark_array = [ \"000000\""
 		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db
@@ -1317,7 +1316,7 @@ generate_bwdpi_arrays() {
 		awk -F, '{ printf(", \"%s\"",$2) }' /tmp/bwdpi/bwdpi.cat.db
 		awk -F, '{ printf(", \"%s\"",$4) }' /tmp/bwdpi/bwdpi.app.db
 		printf ", \"\" ];"
-	} > "${ADDON_DIR}/table/${SCRIPTNAME}_arrays.js"
+	} > "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js"
 	fi
 }
 
