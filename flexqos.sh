@@ -1307,6 +1307,7 @@ show_help() {
 	echo "  ${SCRIPTNAME} -uninstall          uninstall script & delete from disk"
 	echo "  ${SCRIPTNAME} -enable             enable    script"
 	echo "  ${SCRIPTNAME} -disable            disable   script but do not delete from disk"
+	echo "  ${SCRIPTNAME} -backup            backup		user settings"
 	echo "  ${SCRIPTNAME} -debug              print debug info"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
 	echo ""
@@ -1383,6 +1384,9 @@ case "$arg1" in
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/service-event-end  2>/dev/null
 		cru d "$SCRIPTNAME"
 		remove_webui
+		;;
+	'backup')
+		backup backup
 		;;
 	'debug')
 		debug
