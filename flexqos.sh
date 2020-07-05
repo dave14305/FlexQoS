@@ -894,6 +894,7 @@ install_webui() {
 		echo "Downloading WebUI files..."
 		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
 		# cleanup obsolete dir for table files
+		rm "/www/ext/${SCRIPTNAME}" 2>/dev/null
 		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
 	fi
 	am_get_webui_page "$WEBUIPATH"
