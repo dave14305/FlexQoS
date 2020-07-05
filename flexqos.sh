@@ -806,7 +806,7 @@ prompt_restart() {
 } # prompt_restart
 
 menu() {
-	# clear
+	clear
 	scriptinfo
 	echo "  (1) about        explain functionality"
 	echo "  (2) update       check for updates "
@@ -836,10 +836,18 @@ menu() {
 			backup "backup"
 		;;
 		'5')
-			backup "restore"
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				backup "restore"
+			else
+				echo "No backup available"
+			fi
 		;;
 		'6')
-			backup "remove"
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				backup "remove"
+			else
+				echo "No backup available"
+			fi
 		;;
 		'u'|'U')
 			# clear
