@@ -33,7 +33,7 @@ release=07/05/2020
 
 # Global variables
 GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
-GIT_BRANCH="develop"
+GIT_BRANCH="master"
 GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 SCRIPTNAME="flexqos"
 ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
