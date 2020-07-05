@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.8.7
-release=07/03/2020
+version=0.9.0
+release=07/05/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -95,7 +95,7 @@ iptables_static_rules() {
 appdb_static_rules() {
 	echo "Applying AppDB static rules"
 	${tc} filter add dev br0 protocol all prio 10 u32 match mark 0x803f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_down functionality
-	${tc} filter add dev eth0 protocol all prio 10 u32 match mark 0x403f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_up functionality
+	${tc} filter add dev "$tcwan" protocol all prio 10 u32 match mark 0x403f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_up functionality
 } # appdb_static_rules
 
 custom_rates() {
@@ -109,17 +109,22 @@ custom_rates() {
 	${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$DownRate6"Kbit ceil "$DownCeil6"Kbit burst "$DownBurst6" cburst "$DownCburst6"
 	${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$DownRate7"Kbit ceil "$DownCeil7"Kbit burst "$DownBurst7" cburst "$DownCburst7"
 
-	${tc} class change dev eth0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$UpRate0"Kbit ceil "$UpCeil0"Kbit burst "$UpBurst0" cburst "$UpCburst0"
-	${tc} class change dev eth0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$UpRate1"Kbit ceil "$UpCeil1"Kbit burst "$UpBurst1" cburst "$UpCburst1"
-	${tc} class change dev eth0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$UpRate2"Kbit ceil "$UpCeil2"Kbit burst "$UpBurst2" cburst "$UpCburst2"
-	${tc} class change dev eth0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$UpRate3"Kbit ceil "$UpCeil3"Kbit burst "$UpBurst3" cburst "$UpCburst3"
-	${tc} class change dev eth0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$UpRate4"Kbit ceil "$UpCeil4"Kbit burst "$UpBurst4" cburst "$UpCburst4"
-	${tc} class change dev eth0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$UpRate5"Kbit ceil "$UpCeil5"Kbit burst "$UpBurst5" cburst "$UpCburst5"
-	${tc} class change dev eth0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$UpRate6"Kbit ceil "$UpCeil6"Kbit burst "$UpBurst6" cburst "$UpCburst6"
-	${tc} class change dev eth0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$UpRate7"Kbit ceil "$UpCeil7"Kbit burst "$UpBurst7" cburst "$UpCburst7"
+	${tc} class change dev "$tcwan" parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$UpRate0"Kbit ceil "$UpCeil0"Kbit burst "$UpBurst0" cburst "$UpCburst0"
+	${tc} class change dev "$tcwan" parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$UpRate1"Kbit ceil "$UpCeil1"Kbit burst "$UpBurst1" cburst "$UpCburst1"
+	${tc} class change dev "$tcwan" parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$UpRate2"Kbit ceil "$UpCeil2"Kbit burst "$UpBurst2" cburst "$UpCburst2"
+	${tc} class change dev "$tcwan" parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$UpRate3"Kbit ceil "$UpCeil3"Kbit burst "$UpBurst3" cburst "$UpCburst3"
+	${tc} class change dev "$tcwan" parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$UpRate4"Kbit ceil "$UpCeil4"Kbit burst "$UpBurst4" cburst "$UpCburst4"
+	${tc} class change dev "$tcwan" parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$UpRate5"Kbit ceil "$UpCeil5"Kbit burst "$UpBurst5" cburst "$UpCburst5"
+	${tc} class change dev "$tcwan" parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$UpRate6"Kbit ceil "$UpCeil6"Kbit burst "$UpBurst6" cburst "$UpCburst6"
+	${tc} class change dev "$tcwan" parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$UpRate7"Kbit ceil "$UpCeil7"Kbit burst "$UpBurst7" cburst "$UpCburst7"
 } # custom_rates
 
 set_tc_variables(){
+
+	tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \(eth[0-9]\) root.*/\1/p;q')"
+	if [ -z "$tcwan" ]; then
+		tcwan="eth0"
+	fi
 
 	# read priority order of QoS categories as set by user in GUI
 	flowid=0
@@ -229,7 +234,7 @@ EOF
 		eval "UpBurst${class}=$burst"
 		eval "UpCburst${class}=$cburst"
 	done <<EOF
-$(${tc} class show dev eth0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
+$(${tc} class show dev $tcwan | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
 EOF
 
 	#read parameters for fakeTC
@@ -462,13 +467,13 @@ parse_tcrule() {
 		if [ "$id" = "****" -o "$1" = "000000" ] && [ -n "$currprio" ]; then
 			# change existing rule
 			currhandledown="$(${tc} filter show dev br0 | /bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
-			currhandleup="$(${tc} filter show dev eth0 | /bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
+			currhandleup="$(${tc} filter show dev $tcwan | /bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
 			echo "${tc} filter change dev br0 prio $currprio protocol all handle $currhandledown u32 flowid $flowid"
-			echo "${tc} filter change dev eth0 prio $currprio protocol all handle $currhandleup u32 flowid $flowid"
+			echo "${tc} filter change dev $tcwan prio $currprio protocol all handle $currhandleup u32 flowid $flowid"
 		else
 			# add new rule for individual app one priority level higher (-1)
 			echo "${tc} filter add dev br0 protocol all prio $prio u32 match mark $DOWN_mark flowid $flowid"
-			echo "${tc} filter add dev eth0 protocol all prio $prio u32 match mark $UP_mark flowid $flowid"
+			echo "${tc} filter add dev $tcwan protocol all prio $prio u32 match mark $UP_mark flowid $flowid"
 		fi
 	} >> /tmp/${SCRIPTNAME}_tcrules
 }
@@ -1100,6 +1105,7 @@ uninstall() {
 	rm -f /opt/bin/${SCRIPTNAME}
 	echo "Removing cron job..."
 	cru d "$SCRIPTNAME"
+	cru d "${SCRIPTNAME}_5min" 2>/dev/null
 	remove_webui
 	echo "Removing FlexQoS settings..."
 	sed -i "/^${SCRIPTNAME}_/d" /jffs/addons/custom_settings.txt
@@ -1192,10 +1198,11 @@ write_appdb_rules() {
 
 check_qos_tc() {
 	dlclasscnt="$(${tc} class show dev br0 | /bin/grep -c "parent 1:1 ")" # should be 8
-	ulclasscnt="$(${tc} class show dev eth0 | /bin/grep -c "parent 1:1 ")" # should be 8
+	#ulclasscnt="$(${tc} class show dev $tcwan | /bin/grep -c "parent 1:1 ")" # should be 8
 	dlfiltercnt="$(${tc} filter show dev br0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
-	ulfiltercnt="$(${tc} filter show dev eth0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
-	if [ "$dlclasscnt" -lt "8" ] || [ "$ulclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ "$ulfiltercnt" -lt "39" ]; then
+	#ulfiltercnt="$(${tc} filter show dev $tcwan | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+#	if [ "$dlclasscnt" -lt "8" ] || [ "$ulclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ "$ulfiltercnt" -lt "39" ]; then
+	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ]; then
 		return 0
 	fi
 	return 1
@@ -1223,6 +1230,7 @@ startup() {
 		fi
 	fi
 
+	cru d ${SCRIPTNAME}_5min 2>/dev/null
 	sleepdelay=0
 	while check_qos_tc;
 	do
@@ -1270,12 +1278,10 @@ startup() {
 				custom_rates 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
 			fi
 		fi # Classes less than 8
+		# Schedule check for 5 minutes after startup to ensure no qos tc resets
+		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH check"
 	else # 1:17
-		if [ "$1" = "check" ]; then
-			logger -t "FlexQoS" "Scheduled Persistence Check -> No modifications necessary"
-		else
-			logger -t "FlexQoS" "No TC modifications necessary"
-		fi
+		logger -t "FlexQoS" "No TC modifications necessary"
 	fi # 1:17
 } # startup
 
