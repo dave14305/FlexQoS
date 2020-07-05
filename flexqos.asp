@@ -1416,7 +1416,7 @@ function show_iptables_rules(){
 	var tableStruct = {
 		data: iptables_temp_array,
 		container: "iptables_rules_block",
-		title: "iptables Rules",
+		title: "iptables Rules<small style='float:right; font-weight:normal; margin-right:10px; cursor:pointer;' onclick='FlexQoS_reset_iptables()'>&nbsp;Reset</small>",
 		titieHint: "Edit existing rules by clicking in the table below.",
 		capability: {
 			add: true,
@@ -1553,6 +1553,8 @@ function show_iptables_rules(){
 //		ruleDuplicateValidation : "triggerPort"
 	}
 	tableApi.genTableAPI(tableStruct);
+	// TODO: find a reliable way to remove the Reset text from the top table title when drawn. It will reappear when the table is manipulated.
+	//$(".addRuleText").find("small").remove()
 }
 
 function show_appdb_rules() {
@@ -1727,6 +1729,19 @@ function set_FlexQoS_mod_vars()
 		}
 	}
 }
+
+function FlexQoS_reset_iptables() {
+	iptables_rulelist_array = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7";
+	iptables_temp_array = [];
+	iptables_temp_array = iptables_rulelist_array.split("<");
+	iptables_temp_array.shift();
+	for (r=0;r<iptables_temp_array.length;r++){
+		if (iptables_temp_array[r] != "") {
+			iptables_temp_array[r]=iptables_temp_array[r].split(">");
+		}
+	}
+	show_iptables_rules();
+} // FlexQoS_reset_iptables()
 
 function FlexQoS_reset_appdb() {
 	appdb_rulelist_array = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5";
