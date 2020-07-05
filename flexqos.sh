@@ -1122,25 +1122,25 @@ uninstall() {
 		echo "Restoring FreshJR_QOS nvram settings..."
 		sh ${ADDON_DIR}/restore_freshjr_nvram.sh
 	fi
-	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
 		echo -n "Backup found!"
 		echo -n "Would you like to delete it? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
 			echo "Deleting Backup..."
-			rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		fi
 	else
 		echo -n "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
-			echo "Backing up FlexQoS settings..."
+			echo "Backuping FlexQoS settings..."
 			backup backup
 		fi
 	fi
-	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
 		echo "Deleting FlexQoS folder contents except Backup file..."
-		/usr/bin/find "$ADDON_DIR" -type f ! -name restore_flexqos_settings.sh -exec rm {} +
+		/usr/bin/find "$ADDON_DIR" -type f ! -name restore_"${SCRIPTNAME}"_settings.sh -exec rm {} +
 	else
 		echo "Deleting FlexQoS directory..."
 		rm -rf "$ADDON_DIR"
