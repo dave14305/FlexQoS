@@ -692,7 +692,7 @@ about() {
 backup() {
 	case "$1" in
 		'backup')
-			[ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			{
 				echo "#!/bin/sh"
 				echo "# backup date: $(date)"
@@ -709,7 +709,7 @@ backup() {
 			prompt_restart
 		;;
 		'remove')
-			rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			echo "Backup deleted."
 		;;
 	esac
@@ -903,6 +903,7 @@ install_webui() {
 		echo "Downloading WebUI files..."
 		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
 		# cleanup obsolete dir for table files
+		rm "/www/ext/${SCRIPTNAME}" 2>/dev/null
 		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
 	fi
 	am_get_webui_page "$WEBUIPATH"
