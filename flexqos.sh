@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.9.0
-release=07/05/2020
+version=0.9.1
+release=07/xx/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -33,7 +33,7 @@ release=07/05/2020
 
 # Global variables
 GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
-GIT_BRANCH="master"
+GIT_BRANCH="develop"
 GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 SCRIPTNAME="flexqos"
 ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
@@ -306,6 +306,7 @@ debug(){
 		undf_prio="$((undf_prio-1))"
 	fi
 
+	echo "tc WAN iface: $tcwan"
 	echo "Undf Prio: $undf_prio"
 	echo "Undf FlowID: $undf_flowid"
 	echo "Classes Present: $ClassesPresent"
@@ -1307,7 +1308,7 @@ show_help() {
 	echo "  ${SCRIPTNAME} -uninstall          uninstall script & delete from disk"
 	echo "  ${SCRIPTNAME} -enable             enable    script"
 	echo "  ${SCRIPTNAME} -disable            disable   script but do not delete from disk"
-	echo "  ${SCRIPTNAME} -backup            backup		user settings"
+	echo "  ${SCRIPTNAME} -backup             backup user settings"
 	echo "  ${SCRIPTNAME} -debug              print debug info"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
 	echo ""
