@@ -286,7 +286,6 @@ appdb(){
 }
 
 webconfigpage() {
-	uiwebpage=""
 	uiwebpage="$(grep "$SCRIPTNAME_FANCY" /tmp/menuTree.js | awk -F'"' '{print $2}')"
 	if [ -n "$uiwebpage" ]; then
 		if [ "$(nvram get http_enable)" = "1" ]; then
