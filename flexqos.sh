@@ -287,7 +287,7 @@ appdb(){
 
 webconfigpage() {
 	uiwebpage="$(grep "$SCRIPTNAME_FANCY" /tmp/menuTree.js | awk -F'"' '{print $2}')"
-	if [ -n "$uiwebpage" ]; then
+	if [ "$(echo "$uiwebpage" | grep "asp")" ]; then
 		if [ "$(nvram get http_enable)" = "1" ]; then
 			htproto="https"		
 		else
