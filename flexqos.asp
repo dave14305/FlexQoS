@@ -72,6 +72,9 @@ display:none;
 td.t_item:active span.t_mark{
 display:inline;
 }
+.addRuleText small{
+display:none;
+}
 </style>
 
 <script>

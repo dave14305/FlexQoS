@@ -880,7 +880,7 @@ remove_webui() {
 		if [ -f /tmp/menuTree.js ]; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
 			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
-			if diff /tmp/menuTree.js /www/require/modules/menuTree.js; then
+			if diff -q /tmp/menuTree.js /www/require/modules/menuTree.js > /dev/null 2>&1 ; then
 				rm /tmp/menuTree.js
 			else
 				# Still some modifications from another script so remount
