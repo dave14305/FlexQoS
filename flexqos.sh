@@ -1312,12 +1312,25 @@ show_help() {
 	echo "  ${SCRIPTNAME} -debug              print debug info"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
 	echo ""
+        am_get_webui_page "$WEBUIPATH"
 	echo "Advanced configuration available via:"
 	if [ "$(nvram get http_enable)" = "1" ]; then
-		echo "https://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get https_lanport)/$am_webui_page"
+                htproto="https"		
 	else
-		echo "http://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get http_lanport)/$am_webui_page"
-	fi
+                htproto="http"
+        fi
+        if [ -n "$(nvram get lan_domain)" ]; then
+                htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+        else
+                htdomain="$(nvram get lan_ipaddr)"
+        fi
+        if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
+                lanport=""
+        else
+                lanport=":$(nvram get "$htproto"_lanport)"
+        fi
+	echo "$htproto://$htdomain$lanport/$am_webui_page"	
+	
 } # show_help
 
 generate_bwdpi_arrays() {
