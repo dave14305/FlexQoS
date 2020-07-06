@@ -36,6 +36,7 @@ GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
 GIT_BRANCH="develop"
 GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 SCRIPTNAME="flexqos"
+SCRIPTNAME_FANCY="FlexQoS"
 ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
@@ -284,6 +285,33 @@ appdb(){
 	done
 }
 
+webconfigpage() {
+	uiwebpage=""
+	uiwebpage="$(grep "$SCRIPTNAME_FANCY" /tmp/menuTree.js | awk -F'"' '{print $2}')"
+	if [ -n "$uiwebpage" ]; then
+		if [ "$(nvram get http_enable)" = "1" ]; then
+			htproto="https"		
+		else
+			htproto="http"
+		fi
+		if [ -n "$(nvram get lan_domain)" ]; then
+			htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+		else
+			htdomain="$(nvram get lan_ipaddr)"
+		fi
+		if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
+			lanport=""
+		else
+			lanport=":$(nvram get "$htproto"_lanport)"
+		fi
+		echo "Advanced configuration available via:"
+		echo "$htproto://$htdomain$lanport/$uiwebpage"
+	else
+		echo "Advanced configuration available via:"
+		echo "$htproto://$htdomain$lanport/"
+	fi
+	
+}
 scriptinfo() {
 	echo ""
 	echo "FlexQoS v${version} released ${release}"
@@ -337,6 +365,7 @@ debug(){
 	echo "appdb rules: $(am_settings_get flexqos_appdb)"
 	write_appdb_rules
 	cat /tmp/${SCRIPTNAME}_tcrules
+	webconfigpage
 }
 
 convert_nvram(){
@@ -1074,24 +1103,7 @@ install() {
 	echo "FlexQoS installation complete!"
 
 	scriptinfo
-      am_get_webui_page "$WEBUIPATH"
-	echo "Advanced configuration available via:"
-	if [ "$(nvram get http_enable)" = "1" ]; then
-                htproto="https"		
-	else
-                htproto="http"
-        fi
-        if [ -n "$(nvram get lan_domain)" ]; then
-                htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
-        else
-                htdomain="$(nvram get lan_ipaddr)"
-        fi
-        if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
-                lanport=""
-        else
-                lanport=":$(nvram get "$htproto"_lanport)"
-        fi
-	echo "$htproto://$htdomain$lanport/$am_webui_page"	
+	webconfigpage	
 	
 	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -q "flexqos" /jffs/addons/custom_settings.txt ; then
 		echo ""
@@ -1312,12 +1324,7 @@ show_help() {
 	echo "  ${SCRIPTNAME} -debug              print debug info"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
 	echo ""
-	echo "Advanced configuration available via:"
-	if [ "$(nvram get http_enable)" = "1" ]; then
-		echo "https://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get https_lanport)/$am_webui_page"
-	else
-		echo "http://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get http_lanport)/$am_webui_page"
-	fi
+	webconfigpage
 } # show_help
 
 generate_bwdpi_arrays() {
