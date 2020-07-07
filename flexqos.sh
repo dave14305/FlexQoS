@@ -287,26 +287,28 @@ appdb(){
 
 webconfigpage() {
 	uiwebpage="$(grep "$SCRIPTNAME_FANCY" /tmp/menuTree.js | awk -F'"' '{print $2}')"
+
+	if [ "$(nvram get http_enable)" = "1" ]; then
+		htproto="https"		
+	else
+		htproto="http"
+	fi
+	if [ -n "$(nvram get lan_domain)" ]; then
+		htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+	else
+		htdomain="$(nvram get lan_ipaddr)"
+	fi
+	if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
+		lanport=""
+	else
+		lanport=":$(nvram get "$htproto"_lanport)"
+	fi
+	
 	if [ "$(echo "$uiwebpage" | grep "asp")" ]; then
-		if [ "$(nvram get http_enable)" = "1" ]; then
-			htproto="https"		
-		else
-			htproto="http"
-		fi
-		if [ -n "$(nvram get lan_domain)" ]; then
-			htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
-		else
-			htdomain="$(nvram get lan_ipaddr)"
-		fi
-		if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
-			lanport=""
-		else
-			lanport=":$(nvram get "$htproto"_lanport)"
-		fi
 		echo "Advanced configuration available via:"
 		echo "$htproto://$htdomain$lanport/$uiwebpage"
 	else
-		echo "Advanced configuration available via:"
+		echo "Please access your router, search for AdaptiveQoS and then $SCRIPTNAME_FANCY:"
 		echo "$htproto://$htdomain$lanport/"
 	fi
 	
