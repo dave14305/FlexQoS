@@ -1349,12 +1349,12 @@ generate_bwdpi_arrays() {
 	if [ ! -f "/www/ext/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || [ /jffs/signature/rule.trf -nt "/www/ext/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ]; then
 	{
 		printf "var catdb_mark_array = [ \"000000\""
-		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db
-		awk -F, '{ printf(", \"%02X%04X\"",$1,$2) }' /tmp/bwdpi/bwdpi.app.db
+		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db 2>/dev/null
+		awk -F, '{ printf(", \"%02X%04X\"",$1,$2) }' /tmp/bwdpi/bwdpi.app.db 2>/dev/null
 		printf ", \"\" ];"
 		printf "var catdb_label_array = [ \"Untracked\""
-		awk -F, '{ printf(", \"%s\"",$2) }' /tmp/bwdpi/bwdpi.cat.db
-		awk -F, '{ printf(", \"%s\"",$4) }' /tmp/bwdpi/bwdpi.app.db
+		awk -F, '{ printf(", \"%s\"",$2) }' /tmp/bwdpi/bwdpi.cat.db 2>/dev/null
+		awk -F, '{ printf(", \"%s\"",$4) }' /tmp/bwdpi/bwdpi.app.db 2>/dev/null
 		printf ", \"\" ];"
 	} > "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js"
 	fi
