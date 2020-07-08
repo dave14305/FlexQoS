@@ -698,7 +698,7 @@ backup() {
 				echo ". /usr/sbin/helper.sh"
 				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
-				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\"" 
+				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\""
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			echo "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		;;
@@ -1066,29 +1066,27 @@ install() {
 	echo "FlexQoS installation complete!"
 
 	scriptinfo
-      am_get_webui_page "$WEBUIPATH"
+	am_get_webui_page "$WEBUIPATH"
 	echo "Advanced configuration available via:"
 	if [ "$(nvram get http_enable)" = "1" ]; then
-                htproto="https"		
+		htproto="https"
 	else
-                htproto="http"
-        fi
-        if [ -n "$(nvram get lan_domain)" ]; then
-                htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
-        else
-                htdomain="$(nvram get lan_ipaddr)"
-        fi
-        if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
-                lanport=""
-        else
-                lanport=":$(nvram get "$htproto"_lanport)"
-        fi
-	echo "$htproto://$htdomain$lanport/$am_webui_page"	
-	
-	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -q "flexqos" /jffs/addons/custom_settings.txt ; then
+		htproto="http"
+	fi
+	if [ -n "$(nvram get lan_domain)" ]; then
+		htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+	else
+		htdomain="$(nvram get lan_ipaddr)"
+	fi
+	if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
+		lanport=""
+	else
+		lanport=":$(nvram get "$htproto"_lanport)"
+	fi
+	echo "$htproto://$htdomain$lanport/$am_webui_page"
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -q "^${SCRIPTNAME}_" /jffs/addons/custom_settings.txt ; then
 		echo ""
-		echo -n "Backup found!"
-		echo -n "Would you like to restore it? [1=Yes 2=No]: "
+		echo -n "Backup found! Would you like to restore it? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
 			backup restore
