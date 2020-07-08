@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.9.0
-release=07/05/2020
+version=0.9.1
+release=07/08/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -121,7 +121,7 @@ custom_rates() {
 
 set_tc_variables(){
 
-	tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \(eth[0-9]\) root.*/\1/p;q')"
+	tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \(eth[0-9]\) root.*/\1/p')"
 	if [ -z "$tcwan" ]; then
 		tcwan="eth0"
 	fi
