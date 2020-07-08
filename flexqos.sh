@@ -32,10 +32,14 @@ release=07/xx/2020
 . /usr/sbin/helper.sh
 
 # Global variables
-GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
-GIT_BRANCH="develop"
-GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 SCRIPTNAME="flexqos"
+GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
+if [ "$(am_settings_get "${SCRIPTNAME}_branch")" != "develop" ]; then
+	GIT_BRANCH="master"
+else
+	GIT_BRANCH="$(am_settings_get "${SCRIPTNAME}_branch")"
+fi
+GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
@@ -98,26 +102,27 @@ appdb_static_rules() {
 	${tc} filter add dev "$tcwan" protocol all prio 10 u32 match mark 0x403f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_up functionality
 } # appdb_static_rules
 
-custom_rates() {
-	echo "Applying custom bandwidth rates"
-	${tc} class change dev br0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$DownRate0"Kbit ceil "$DownCeil0"Kbit burst "$DownBurst0" cburst "$DownCburst0"
-	${tc} class change dev br0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$DownRate1"Kbit ceil "$DownCeil1"Kbit burst "$DownBurst1" cburst "$DownCburst1"
-	${tc} class change dev br0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$DownRate2"Kbit ceil "$DownCeil2"Kbit burst "$DownBurst2" cburst "$DownCburst2"
-	${tc} class change dev br0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$DownRate3"Kbit ceil "$DownCeil3"Kbit burst "$DownBurst3" cburst "$DownCburst3"
-	${tc} class change dev br0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$DownRate4"Kbit ceil "$DownCeil4"Kbit burst "$DownBurst4" cburst "$DownCburst4"
-	${tc} class change dev br0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$DownRate5"Kbit ceil "$DownCeil5"Kbit burst "$DownBurst5" cburst "$DownCburst5"
-	${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$DownRate6"Kbit ceil "$DownCeil6"Kbit burst "$DownBurst6" cburst "$DownCburst6"
-	${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$DownRate7"Kbit ceil "$DownCeil7"Kbit burst "$DownBurst7" cburst "$DownCburst7"
+write_custom_rates() {
+	{
+		echo "${tc} class change dev br0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$DownRate0"Kbit ceil "$DownCeil0"Kbit burst "$DownBurst0" cburst "$DownCburst0" quantum "$DownQuantum0""
+		echo "${tc} class change dev br0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$DownRate1"Kbit ceil "$DownCeil1"Kbit burst "$DownBurst1" cburst "$DownCburst1" quantum "$DownQuantum1""
+		echo "${tc} class change dev br0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$DownRate2"Kbit ceil "$DownCeil2"Kbit burst "$DownBurst2" cburst "$DownCburst2" quantum "$DownQuantum2""
+		echo "${tc} class change dev br0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$DownRate3"Kbit ceil "$DownCeil3"Kbit burst "$DownBurst3" cburst "$DownCburst3" quantum "$DownQuantum3""
+		echo "${tc} class change dev br0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$DownRate4"Kbit ceil "$DownCeil4"Kbit burst "$DownBurst4" cburst "$DownCburst4" quantum "$DownQuantum4""
+		echo "${tc} class change dev br0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$DownRate5"Kbit ceil "$DownCeil5"Kbit burst "$DownBurst5" cburst "$DownCburst5" quantum "$DownQuantum5""
+		echo "${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$DownRate6"Kbit ceil "$DownCeil6"Kbit burst "$DownBurst6" cburst "$DownCburst6" quantum "$DownQuantum6""
+		echo "${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$DownRate7"Kbit ceil "$DownCeil7"Kbit burst "$DownBurst7" cburst "$DownCburst7" quantum "$DownQuantum7""
 
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$UpRate0"Kbit ceil "$UpCeil0"Kbit burst "$UpBurst0" cburst "$UpCburst0"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$UpRate1"Kbit ceil "$UpCeil1"Kbit burst "$UpBurst1" cburst "$UpCburst1"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$UpRate2"Kbit ceil "$UpCeil2"Kbit burst "$UpBurst2" cburst "$UpCburst2"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$UpRate3"Kbit ceil "$UpCeil3"Kbit burst "$UpBurst3" cburst "$UpCburst3"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$UpRate4"Kbit ceil "$UpCeil4"Kbit burst "$UpBurst4" cburst "$UpCburst4"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$UpRate5"Kbit ceil "$UpCeil5"Kbit burst "$UpBurst5" cburst "$UpCburst5"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$UpRate6"Kbit ceil "$UpCeil6"Kbit burst "$UpBurst6" cburst "$UpCburst6"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$UpRate7"Kbit ceil "$UpCeil7"Kbit burst "$UpBurst7" cburst "$UpCburst7"
-} # custom_rates
+		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$UpRate0"Kbit ceil "$UpCeil0"Kbit burst "$UpBurst0" cburst "$UpCburst0" quantum "$UpQuantum0""
+		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$UpRate1"Kbit ceil "$UpCeil1"Kbit burst "$UpBurst1" cburst "$UpCburst1" quantum "$UpQuantum1""
+		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$UpRate2"Kbit ceil "$UpCeil2"Kbit burst "$UpBurst2" cburst "$UpCburst2" quantum "$UpQuantum2""
+		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$UpRate3"Kbit ceil "$UpCeil3"Kbit burst "$UpBurst3" cburst "$UpCburst3" quantum "$UpQuantum3""
+		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$UpRate4"Kbit ceil "$UpCeil4"Kbit burst "$UpBurst4" cburst "$UpCburst4" quantum "$UpQuantum4""
+		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$UpRate5"Kbit ceil "$UpCeil5"Kbit burst "$UpBurst5" cburst "$UpCburst5" quantum "$UpQuantum5""
+		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$UpRate6"Kbit ceil "$UpCeil6"Kbit burst "$UpBurst6" cburst "$UpCburst6" quantum "$UpQuantum6""
+		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$UpRate7"Kbit ceil "$UpCeil7"Kbit burst "$UpBurst7" cburst "$UpCburst7" quantum "$UpQuantum7""
+	} >> /tmp/${SCRIPTNAME}_tcrules
+} # write_custom_rates
 
 set_tc_variables(){
 
@@ -204,6 +209,7 @@ $(sed -E '/^ceil_/d;s/rule=//g;/\{/q' /tmp/bwdpi/qosd.conf | head -n -1)
 EOF
 
 	#calculate up/down rates based on user-provided bandwidth from GUI
+	#GUI shows in Mb/s; nvram stores in Kb/s
 	DownCeil="$(printf "%.0f" "$(nvram get qos_ibw)")"
 	UpCeil="$(printf "%.0f" "$(nvram get qos_obw)")"
 
@@ -214,6 +220,8 @@ EOF
 		eval "UpRate$i=\$((UpCeil\*Cat${i}UpBandPercent/100))"
 		eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
 		eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
+		eval "DownQuantum$i=\$((DownRate${i}\*1000/8/10))"
+		eval "UpQuantum$i=\$((UpRate${i}\*1000/8/10))"
 		i="$((i+1))"
 	done
 
@@ -243,9 +251,9 @@ EOF
 	if [ -n "$OVERHEAD" ] && [ "$OVERHEAD" -gt "0" ]; then
 		ATM="$(nvram get qos_atm)"
 		if [ "$ATM" = "1" ]; then
-			PARMS="overhead $OVERHEAD linklayer atm "
+			PARMS="overhead $OVERHEAD linklayer atm"
 		else
-			PARMS="overhead $OVERHEAD linklayer ethernet "
+			PARMS="overhead $OVERHEAD linklayer ethernet"
 		fi
 	fi
 } # set_tc_variables
@@ -287,10 +295,14 @@ appdb(){
 scriptinfo() {
 	echo ""
 	echo "FlexQoS v${version} released ${release}"
+	if [ "$GIT_BRANCH" != "master" ]; then
+		echo " Development channel"
+	fi
 	echo ""
 } # scriptinfo
 
 debug(){
+	echo -n "[SPOILER=\"FlexQoS Debug\"][CODE]"
 	scriptinfo
 	echo "Debug:"
 	echo ""
@@ -326,17 +338,21 @@ debug(){
 	echo "Downceils -- $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
 	echo "Downbursts -- $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
 	echo "DownCbursts -- $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
+	echo "DownQuantums -- $DownQuantum0, $DownQuantum1, $DownQuantum2, $DownQuantum3, $DownQuantum4, $DownQuantum5, $DownQuantum6, $DownQuantum7"
 	echo "***********"
 	echo "Uprates -- $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
 	echo "Upceils -- $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
 	echo "Upbursts -- $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
 	echo "UpCbursts -- $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
+	echo "UpQuantums -- $UpQuantum0, $UpQuantum1, $UpQuantum2, $UpQuantum3, $UpQuantum4, $UpQuantum5, $UpQuantum6, $UpQuantum7"
 	echo "iptables settings: $(am_settings_get flexqos_iptables)"
 	write_iptables_rules
 	cat /tmp/${SCRIPTNAME}_iprules
 	echo "appdb rules: $(am_settings_get flexqos_appdb)"
 	write_appdb_rules
+	write_custom_rates
 	cat /tmp/${SCRIPTNAME}_tcrules
+	echo "[/CODE][/SPOILER]"
 }
 
 convert_nvram(){
@@ -869,6 +885,7 @@ menu() {
 			return
 		;;
 	esac
+	PressEnter
 	menu
 }
 
@@ -1279,19 +1296,21 @@ startup() {
 		set_tc_variables 	#needs to be set before parse_tcrule
 		write_appdb_rules
 		appdb_static_rules 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
-		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
-			logger -t "FlexQoS" "Applying custom AppDB rules"
-			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
-		fi
 
-		if [ "$ClassesPresent" -lt "8" ]; then
+		if check_qos_tc; then
 			logger -t "FlexQoS" "Adaptive QoS not fully done setting up prior to modification script"
 			logger -t "FlexQoS" "(Skipping class modification, delay trigger time period needs increase)"
 		else
 			if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
-				custom_rates 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
+				write_custom_rates
 			fi
 		fi # Classes less than 8
+
+		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
+			logger -t "FlexQoS" "Applying custom AppDB rules and custom rates"
+			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
+		fi
+
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
 		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH check"
 	else # 1:17
@@ -1339,6 +1358,20 @@ generate_bwdpi_arrays() {
 		printf ", \"\" ];"
 	} > "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js"
 	fi
+}
+
+PressEnter(){
+	echo ""
+	while true; do
+		echo "Press enter to continue..."
+		read -r "key"
+		case "$key" in
+			*)
+				break
+			;;
+		esac
+	done
+	return 0
 }
 
 Kill_Lock() {
@@ -1405,6 +1438,24 @@ case "$arg1" in
 		;;
 	'menu'|'')
 		menu
+		;;
+	'develop')
+		if [ "$(am_settings_get "${SCRIPTNAME}_branch")" = "develop" ]; then
+			echo "Already set to development branch."
+		else
+			am_settings_set "${SCRIPTNAME}_branch" "develop"
+			echo "Set to development branch. Triggering update..."
+			#exec "$0" update
+		fi
+		;;
+	'stable')
+		if [ -z "$(am_settings_get "${SCRIPTNAME}_branch")" ]; then
+			echo "Already set to stable branch."
+		else
+			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
+			echo "Set to stable branch. Triggering update..."
+			#exec "$0" update
+		fi
 		;;
 	*)
 		show_help
