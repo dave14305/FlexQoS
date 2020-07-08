@@ -899,12 +899,16 @@ remove_webui() {
 }
 
 install_webui() {
+	# Get the path of the existing webui page in /www/user so we do not need to update
+	[ -f "$WEBUIPATH" ] && am_get_webui_page "$WEBUIPATH"
+	# if this is an install or update...otherwise it's a normal startup/mount
 	if [ -z "$1" ]; then
 		echo "Downloading WebUI files..."
 		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
-		# cleanup obsolete dir for table files
-		rm "/www/ext/${SCRIPTNAME}" 2>/dev/null
+		# cleanup obsolete files
+		[ -L "/www/ext/${SCRIPTNAME}" ] && rm "/www/ext/${SCRIPTNAME}" 2>/dev/null
 		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
+		[ -f "${ADDON_DIR}/${SCRIPTNAME}_arrays.js" ] && rm "${ADDON_DIR}/${SCRIPTNAME}_arrays.js"
 	fi
 	am_get_webui_page "$WEBUIPATH"
 	if [ "$am_webui_page" = "none" ]; then
