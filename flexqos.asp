@@ -1605,6 +1605,8 @@ function set_FlexQoS_mod_vars()
 {
 	if ( custom_settings.flexqos_ver != undefined )
 		document.getElementById("flexqos_version").innerHTML = " - v" + custom_settings.flexqos_ver;
+	if ( custom_settings.flexqos_branch != undefined )
+		document.getElementById("flexqos_version").innerHTML += " <small>Dev</small>";
 
 	if (qos_mode != 2) {
 		var element = document.getElementById('FlexQoS_mod_toggle')
