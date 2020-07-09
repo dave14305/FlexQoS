@@ -759,7 +759,7 @@ backup() {
 			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			{
 				echo "#!/bin/sh"
-				echo "# backup date: $(date)"
+				echo "# Backup date: $(date +'%d/%b/%Y - %T %Z')"
 				echo ". /usr/sbin/helper.sh"
 				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
