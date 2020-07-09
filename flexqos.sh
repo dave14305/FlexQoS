@@ -989,6 +989,29 @@ remove_webui() {
 	rm -rf /www/ext/${SCRIPTNAME}		# remove js helper scripts
 }
 
+# TEMPORARY FUNCTION until 384.19 is released
+# This function is used to find either the first available mount point for a
+# new custom webui page, or return the mount point currently used if your page
+# is already mounted on the webui.
+#
+# This will take the full path to the new page as argument.
+# On return, the am_webui_page variable with will contain either the filename
+# of the first available mount point, the filename your page is already using,
+# or "none" if there are no available mount points.
+am_get_webui_page() {
+	am_webui_page="none"
+	# look for a match first in case the page is already there
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		page="/www/user/user$i.asp"
+			if [ -f "$page" ] && [ "$(md5sum < "$1")" = "$(md5sum < "$page")" ]; then
+				am_webui_page="user$i.asp"
+				return
+			elif [ "$am_webui_page" = "none" ] && [ ! -f "$page" ]; then
+				am_webui_page="user$i.asp"
+			fi
+	done
+} # am_get_webui_page
+
 install_webui() {
 	# Get the path of the existing webui page in /www/user so we do not need to update
 	[ -f "$WEBUIPATH" ] && am_get_webui_page "$WEBUIPATH"
