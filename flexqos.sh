@@ -1115,6 +1115,10 @@ Firmware_Check() {
 		echo "FlexQoS requires ASUSWRT-Merlin 384.15 or higher. Installation aborted"
 		exit 5
 	fi
+	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
+		echo "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
+		exit 5
+	fi # adaptive qos not enabled
 } # Firmware_Check
 
 install() {

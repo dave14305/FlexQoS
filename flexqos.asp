@@ -1610,9 +1610,8 @@ function set_FlexQoS_mod_vars()
 
 	if (qos_mode != 2) {
 		var element = document.getElementById('FlexQoS_mod_toggle')
-		element.innerHTML="Adaptive QoS is Disabled";
-		element.removeAttribute("onclick");
-		element.style.cursor = "";
+		element.innerHTML="A.QoS Disabled";
+		element.setAttribute("onclick","location.href='QoS_EZQoS.asp';");
 	}
 	else
 	{
