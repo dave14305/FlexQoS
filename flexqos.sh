@@ -359,7 +359,7 @@ webconfigpage() {
 	else
 		urlport=":$(nvram get ${urlproto}_lanport)"
 	fi
-	
+
 	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
 		echo "Advanced configuration available via:"
 		echo "  ${urlproto}://${urldomain}${urlport}/${urlpage}"
@@ -789,7 +789,7 @@ backup() {
 				echo ". /usr/sbin/helper.sh"
 				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
-				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\"" 
+				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\""
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			echo "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		;;
@@ -1200,7 +1200,7 @@ install() {
 
 	scriptinfo
 	webconfigpage
-	
+
 	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -qE "^flexqos_[^(ver )]" /jffs/addons/custom_settings.txt ; then
 		echo ""
 		echo -n "Backup found!"
