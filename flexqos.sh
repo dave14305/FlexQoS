@@ -28,6 +28,10 @@ release=07/xx/2020
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
 #  https://opensource.org/licenses/GPL-3.0
 
+# shellcheck source=/dev/null
+# shellcheck disable=SC2054
+# shellcheck disable=SC2039
+# shellcheck disable=SC1090
 # initialize Merlin Addon API helper functions
 . /usr/sbin/helper.sh
 
@@ -101,23 +105,23 @@ appdb_static_rules() {
 
 write_custom_rates() {
 	{
-		echo "${tc} class change dev br0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$DownRate0"Kbit ceil "$DownCeil0"Kbit burst "$DownBurst0" cburst "$DownCburst0" quantum "$DownQuantum0""
-		echo "${tc} class change dev br0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$DownRate1"Kbit ceil "$DownCeil1"Kbit burst "$DownBurst1" cburst "$DownCburst1" quantum "$DownQuantum1""
-		echo "${tc} class change dev br0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$DownRate2"Kbit ceil "$DownCeil2"Kbit burst "$DownBurst2" cburst "$DownCburst2" quantum "$DownQuantum2""
-		echo "${tc} class change dev br0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$DownRate3"Kbit ceil "$DownCeil3"Kbit burst "$DownBurst3" cburst "$DownCburst3" quantum "$DownQuantum3""
-		echo "${tc} class change dev br0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$DownRate4"Kbit ceil "$DownCeil4"Kbit burst "$DownBurst4" cburst "$DownCburst4" quantum "$DownQuantum4""
-		echo "${tc} class change dev br0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$DownRate5"Kbit ceil "$DownCeil5"Kbit burst "$DownBurst5" cburst "$DownCburst5" quantum "$DownQuantum5""
-		echo "${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$DownRate6"Kbit ceil "$DownCeil6"Kbit burst "$DownBurst6" cburst "$DownCburst6" quantum "$DownQuantum6""
-		echo "${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$DownRate7"Kbit ceil "$DownCeil7"Kbit burst "$DownBurst7" cburst "$DownCburst7" quantum "$DownQuantum7""
+		echo "${tc} class change dev br0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate ${DownRate0}Kbit ceil ${DownCeil0}Kbit burst $DownBurst0 cburst $DownCburst0 quantum $DownQuantum0"
+		echo "${tc} class change dev br0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate ${DownRate1}Kbit ceil ${DownCeil1}Kbit burst $DownBurst1 cburst $DownCburst1 quantum $DownQuantum1"
+		echo "${tc} class change dev br0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate ${DownRate2}Kbit ceil ${DownCeil2}Kbit burst $DownBurst2 cburst $DownCburst2 quantum $DownQuantum2"
+		echo "${tc} class change dev br0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate ${DownRate3}Kbit ceil ${DownCeil3}Kbit burst $DownBurst3 cburst $DownCburst3 quantum $DownQuantum3"
+		echo "${tc} class change dev br0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate ${DownRate4}Kbit ceil ${DownCeil4}Kbit burst $DownBurst4 cburst $DownCburst4 quantum $DownQuantum4"
+		echo "${tc} class change dev br0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate ${DownRate5}Kbit ceil ${DownCeil5}Kbit burst $DownBurst5 cburst $DownCburst5 quantum $DownQuantum5"
+		echo "${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate ${DownRate6}Kbit ceil ${DownCeil6}Kbit burst $DownBurst6 cburst $DownCburst6 quantum $DownQuantum6"
+		echo "${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate ${DownRate7}Kbit ceil ${DownCeil7}Kbit burst $DownBurst7 cburst $DownCburst7 quantum $DownQuantum7"
 
-		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$UpRate0"Kbit ceil "$UpCeil0"Kbit burst "$UpBurst0" cburst "$UpCburst0" quantum "$UpQuantum0""
-		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$UpRate1"Kbit ceil "$UpCeil1"Kbit burst "$UpBurst1" cburst "$UpCburst1" quantum "$UpQuantum1""
-		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$UpRate2"Kbit ceil "$UpCeil2"Kbit burst "$UpBurst2" cburst "$UpCburst2" quantum "$UpQuantum2""
-		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$UpRate3"Kbit ceil "$UpCeil3"Kbit burst "$UpBurst3" cburst "$UpCburst3" quantum "$UpQuantum3""
-		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$UpRate4"Kbit ceil "$UpCeil4"Kbit burst "$UpBurst4" cburst "$UpCburst4" quantum "$UpQuantum4""
-		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$UpRate5"Kbit ceil "$UpCeil5"Kbit burst "$UpBurst5" cburst "$UpCburst5" quantum "$UpQuantum5""
-		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$UpRate6"Kbit ceil "$UpCeil6"Kbit burst "$UpBurst6" cburst "$UpCburst6" quantum "$UpQuantum6""
-		echo "${tc} class change dev "$tcwan" parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$UpRate7"Kbit ceil "$UpCeil7"Kbit burst "$UpBurst7" cburst "$UpCburst7" quantum "$UpQuantum7""
+		echo "${tc} class change dev $tcwan parent 1:1 classid 1:10 htb $PARMS prio 0 rate ${UpRate0}Kbit ceil ${UpCeil0}Kbit burst $UpBurst0 cburst $UpCburst0 quantum $UpQuantum0"
+		echo "${tc} class change dev $tcwan parent 1:1 classid 1:11 htb $PARMS prio 1 rate ${UpRate1}Kbit ceil ${UpCeil1}Kbit burst $UpBurst1 cburst $UpCburst1 quantum $UpQuantum1"
+		echo "${tc} class change dev $tcwan parent 1:1 classid 1:12 htb $PARMS prio 2 rate ${UpRate2}Kbit ceil ${UpCeil2}Kbit burst $UpBurst2 cburst $UpCburst2 quantum $UpQuantum2"
+		echo "${tc} class change dev $tcwan parent 1:1 classid 1:13 htb $PARMS prio 3 rate ${UpRate3}Kbit ceil ${UpCeil3}Kbit burst $UpBurst3 cburst $UpCburst3 quantum $UpQuantum3"
+		echo "${tc} class change dev $tcwan parent 1:1 classid 1:14 htb $PARMS prio 4 rate ${UpRate4}Kbit ceil ${UpCeil4}Kbit burst $UpBurst4 cburst $UpCburst4 quantum $UpQuantum4"
+		echo "${tc} class change dev $tcwan parent 1:1 classid 1:15 htb $PARMS prio 5 rate ${UpRate5}Kbit ceil ${UpCeil5}Kbit burst $UpBurst5 cburst $UpCburst5 quantum $UpQuantum5"
+		echo "${tc} class change dev $tcwan parent 1:1 classid 1:16 htb $PARMS prio 6 rate ${UpRate6}Kbit ceil ${UpCeil6}Kbit burst $UpBurst6 cburst $UpCburst6 quantum $UpQuantum6"
+		echo "${tc} class change dev $tcwan parent 1:1 classid 1:17 htb $PARMS prio 7 rate ${UpRate7}Kbit ceil ${UpCeil7}Kbit burst $UpBurst7 cburst $UpCburst7 quantum $UpQuantum7"
 	} >> /tmp/${SCRIPTNAME}_tcrules
 } # write_custom_rates
 
@@ -287,7 +291,7 @@ appdb(){
 		echo "$line" | cut -f 2 -d "," | awk '{printf("%04X \n",$1)}'
 		echo ""
 	done
-}
+} # appdb
 
 scriptinfo() {
 	echo ""
@@ -350,7 +354,7 @@ debug(){
 	write_custom_rates
 	cat /tmp/${SCRIPTNAME}_tcrules
 	echo "[/CODE][/SPOILER]"
-}
+} # debug
 
 convert_nvram(){
 	OLDIFS=$IFS
@@ -1060,7 +1064,7 @@ Firmware_Check() {
 		# echo "FlexQoS requires ASUSWRT-Merlin 384.18 or higher. Installation aborted"
 		# exit 5
 	# fi
-	if ! echo "$(nvram get rc_support)" | grep -q am_addons; then
+	if ! nvram get rc_support | grep -q am_addons; then
 		echo "FlexQoS requires ASUSWRT-Merlin 384.15 or higher. Installation aborted"
 		exit 5
 	fi
