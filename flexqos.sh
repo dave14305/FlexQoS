@@ -105,23 +105,55 @@ appdb_static_rules() {
 
 write_custom_rates() {
 	{
-		echo "${tc} class change dev br0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate ${DownRate0}Kbit ceil ${DownCeil0}Kbit burst $DownBurst0 cburst $DownCburst0 quantum $DownQuantum0"
-		echo "${tc} class change dev br0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate ${DownRate1}Kbit ceil ${DownCeil1}Kbit burst $DownBurst1 cburst $DownCburst1 quantum $DownQuantum1"
-		echo "${tc} class change dev br0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate ${DownRate2}Kbit ceil ${DownCeil2}Kbit burst $DownBurst2 cburst $DownCburst2 quantum $DownQuantum2"
-		echo "${tc} class change dev br0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate ${DownRate3}Kbit ceil ${DownCeil3}Kbit burst $DownBurst3 cburst $DownCburst3 quantum $DownQuantum3"
-		echo "${tc} class change dev br0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate ${DownRate4}Kbit ceil ${DownCeil4}Kbit burst $DownBurst4 cburst $DownCburst4 quantum $DownQuantum4"
-		echo "${tc} class change dev br0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate ${DownRate5}Kbit ceil ${DownCeil5}Kbit burst $DownBurst5 cburst $DownCburst5 quantum $DownQuantum5"
-		echo "${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate ${DownRate6}Kbit ceil ${DownCeil6}Kbit burst $DownBurst6 cburst $DownCburst6 quantum $DownQuantum6"
-		echo "${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate ${DownRate7}Kbit ceil ${DownCeil7}Kbit burst $DownBurst7 cburst $DownCburst7 quantum $DownQuantum7"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate ${DownRate0}Kbit ceil ${DownCeil0}Kbit burst $DownBurst0 cburst $DownCburst0"
+		[ "$DownQuantum0" != "default" ] && printf " quantum $DownQuantum0"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate ${DownRate1}Kbit ceil ${DownCeil1}Kbit burst $DownBurst1 cburst $DownCburst1"
+		[ "$DownQuantum1" != "default" ] && printf " quantum $DownQuantum1"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate ${DownRate2}Kbit ceil ${DownCeil2}Kbit burst $DownBurst2 cburst $DownCburst2"
+		[ "$DownQuantum2" != "default" ] && printf " quantum $DownQuantum2"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate ${DownRate3}Kbit ceil ${DownCeil3}Kbit burst $DownBurst3 cburst $DownCburst3"
+		[ "$DownQuantum3" != "default" ] && printf " quantum $DownQuantum3"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate ${DownRate4}Kbit ceil ${DownCeil4}Kbit burst $DownBurst4 cburst $DownCburst4"
+		[ "$DownQuantum4" != "default" ] && printf " quantum $DownQuantum4"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate ${DownRate5}Kbit ceil ${DownCeil5}Kbit burst $DownBurst5 cburst $DownCburst5"
+		[ "$DownQuantum5" != "default" ] && printf " quantum $DownQuantum5"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate ${DownRate6}Kbit ceil ${DownCeil6}Kbit burst $DownBurst6 cburst $DownCburst6"
+		[ "$DownQuantum6" != "default" ] && printf " quantum $DownQuantum6"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate ${DownRate7}Kbit ceil ${DownCeil7}Kbit burst $DownBurst7 cburst $DownCburst7"
+		[ "$DownQuantum7" != "default" ] && printf " quantum $DownQuantum7"
+		printf "\n"
 
-		echo "${tc} class change dev $tcwan parent 1:1 classid 1:10 htb $PARMS prio 0 rate ${UpRate0}Kbit ceil ${UpCeil0}Kbit burst $UpBurst0 cburst $UpCburst0 quantum $UpQuantum0"
-		echo "${tc} class change dev $tcwan parent 1:1 classid 1:11 htb $PARMS prio 1 rate ${UpRate1}Kbit ceil ${UpCeil1}Kbit burst $UpBurst1 cburst $UpCburst1 quantum $UpQuantum1"
-		echo "${tc} class change dev $tcwan parent 1:1 classid 1:12 htb $PARMS prio 2 rate ${UpRate2}Kbit ceil ${UpCeil2}Kbit burst $UpBurst2 cburst $UpCburst2 quantum $UpQuantum2"
-		echo "${tc} class change dev $tcwan parent 1:1 classid 1:13 htb $PARMS prio 3 rate ${UpRate3}Kbit ceil ${UpCeil3}Kbit burst $UpBurst3 cburst $UpCburst3 quantum $UpQuantum3"
-		echo "${tc} class change dev $tcwan parent 1:1 classid 1:14 htb $PARMS prio 4 rate ${UpRate4}Kbit ceil ${UpCeil4}Kbit burst $UpBurst4 cburst $UpCburst4 quantum $UpQuantum4"
-		echo "${tc} class change dev $tcwan parent 1:1 classid 1:15 htb $PARMS prio 5 rate ${UpRate5}Kbit ceil ${UpCeil5}Kbit burst $UpBurst5 cburst $UpCburst5 quantum $UpQuantum5"
-		echo "${tc} class change dev $tcwan parent 1:1 classid 1:16 htb $PARMS prio 6 rate ${UpRate6}Kbit ceil ${UpCeil6}Kbit burst $UpBurst6 cburst $UpCburst6 quantum $UpQuantum6"
-		echo "${tc} class change dev $tcwan parent 1:1 classid 1:17 htb $PARMS prio 7 rate ${UpRate7}Kbit ceil ${UpCeil7}Kbit burst $UpBurst7 cburst $UpCburst7 quantum $UpQuantum7"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:10 htb $PARMS prio 0 rate ${UpRate0}Kbit ceil ${UpCeil0}Kbit burst $UpBurst0 cburst $UpCburst0"
+		[ "$UpQuantum0" != "default" ] && printf " quantum $UpQuantum0"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:11 htb $PARMS prio 1 rate ${UpRate1}Kbit ceil ${UpCeil1}Kbit burst $UpBurst1 cburst $UpCburst1"
+		[ "$UpQuantum1" != "default" ] && printf " quantum $UpQuantum1"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:12 htb $PARMS prio 2 rate ${UpRate2}Kbit ceil ${UpCeil2}Kbit burst $UpBurst2 cburst $UpCburst2"
+		[ "$UpQuantum2" != "default" ] && printf " quantum $UpQuantum2"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:13 htb $PARMS prio 3 rate ${UpRate3}Kbit ceil ${UpCeil3}Kbit burst $UpBurst3 cburst $UpCburst3"
+		[ "$UpQuantum3" != "default" ] && printf " quantum $UpQuantum3"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:14 htb $PARMS prio 4 rate ${UpRate4}Kbit ceil ${UpCeil4}Kbit burst $UpBurst4 cburst $UpCburst4"
+		[ "$UpQuantum4" != "default" ] && printf " quantum $UpQuantum4"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:15 htb $PARMS prio 5 rate ${UpRate5}Kbit ceil ${UpCeil5}Kbit burst $UpBurst5 cburst $UpCburst5"
+		[ "$UpQuantum5" != "default" ] && printf " quantum $UpQuantum5"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:16 htb $PARMS prio 6 rate ${UpRate6}Kbit ceil ${UpCeil6}Kbit burst $UpBurst6 cburst $UpCburst6"
+		[ "$UpQuantum6" != "default" ] && printf " quantum $UpQuantum6"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:17 htb $PARMS prio 7 rate ${UpRate7}Kbit ceil ${UpCeil7}Kbit burst $UpBurst7 cburst $UpCburst7"
+		[ "$UpQuantum7" != "default" ] && printf " quantum $UpQuantum7"
+		printf "\n"
 	} >> /tmp/${SCRIPTNAME}_tcrules
 } # write_custom_rates
 
@@ -213,6 +245,7 @@ EOF
 	#GUI shows in Mb/s; nvram stores in Kb/s
 	DownCeil="$(printf "%.0f" "$(nvram get qos_ibw)")"
 	UpCeil="$(printf "%.0f" "$(nvram get qos_obw)")"
+	WANMTU="$(nvram get wan_mtu)"
 
 	i=0
 	while [ "$i" -lt "8" ]
@@ -221,8 +254,22 @@ EOF
 		eval "UpRate$i=\$((UpCeil\*Cat${i}UpBandPercent/100))"
 		eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
 		eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
-		eval "DownQuantum$i=\$((DownRate${i}\*1000/8/10))"
-		eval "UpQuantum$i=\$((UpRate${i}\*1000/8/10))"
+		downquantum=$((DownRate${i}*1000/8/10))
+		if [ "$downquantum" -gt "200000" ]; then
+			eval "DownQuantum$i=\$((DownRate${i}\*1000/8/10))"
+		elif [ "$downquantum" -lt "$((WANMTU+14))" ]; then
+			eval "DownQuantum$i=\$((WANMTU+14))"
+		else
+			eval "DownQuantum$i=\"default\""
+		fi
+		upquantum=$((UpRate${i}*1000/8/10))
+		if [ "$upquantum" -gt "200000" ]; then
+			eval "UpQuantum$i=\$((UpRate${i}\*1000/8/10))"
+		elif [ "$upquantum" -lt "$((WANMTU+14))" ]; then
+			eval "UpQuantum$i=\$((WANMTU+14))"
+		else
+			eval "UpQuantum$i=\"default\""
+		fi
 		i="$((i+1))"
 	done
 
