@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v0.9.0 released 07/05/2020
+FlexQoS v0.9.2 released 07/09/2020
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -71,6 +71,9 @@ display:none;
 }
 td.t_item:active span.t_mark{
 display:inline;
+}
+.addRuleText small{
+display:none;
 }
 </style>
 
@@ -1553,8 +1556,6 @@ function show_iptables_rules(){
 //		ruleDuplicateValidation : "triggerPort"
 	}
 	tableApi.genTableAPI(tableStruct);
-	// TODO: find a reliable way to remove the Reset text from the top table title when drawn. It will reappear when the table is manipulated.
-	//$(".addRuleText").find("small").remove()
 }
 
 function show_appdb_rules() {
@@ -1604,12 +1605,13 @@ function set_FlexQoS_mod_vars()
 {
 	if ( custom_settings.flexqos_ver != undefined )
 		document.getElementById("flexqos_version").innerHTML = " - v" + custom_settings.flexqos_ver;
+	if ( custom_settings.flexqos_branch != undefined )
+		document.getElementById("flexqos_version").innerHTML += " <small>Dev</small>";
 
 	if (qos_mode != 2) {
 		var element = document.getElementById('FlexQoS_mod_toggle')
-		element.innerHTML="Adaptive QoS is Disabled";
-		element.removeAttribute("onclick");
-		element.style.cursor = "";
+		element.innerHTML="A.QoS Disabled";
+		element.setAttribute("onclick","location.href='QoS_EZQoS.asp';");
 	}
 	else
 	{
@@ -2135,7 +2137,6 @@ function SetCurrentPage() {
 			<option value="tcp">tcp</option>
 			<option value="udp">udp</option>
 		</select></td>
-<!--		<td><input type="text" class="input_18_table" maxlength="39" oninput="set_filter(1, this);"></input></td> -->
 		<td><select id="devicefilter" style="max-width: 168px" class="input_option" onchange="set_filter(1, this);">
 				<option value=""> </option>
 			</select>

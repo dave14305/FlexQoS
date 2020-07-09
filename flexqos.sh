@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
-version=0.9.1
-release=07/08/2020
+version=0.9.2
+release=07/09/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -28,14 +28,24 @@ release=07/08/2020
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
 #  https://opensource.org/licenses/GPL-3.0
 
+# shellcheck source=/dev/null
+# shellcheck disable=SC2054
+# shellcheck disable=SC2039
+# shellcheck disable=SC1090
 # initialize Merlin Addon API helper functions
 . /usr/sbin/helper.sh
 
 # Global variables
-GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
-GIT_BRANCH="master"
-GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 SCRIPTNAME="flexqos"
+SCRIPTNAME_FANCY="FlexQoS"
+GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
+if [ "$(am_settings_get "${SCRIPTNAME}_branch")" != "develop" ]; then
+	GIT_BRANCH="master"
+else
+	GIT_BRANCH="$(am_settings_get "${SCRIPTNAME}_branch")"
+fi
+GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
+
 ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
@@ -75,16 +85,13 @@ Default_mark_up="0x403f0001"
 iptables_static_rules() {
 	echo "Applying iptables static rules"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
-	iptables -D POSTROUTING -t mangle -o br0 -m mark --mark 0x40000000/0xc0000000 -j MARK --set-xmark 0x80000000/0xC0000000 > /dev/null 2>&1		#VPN Fix - (Fixes download traffic showing up in upload section when router is acting as a VPN Client)
-	iptables -A POSTROUTING -t mangle -o br0 -m mark --mark 0x40000000/0xc0000000 -j MARK --set-xmark 0x80000000/0xC0000000
+	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
 	iptables -D OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 	iptables -A OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}
 	iptables -D OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 	iptables -A OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}
 	if [ "$IPv6_enabled" != "disabled" ]; then
 		echo "Applying ip6tables static rules"
-		ip6tables -D POSTROUTING -t mangle -o br0 -m mark --mark 0x40000000/0xc0000000 -j MARK --set-xmark 0x80000000/0xC0000000 > /dev/null 2>&1		#VPN Fix - (Fixes download traffic showing up in upload section when router is acting as a VPN Client)
-		ip6tables -A POSTROUTING -t mangle -o br0 -m mark --mark 0x40000000/0xc0000000 -j MARK --set-xmark 0x80000000/0xC0000000
 		ip6tables -D OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 		ip6tables -A OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}
 		ip6tables -D OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
@@ -98,26 +105,59 @@ appdb_static_rules() {
 	${tc} filter add dev "$tcwan" protocol all prio 10 u32 match mark 0x403f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_up functionality
 } # appdb_static_rules
 
-custom_rates() {
-	echo "Applying custom bandwidth rates"
-	${tc} class change dev br0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$DownRate0"Kbit ceil "$DownCeil0"Kbit burst "$DownBurst0" cburst "$DownCburst0"
-	${tc} class change dev br0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$DownRate1"Kbit ceil "$DownCeil1"Kbit burst "$DownBurst1" cburst "$DownCburst1"
-	${tc} class change dev br0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$DownRate2"Kbit ceil "$DownCeil2"Kbit burst "$DownBurst2" cburst "$DownCburst2"
-	${tc} class change dev br0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$DownRate3"Kbit ceil "$DownCeil3"Kbit burst "$DownBurst3" cburst "$DownCburst3"
-	${tc} class change dev br0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$DownRate4"Kbit ceil "$DownCeil4"Kbit burst "$DownBurst4" cburst "$DownCburst4"
-	${tc} class change dev br0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$DownRate5"Kbit ceil "$DownCeil5"Kbit burst "$DownBurst5" cburst "$DownCburst5"
-	${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$DownRate6"Kbit ceil "$DownCeil6"Kbit burst "$DownBurst6" cburst "$DownCburst6"
-	${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$DownRate7"Kbit ceil "$DownCeil7"Kbit burst "$DownBurst7" cburst "$DownCburst7"
+write_custom_rates() {
+	{
+		printf "${tc} class change dev br0 parent 1:1 classid 1:10 htb $PARMS prio 0 rate ${DownRate0}Kbit ceil ${DownCeil0}Kbit burst $DownBurst0 cburst $DownCburst0"
+		[ "$DownQuantum0" != "default" ] && printf " quantum $DownQuantum0"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:11 htb $PARMS prio 1 rate ${DownRate1}Kbit ceil ${DownCeil1}Kbit burst $DownBurst1 cburst $DownCburst1"
+		[ "$DownQuantum1" != "default" ] && printf " quantum $DownQuantum1"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:12 htb $PARMS prio 2 rate ${DownRate2}Kbit ceil ${DownCeil2}Kbit burst $DownBurst2 cburst $DownCburst2"
+		[ "$DownQuantum2" != "default" ] && printf " quantum $DownQuantum2"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:13 htb $PARMS prio 3 rate ${DownRate3}Kbit ceil ${DownCeil3}Kbit burst $DownBurst3 cburst $DownCburst3"
+		[ "$DownQuantum3" != "default" ] && printf " quantum $DownQuantum3"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:14 htb $PARMS prio 4 rate ${DownRate4}Kbit ceil ${DownCeil4}Kbit burst $DownBurst4 cburst $DownCburst4"
+		[ "$DownQuantum4" != "default" ] && printf " quantum $DownQuantum4"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:15 htb $PARMS prio 5 rate ${DownRate5}Kbit ceil ${DownCeil5}Kbit burst $DownBurst5 cburst $DownCburst5"
+		[ "$DownQuantum5" != "default" ] && printf " quantum $DownQuantum5"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:16 htb $PARMS prio 6 rate ${DownRate6}Kbit ceil ${DownCeil6}Kbit burst $DownBurst6 cburst $DownCburst6"
+		[ "$DownQuantum6" != "default" ] && printf " quantum $DownQuantum6"
+		printf "\n"
+		printf "${tc} class change dev br0 parent 1:1 classid 1:17 htb $PARMS prio 7 rate ${DownRate7}Kbit ceil ${DownCeil7}Kbit burst $DownBurst7 cburst $DownCburst7"
+		[ "$DownQuantum7" != "default" ] && printf " quantum $DownQuantum7"
+		printf "\n"
 
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:10 htb $PARMS prio 0 rate "$UpRate0"Kbit ceil "$UpCeil0"Kbit burst "$UpBurst0" cburst "$UpCburst0"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:11 htb $PARMS prio 1 rate "$UpRate1"Kbit ceil "$UpCeil1"Kbit burst "$UpBurst1" cburst "$UpCburst1"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:12 htb $PARMS prio 2 rate "$UpRate2"Kbit ceil "$UpCeil2"Kbit burst "$UpBurst2" cburst "$UpCburst2"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:13 htb $PARMS prio 3 rate "$UpRate3"Kbit ceil "$UpCeil3"Kbit burst "$UpBurst3" cburst "$UpCburst3"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:14 htb $PARMS prio 4 rate "$UpRate4"Kbit ceil "$UpCeil4"Kbit burst "$UpBurst4" cburst "$UpCburst4"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:15 htb $PARMS prio 5 rate "$UpRate5"Kbit ceil "$UpCeil5"Kbit burst "$UpBurst5" cburst "$UpCburst5"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:16 htb $PARMS prio 6 rate "$UpRate6"Kbit ceil "$UpCeil6"Kbit burst "$UpBurst6" cburst "$UpCburst6"
-	${tc} class change dev "$tcwan" parent 1:1 classid 1:17 htb $PARMS prio 7 rate "$UpRate7"Kbit ceil "$UpCeil7"Kbit burst "$UpBurst7" cburst "$UpCburst7"
-} # custom_rates
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:10 htb $PARMS prio 0 rate ${UpRate0}Kbit ceil ${UpCeil0}Kbit burst $UpBurst0 cburst $UpCburst0"
+		[ "$UpQuantum0" != "default" ] && printf " quantum $UpQuantum0"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:11 htb $PARMS prio 1 rate ${UpRate1}Kbit ceil ${UpCeil1}Kbit burst $UpBurst1 cburst $UpCburst1"
+		[ "$UpQuantum1" != "default" ] && printf " quantum $UpQuantum1"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:12 htb $PARMS prio 2 rate ${UpRate2}Kbit ceil ${UpCeil2}Kbit burst $UpBurst2 cburst $UpCburst2"
+		[ "$UpQuantum2" != "default" ] && printf " quantum $UpQuantum2"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:13 htb $PARMS prio 3 rate ${UpRate3}Kbit ceil ${UpCeil3}Kbit burst $UpBurst3 cburst $UpCburst3"
+		[ "$UpQuantum3" != "default" ] && printf " quantum $UpQuantum3"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:14 htb $PARMS prio 4 rate ${UpRate4}Kbit ceil ${UpCeil4}Kbit burst $UpBurst4 cburst $UpCburst4"
+		[ "$UpQuantum4" != "default" ] && printf " quantum $UpQuantum4"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:15 htb $PARMS prio 5 rate ${UpRate5}Kbit ceil ${UpCeil5}Kbit burst $UpBurst5 cburst $UpCburst5"
+		[ "$UpQuantum5" != "default" ] && printf " quantum $UpQuantum5"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:16 htb $PARMS prio 6 rate ${UpRate6}Kbit ceil ${UpCeil6}Kbit burst $UpBurst6 cburst $UpCburst6"
+		[ "$UpQuantum6" != "default" ] && printf " quantum $UpQuantum6"
+		printf "\n"
+		printf "${tc} class change dev $tcwan parent 1:1 classid 1:17 htb $PARMS prio 7 rate ${UpRate7}Kbit ceil ${UpCeil7}Kbit burst $UpBurst7 cburst $UpCburst7"
+		[ "$UpQuantum7" != "default" ] && printf " quantum $UpQuantum7"
+		printf "\n"
+	} >> /tmp/${SCRIPTNAME}_tcrules
+} # write_custom_rates
 
 set_tc_variables(){
 
@@ -204,8 +244,10 @@ $(sed -E '/^ceil_/d;s/rule=//g;/\{/q' /tmp/bwdpi/qosd.conf | head -n -1)
 EOF
 
 	#calculate up/down rates based on user-provided bandwidth from GUI
+	#GUI shows in Mb/s; nvram stores in Kb/s
 	DownCeil="$(printf "%.0f" "$(nvram get qos_ibw)")"
 	UpCeil="$(printf "%.0f" "$(nvram get qos_obw)")"
+	WANMTU="$(nvram get wan_mtu)"
 
 	i=0
 	while [ "$i" -lt "8" ]
@@ -214,6 +256,22 @@ EOF
 		eval "UpRate$i=\$((UpCeil\*Cat${i}UpBandPercent/100))"
 		eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
 		eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
+		downquantum=$((DownRate${i}*1000/8/10))
+		if [ "$downquantum" -gt "200000" ]; then
+			eval "DownQuantum$i=\$((DownRate${i}\*1000/8/10))"
+		elif [ "$downquantum" -lt "$((WANMTU+14))" ]; then
+			eval "DownQuantum$i=\$((WANMTU+14))"
+		else
+			eval "DownQuantum$i=\"default\""
+		fi
+		upquantum=$((UpRate${i}*1000/8/10))
+		if [ "$upquantum" -gt "200000" ]; then
+			eval "UpQuantum$i=\$((UpRate${i}\*1000/8/10))"
+		elif [ "$upquantum" -lt "$((WANMTU+14))" ]; then
+			eval "UpQuantum$i=\$((WANMTU+14))"
+		else
+			eval "UpQuantum$i=\"default\""
+		fi
 		i="$((i+1))"
 	done
 
@@ -243,9 +301,9 @@ EOF
 	if [ -n "$OVERHEAD" ] && [ "$OVERHEAD" -gt "0" ]; then
 		ATM="$(nvram get qos_atm)"
 		if [ "$ATM" = "1" ]; then
-			PARMS="overhead $OVERHEAD linklayer atm "
+			PARMS="overhead $OVERHEAD linklayer atm"
 		else
-			PARMS="overhead $OVERHEAD linklayer ethernet "
+			PARMS="overhead $OVERHEAD linklayer ethernet"
 		fi
 	fi
 } # set_tc_variables
@@ -282,15 +340,43 @@ appdb(){
 		echo "$line" | cut -f 2 -d "," | awk '{printf("%04X \n",$1)}'
 		echo ""
 	done
-}
+} # appdb
+
+webconfigpage() {
+	urlpage=$(sed -nE "/$SCRIPTNAME_FANCY/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)
+	if [ "$(nvram get http_enable)" = "1" ]; then
+		urlproto="https"
+	else
+		urlproto="http"
+	fi
+	if [ -n "$(nvram get lan_domain)" ]; then
+		urldomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+	else
+		urldomain="$(nvram get lan_ipaddr)"
+	fi
+	if [ "$(nvram get ${urlproto}_lanport)" = "80" ] || [ "$(nvram get ${urlproto}_lanport)" = "443" ]; then
+		urlport=""
+	else
+		urlport=":$(nvram get ${urlproto}_lanport)"
+	fi
+
+	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
+		echo "Advanced configuration available via:"
+		echo "  ${urlproto}://${urldomain}${urlport}/${urlpage}"
+	fi
+} # webconfigpage
 
 scriptinfo() {
 	echo ""
 	echo "FlexQoS v${version} released ${release}"
+	if [ "$GIT_BRANCH" != "master" ]; then
+		echo " Development channel"
+	fi
 	echo ""
 } # scriptinfo
 
 debug(){
+	echo -n "[SPOILER=\"FlexQoS Debug\"][CODE]"
 	scriptinfo
 	echo "Debug:"
 	echo ""
@@ -306,6 +392,7 @@ debug(){
 		undf_prio="$((undf_prio-1))"
 	fi
 
+	echo "tc WAN iface: $tcwan"
 	echo "Undf Prio: $undf_prio"
 	echo "Undf FlowID: $undf_flowid"
 	echo "Classes Present: $ClassesPresent"
@@ -325,18 +412,22 @@ debug(){
 	echo "Downceils -- $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
 	echo "Downbursts -- $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
 	echo "DownCbursts -- $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
+	echo "DownQuantums -- $DownQuantum0, $DownQuantum1, $DownQuantum2, $DownQuantum3, $DownQuantum4, $DownQuantum5, $DownQuantum6, $DownQuantum7"
 	echo "***********"
 	echo "Uprates -- $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
 	echo "Upceils -- $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
 	echo "Upbursts -- $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
 	echo "UpCbursts -- $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
+	echo "UpQuantums -- $UpQuantum0, $UpQuantum1, $UpQuantum2, $UpQuantum3, $UpQuantum4, $UpQuantum5, $UpQuantum6, $UpQuantum7"
 	echo "iptables settings: $(am_settings_get flexqos_iptables)"
 	write_iptables_rules
 	cat /tmp/${SCRIPTNAME}_iprules
 	echo "appdb rules: $(am_settings_get flexqos_appdb)"
 	write_appdb_rules
+	write_custom_rates
 	cat /tmp/${SCRIPTNAME}_tcrules
-}
+	echo "[/CODE][/SPOILER]"
+} # debug
 
 convert_nvram(){
 	OLDIFS=$IFS
@@ -694,7 +785,7 @@ backup() {
 			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			{
 				echo "#!/bin/sh"
-				echo "# backup date: $(date)"
+				echo "# Backup date: $(date +'%d-%b-%Y - %T %Z')"
 				echo ". /usr/sbin/helper.sh"
 				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
@@ -806,7 +897,7 @@ prompt_restart() {
 } # prompt_restart
 
 menu() {
-	# clear
+	clear
 	scriptinfo
 	echo "  (1) about        explain functionality"
 	echo "  (2) update       check for updates "
@@ -836,10 +927,18 @@ menu() {
 			backup "backup"
 		;;
 		'5')
-			backup "restore"
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				backup "restore"
+			else
+				echo "No backup available"
+			fi
 		;;
 		'6')
-			backup "remove"
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				backup "remove"
+			else
+				echo "No backup available"
+			fi
 		;;
 		'u'|'U')
 			# clear
@@ -860,6 +959,7 @@ menu() {
 			return
 		;;
 	esac
+	PressEnter
 	menu
 }
 
@@ -871,7 +971,7 @@ remove_webui() {
 		if [ -f /tmp/menuTree.js ]; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
 			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
-			if diff /tmp/menuTree.js /www/require/modules/menuTree.js; then
+			if diff -q /tmp/menuTree.js /www/require/modules/menuTree.js > /dev/null 2>&1 ; then
 				rm /tmp/menuTree.js
 			else
 				# Still some modifications from another script so remount
@@ -889,28 +989,57 @@ remove_webui() {
 	rm -rf /www/ext/${SCRIPTNAME}		# remove js helper scripts
 }
 
+# TEMPORARY FUNCTION until 384.19 is released
+# This function is used to find either the first available mount point for a
+# new custom webui page, or return the mount point currently used if your page
+# is already mounted on the webui.
+#
+# This will take the full path to the new page as argument.
+# On return, the am_webui_page variable with will contain either the filename
+# of the first available mount point, the filename your page is already using,
+# or "none" if there are no available mount points.
+am_get_webui_page() {
+	am_webui_page="none"
+	# look for a match first in case the page is already there
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		page="/www/user/user$i.asp"
+			if [ -f "$page" ] && [ "$(md5sum < "$1")" = "$(md5sum < "$page")" ]; then
+				am_webui_page="user$i.asp"
+				return
+			elif [ "$am_webui_page" = "none" ] && [ ! -f "$page" ]; then
+				am_webui_page="user$i.asp"
+			fi
+	done
+} # am_get_webui_page
+
 install_webui() {
+	# if this is an install or update...otherwise it's a normal startup/mount
 	if [ -z "$1" ]; then
 		echo "Downloading WebUI files..."
 		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
-		# cleanup obsolete dir for table files
-		rm "/www/ext/${SCRIPTNAME}" 2>/dev/null
+		# cleanup obsolete files
+		[ -L "/www/ext/${SCRIPTNAME}" ] && rm "/www/ext/${SCRIPTNAME}" 2>/dev/null
 		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
+		[ -f "${ADDON_DIR}/${SCRIPTNAME}_arrays.js" ] && rm "${ADDON_DIR}/${SCRIPTNAME}_arrays.js"
 	fi
 	am_get_webui_page "$WEBUIPATH"
 	if [ "$am_webui_page" = "none" ]; then
 		logger -t "FlexQoS" "No API slots available to install web page"
 	elif [ ! -f /www/user/"$am_webui_page" ]; then
 		# remove previous pages
-		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp | while read -r oldfile
+		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
 		do
 			rm "$oldfile"
 		done
-		cp "$WEBUIPATH" /www/user/"$am_webui_page"
 		if [ ! -f /tmp/menuTree.js ]; then
 			cp /www/require/modules/menuTree.js /tmp/
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
+		prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_FANCY}\"\}\,$/\1/p" /tmp/menuTree.js)"
+		if [ -n "$prev_webui_page" ]; then
+			am_webui_page="$prev_webui_page"
+		fi
+		cp "$WEBUIPATH" /www/user/"$am_webui_page"
 		if ! /bin/grep -q "{url: \"$am_webui_page\", tabName: \"FlexQoS\"}," /tmp/menuTree.js; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
 			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
@@ -1033,10 +1162,14 @@ Firmware_Check() {
 		# echo "FlexQoS requires ASUSWRT-Merlin 384.18 or higher. Installation aborted"
 		# exit 5
 	# fi
-	if ! echo "$(nvram get rc_support)" | grep -q am_addons; then
+	if ! nvram get rc_support | grep -q am_addons; then
 		echo "FlexQoS requires ASUSWRT-Merlin 384.15 or higher. Installation aborted"
 		exit 5
 	fi
+	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
+		echo "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
+		exit 5
+	fi # adaptive qos not enabled
 } # Firmware_Check
 
 install() {
@@ -1066,25 +1199,9 @@ install() {
 	echo "FlexQoS installation complete!"
 
 	scriptinfo
-	am_get_webui_page "$WEBUIPATH"
-	echo "Advanced configuration available via:"
-	if [ "$(nvram get http_enable)" = "1" ]; then
-		htproto="https"
-	else
-		htproto="http"
-	fi
-	if [ -n "$(nvram get lan_domain)" ]; then
-		htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
-	else
-		htdomain="$(nvram get lan_ipaddr)"
-	fi
-	if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
-		lanport=""
-	else
-		lanport=":$(nvram get "$htproto"_lanport)"
-	fi
-	echo "$htproto://$htdomain$lanport/$am_webui_page"
-	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -q "^${SCRIPTNAME}_" /jffs/addons/custom_settings.txt ; then
+	webconfigpage
+
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -qE "^flexqos_[^(ver )]" /jffs/addons/custom_settings.txt ; then
 		echo ""
 		echo -n "Backup found! Would you like to restore it? [1=Yes 2=No]: "
 		read -r yn
@@ -1113,23 +1230,23 @@ uninstall() {
 		echo "Restoring FreshJR_QOS nvram settings..."
 		sh ${ADDON_DIR}/restore_freshjr_nvram.sh
 	fi
-	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
 		echo -n "Backup found!"
 		echo -n "Would you like to delete it? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
 			echo "Deleting Backup..."
-			rm "${ADDON_DIR}/restore_flexqos_settings.sh"
+			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		fi
 	else
 		echo -n "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
-			echo "Backing up FlexQoS settings..."
+			echo "Backuping FlexQoS settings..."
 			backup backup
 		fi
 	fi
-	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ]; then
+	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
 		echo "Deleting FlexQoS folder contents except Backup file..."
 		/usr/bin/find ${ADDON_DIR} ! -name restore_${SCRIPTNAME}_settings.sh ! -exec test -d {} \; -a -exec rm {} +
 	else
@@ -1264,19 +1381,21 @@ startup() {
 		set_tc_variables 	#needs to be set before parse_tcrule
 		write_appdb_rules
 		appdb_static_rules 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
-		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
-			logger -t "FlexQoS" "Applying custom AppDB rules"
-			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
-		fi
 
-		if [ "$ClassesPresent" -lt "8" ]; then
+		if check_qos_tc; then
 			logger -t "FlexQoS" "Adaptive QoS not fully done setting up prior to modification script"
 			logger -t "FlexQoS" "(Skipping class modification, delay trigger time period needs increase)"
 		else
 			if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
-				custom_rates 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
+				write_custom_rates
 			fi
 		fi # Classes less than 8
+
+		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
+			logger -t "FlexQoS" "Applying custom AppDB rules and custom rates"
+			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
+		fi
+
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
 		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH check"
 	else # 1:17
@@ -1298,31 +1417,48 @@ show_help() {
 	echo "  ${SCRIPTNAME} -uninstall          uninstall script & delete from disk"
 	echo "  ${SCRIPTNAME} -enable             enable    script"
 	echo "  ${SCRIPTNAME} -disable            disable   script but do not delete from disk"
+	echo "  ${SCRIPTNAME} -backup             backup user settings"
 	echo "  ${SCRIPTNAME} -debug              print debug info"
+	echo "  ${SCRIPTNAME} -develop            switch to development channel"
+	echo "  ${SCRIPTNAME} -stable             switch to stable channel"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
 	echo ""
-	echo "Advanced configuration available via:"
-	if [ "$(nvram get http_enable)" = "1" ]; then
-		echo "https://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get https_lanport)/$am_webui_page"
-	else
-		echo "http://$(nvram get lan_hostname).$(nvram get lan_domain):$(nvram get http_lanport)/$am_webui_page"
-	fi
+	webconfigpage
 } # show_help
 
 generate_bwdpi_arrays() {
 	# generate if not exist, plus after wrs restart (signature update)
-	if [ ! -f "/www/ext/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || [ /jffs/signature/rule.trf -nt "/www/ext/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ]; then
+	# generate if signature rule file is newer than js file
+	# generate if js file is smaller than source file (source not present yet during boot)
+	# prepend wc variables with zero in case file doesn't exist, to avoid bad number error
+	if [ ! -f "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || \
+		[ /jffs/signature/rule.trf -nt "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || \
+		[ "0$(wc -c < /www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js)" -lt "0$(wc -c 2>/dev/null < /tmp/bwdpi/bwdpi.app.db)" ]; then
 	{
 		printf "var catdb_mark_array = [ \"000000\""
-		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db
-		awk -F, '{ printf(", \"%02X%04X\"",$1,$2) }' /tmp/bwdpi/bwdpi.app.db
+		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db 2>/dev/null
+		awk -F, '{ printf(", \"%02X%04X\"",$1,$2) }' /tmp/bwdpi/bwdpi.app.db 2>/dev/null
 		printf ", \"\" ];"
 		printf "var catdb_label_array = [ \"Untracked\""
-		awk -F, '{ printf(", \"%s\"",$2) }' /tmp/bwdpi/bwdpi.cat.db
-		awk -F, '{ printf(", \"%s\"",$4) }' /tmp/bwdpi/bwdpi.app.db
+		awk -F, '{ printf(", \"%s\"",$2) }' /tmp/bwdpi/bwdpi.cat.db 2>/dev/null
+		awk -F, '{ printf(", \"%s\"",$4) }' /tmp/bwdpi/bwdpi.app.db 2>/dev/null
 		printf ", \"\" ];"
 	} > "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js"
 	fi
+}
+
+PressEnter(){
+	echo ""
+	while true; do
+		echo "Press enter to continue..."
+		read -r "key"
+		case "$key" in
+			*)
+				break
+			;;
+		esac
+	done
+	return 0
 }
 
 Kill_Lock() {
@@ -1375,6 +1511,9 @@ case "$arg1" in
 		cru d "$SCRIPTNAME"
 		remove_webui
 		;;
+	'backup')
+		backup backup
+		;;
 	'debug')
 		debug
 		;;
@@ -1386,6 +1525,24 @@ case "$arg1" in
 		;;
 	'menu'|'')
 		menu
+		;;
+	'develop')
+		if [ "$(am_settings_get "${SCRIPTNAME}_branch")" = "develop" ]; then
+			echo "Already set to development branch."
+		else
+			am_settings_set "${SCRIPTNAME}_branch" "develop"
+			echo "Set to development branch. Triggering update..."
+			exec "$0" update
+		fi
+		;;
+	'stable')
+		if [ -z "$(am_settings_get "${SCRIPTNAME}_branch")" ]; then
+			echo "Already set to stable branch."
+		else
+			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
+			echo "Set to stable branch. Triggering update..."
+			exec "$0" update
+		fi
 		;;
 	*)
 		show_help
