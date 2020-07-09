@@ -343,33 +343,29 @@ appdb(){
 } # appdb
 
 webconfigpage() {
-	uiwebpage="$(grep "$SCRIPTNAME_FANCY" /tmp/menuTree.js | awk -F'"' '{print $2}')"
-
+	urlpage=$(sed -nE "/$SCRIPTNAME_FANCY/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)
 	if [ "$(nvram get http_enable)" = "1" ]; then
-		htproto="https"		
+		urlproto="https"
 	else
-		htproto="http"
+		urlproto="http"
 	fi
 	if [ -n "$(nvram get lan_domain)" ]; then
-		htdomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+		urldomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
 	else
-		htdomain="$(nvram get lan_ipaddr)"
+		urldomain="$(nvram get lan_ipaddr)"
 	fi
-	if [ "$(nvram get "$htproto"_lanport)" = "80" ] || [ "$(nvram get "$htproto"_lanport)" = "443" ]; then
-		lanport=""
+	if [ "$(nvram get ${urlproto}_lanport)" = "80" ] || [ "$(nvram get ${urlproto}_lanport)" = "443" ]; then
+		urlport=""
 	else
-		lanport=":$(nvram get "$htproto"_lanport)"
+		urlport=":$(nvram get ${urlproto}_lanport)"
 	fi
 	
-	if [ "$(echo "$uiwebpage" | grep "asp")" ]; then
+	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
 		echo "Advanced configuration available via:"
-		echo "$htproto://$htdomain$lanport/$uiwebpage"
-	else
-		echo "Please access your router, search for AdaptiveQoS and then $SCRIPTNAME_FANCY:"
-		echo "$htproto://$htdomain$lanport/"
+		echo "  ${urlproto}://${urldomain}${urlport}/${urlpage}"
 	fi
-	
-}
+} # webconfigpage
+
 scriptinfo() {
 	echo ""
 	echo "FlexQoS v${version} released ${release}"
@@ -430,8 +426,6 @@ debug(){
 	write_appdb_rules
 	write_custom_rates
 	cat /tmp/${SCRIPTNAME}_tcrules
-  echo ""
-	webconfigpage
 	echo "[/CODE][/SPOILER]"
 } # debug
 
@@ -1180,7 +1174,7 @@ install() {
 	echo "FlexQoS installation complete!"
 
 	scriptinfo
-	webconfigpage	
+	webconfigpage
 	
 	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -q "flexqos" /jffs/addons/custom_settings.txt ; then
 		echo ""
