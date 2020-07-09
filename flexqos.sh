@@ -1013,8 +1013,6 @@ am_get_webui_page() {
 } # am_get_webui_page
 
 install_webui() {
-	# Get the path of the existing webui page in /www/user so we do not need to update
-	[ -f "$WEBUIPATH" ] && am_get_webui_page "$WEBUIPATH"
 	# if this is an install or update...otherwise it's a normal startup/mount
 	if [ -z "$1" ]; then
 		echo "Downloading WebUI files..."
@@ -1029,15 +1027,19 @@ install_webui() {
 		logger -t "FlexQoS" "No API slots available to install web page"
 	elif [ ! -f /www/user/"$am_webui_page" ]; then
 		# remove previous pages
-		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp | while read -r oldfile
+		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
 		do
 			rm "$oldfile"
 		done
-		cp "$WEBUIPATH" /www/user/"$am_webui_page"
 		if [ ! -f /tmp/menuTree.js ]; then
 			cp /www/require/modules/menuTree.js /tmp/
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
+		prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_FANCY}\"\}\,$/\1/p" /tmp/menuTree.js)"
+		if [ -n "$prev_webui_page" ]; then
+			am_webui_page="$prev_webui_page"
+		fi
+		cp "$WEBUIPATH" /www/user/"$am_webui_page"
 		if ! /bin/grep -q "{url: \"$am_webui_page\", tabName: \"FlexQoS\"}," /tmp/menuTree.js; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
 			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
