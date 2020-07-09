@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
 version=0.9.2
-release=07/xx/2020
+release=07/09/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -1420,6 +1420,8 @@ show_help() {
 	echo "  ${SCRIPTNAME} -disable            disable   script but do not delete from disk"
 	echo "  ${SCRIPTNAME} -backup             backup user settings"
 	echo "  ${SCRIPTNAME} -debug              print debug info"
+	echo "  ${SCRIPTNAME} -develop            switch to development channel"
+	echo "  ${SCRIPTNAME} -stable             switch to stable channel"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
 	echo ""
 	webconfigpage
