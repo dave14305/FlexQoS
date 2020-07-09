@@ -1347,7 +1347,12 @@ show_help() {
 
 generate_bwdpi_arrays() {
 	# generate if not exist, plus after wrs restart (signature update)
-	if [ ! -f "/www/ext/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || [ /jffs/signature/rule.trf -nt "/www/ext/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ]; then
+	# generate if signature rule file is newer than js file
+	# generate if js file is smaller than source file (source not present yet during boot)
+	# prepend wc variables with zero in case file doesn't exist, to avoid bad number error
+	if [ ! -f "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || \
+		[ /jffs/signature/rule.trf -nt "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || \
+		[ "0$(wc -c < /www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js)" -lt "0$(wc -c 2>/dev/null < /tmp/bwdpi/bwdpi.app.db)" ]; then
 	{
 		printf "var catdb_mark_array = [ \"000000\""
 		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db 2>/dev/null
