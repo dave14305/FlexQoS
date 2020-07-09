@@ -1201,7 +1201,7 @@ install() {
 	scriptinfo
 	webconfigpage
 	
-	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -q "flexqos" /jffs/addons/custom_settings.txt ; then
+	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -qE "^flexqos_[^(ver )]" /jffs/addons/custom_settings.txt ; then
 		echo ""
 		echo -n "Backup found!"
 		echo -n "Would you like to restore it? [1=Yes 2=No]: "
