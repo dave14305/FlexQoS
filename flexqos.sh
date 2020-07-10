@@ -1,5 +1,6 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
+# Contributors: @maghuro
 version=0.9.2
 release=07/09/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
@@ -101,8 +102,8 @@ iptables_static_rules() {
 
 appdb_static_rules() {
 	echo "Applying AppDB static rules"
-	${tc} filter add dev br0 protocol all prio 10 u32 match mark 0x803f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_down functionality
-	${tc} filter add dev "$tcwan" protocol all prio 10 u32 match mark 0x403f0001 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_up functionality
+	${tc} filter add dev br0 protocol all prio 10 u32 match mark ${Default_mark_down} 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_down functionality
+	${tc} filter add dev "$tcwan" protocol all prio 10 u32 match mark ${Default_mark_up} 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_up functionality
 } # appdb_static_rules
 
 write_custom_rates() {
