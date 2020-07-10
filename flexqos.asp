@@ -75,6 +75,45 @@ display:inline;
 .addRuleText small{
 display:none;
 }
+/*the container must be positioned relative:*/
+.autocomplete {
+position: relative;
+display: inline-block;
+}
+
+.autocomplete-items {
+position: absolute;
+border: 1px solid #929EA1;
+border-bottom: none;
+border-top: none;
+z-index: 99;
+/*position the autocomplete items to be the same width as the container:*/
+top: 100%;
+left: 0;
+right: 0;
+width:352.8px;
+text-align:left;
+font-size: 12px;
+font-family: Lucida Console;
+}
+
+.autocomplete-items div {
+cursor: pointer;
+border:1px outset #999;
+background-color:#576D73;
+height:auto;
+padding: 1px;
+}
+
+/*when hovering an item:*/
+.autocomplete-items div:hover {
+background-color: #2F3A3E;
+}
+
+/*when navigating through the items using the arrow keys:*/
+.autocomplete-active {
+background-color: #2F3A3E !important;
+}
 </style>
 
 <script>
@@ -872,6 +911,8 @@ function initial() {
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
+	/*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
+	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
 	if (qos_mode == 0){		//if QoS is invalid
 		document.getElementById('filter_device').style.display = "none";
 		document.getElementById('tracked_connections').style.display = "none";
@@ -1380,7 +1421,7 @@ function addRow_AppDB_Group(upper){
 			return false;
 		addAppDBRow(document.form.appdb_mark_x, 1);
 		addAppDBRow(document.form.appdb_class_x, 0);
-		document.getElementById('appdb_desc_x').innerHTML="";
+		document.form.appdb_desc_x.value="";
 		document.form.appdb_class_x.value="0";
 		show_appdb_rules();
 	}
@@ -1409,7 +1450,7 @@ function del_appdb_Row(r){
 
 function edit_appdb_Row(r){
 	var i=r.parentNode.parentNode.rowIndex;
-	document.getElementById('appdb_desc_x').innerHTML = document.getElementById('appdb_rulelist_table').rows[i].cells[0].innerHTML;
+	document.form.appdb_desc_x.value = document.getElementById('appdb_rulelist_table').rows[i].cells[0].innerHTML;
 	document.form.appdb_mark_x.value = document.getElementById('appdb_rulelist_table').rows[i].cells[1].innerHTML;
 	document.form.appdb_class_x.value = class_title.indexOf(document.getElementById('appdb_rulelist_table').rows[i].cells[2].innerHTML);
 	del_appdb_Row(r);
@@ -1869,8 +1910,6 @@ function FlexQoS_mod_apply() {
 
 function validate_mark(input)
 {
-	document.getElementById('appdb_desc_x').innerHTML="";
-
 	if (!(input))		return 1;		//is blank
 
 	if (input.length != 6 )		return false;	//console.log("fail length");
@@ -1884,10 +1923,23 @@ function validate_mark(input)
 	}
 	var mark_desc=catdb_label_array[catdb_mark_array.indexOf(input.toUpperCase())];
 	if ( mark_desc != undefined)
-		document.getElementById('appdb_desc_x').innerHTML=mark_desc;
+		document.form.appdb_desc_x.value=mark_desc;
 	else
-		document.getElementById('appdb_desc_x').innerHTML="Unknown Mark";
+		document.form.appdb_desc_x.value="Unknown Mark";
 	document.form.appdb_mark_x.value=input.toUpperCase();
+	return 1;
+}
+
+function validate_mark_desc(input)
+{
+	if (!(input))		return 1;		//is blank
+
+	var mark=catdb_mark_array[catdb_label_array.indexOf(input)];
+	if ( mark != undefined)
+		document.form.appdb_mark_x.value=mark;
+	else
+		document.form.appdb_mark_x.value="";
+		return false;
 	return 1;
 }
 
@@ -1902,6 +1954,103 @@ function validate_percent(input)
 function SetCurrentPage() {
 	document.form.next_page.value = window.location.pathname.substring(1);
 	document.form.current_page.value = window.location.pathname.substring(1);
+}
+
+function autocomplete(inp, arr) {
+	/*the autocomplete function takes two arguments,
+	the text field element and an array of possible autocompleted values:*/
+	var currentFocus;
+	/*execute a function when someone writes in the text field:*/
+	inp.addEventListener("input", function(e) {
+		var a, b, i, val = this.value;
+		/*close any already open lists of autocompleted values*/
+		closeAllLists();
+		if (!val) { return false;}
+		if (val.length<3) { return false;}
+		currentFocus = -1;
+		/*create a DIV element that will contain the items (values):*/
+		a = document.createElement("DIV");
+		a.setAttribute("id", this.id + "autocomplete-list");
+		a.setAttribute("class", "autocomplete-items");
+		/*append the DIV element as a child of the autocomplete container:*/
+		this.parentNode.appendChild(a);
+		/*for each item in the array...*/
+		for (i = 0; i < arr.length; i++) {
+			/*check if the item starts with the same letters as the text field value:*/
+			if (arr[i].toUpperCase().indexOf(val.toUpperCase()) > -1) {
+				/*create a DIV element for each matching element:*/
+				b = document.createElement("DIV");
+				b.innerHTML = arr[i];
+				/*insert a input field that will hold the current array item's value:*/
+				b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+				/*execute a function when someone clicks on the item value (DIV element):*/
+				b.addEventListener("click", function(e) {
+					/*insert the value for the autocomplete text field:*/
+					inp.value = this.getElementsByTagName("input")[0].value;
+					validate_mark_desc(inp.value);
+					/*close the list of autocompleted values,
+					(or any other open lists of autocompleted values:*/
+					closeAllLists();
+				});
+				a.appendChild(b);
+			}
+		}
+	});
+	/*execute a function presses a key on the keyboard:*/
+	inp.addEventListener("keydown", function(e) {
+		var x = document.getElementById(this.id + "autocomplete-list");
+		if (x) x = x.getElementsByTagName("div");
+		if (e.keyCode == 40) {
+			/*If the arrow DOWN key is pressed,
+			increase the currentFocus variable:*/
+			currentFocus++;
+			/*and and make the current item more visible:*/
+			addActive(x);
+		} else if (e.keyCode == 38) { //up
+			/*If the arrow UP key is pressed,
+			decrease the currentFocus variable:*/
+			currentFocus--;
+			/*and and make the current item more visible:*/
+			addActive(x);
+		} else if (e.keyCode == 13) {
+			/*If the ENTER key is pressed, prevent the form from being submitted,*/
+			e.preventDefault();
+			if (currentFocus > -1) {
+				/*and simulate a click on the "active" item:*/
+				if (x) x[currentFocus].click();
+			}
+		}
+	});
+	function addActive(x) {
+		/*a function to classify an item as "active":*/
+		if (!x) return false;
+		/*start by removing the "active" class on all items:*/
+		removeActive(x);
+		if (currentFocus >= x.length) currentFocus = 0;
+		if (currentFocus < 0) currentFocus = (x.length - 1);
+		/*add class "autocomplete-active":*/
+		x[currentFocus].classList.add("autocomplete-active");
+	}
+	function removeActive(x) {
+		/*a function to remove the "active" class from all autocomplete items:*/
+		for (var i = 0; i < x.length; i++) {
+			x[i].classList.remove("autocomplete-active");
+		}
+	}
+	function closeAllLists(elmnt) {
+		/*close all autocomplete lists in the document,
+		except the one passed as an argument:*/
+		var x = document.getElementsByClassName("autocomplete-items");
+		for (var i = 0; i < x.length; i++) {
+			if (elmnt != x[i] && elmnt != inp) {
+				x[i].parentNode.removeChild(x[i]);
+			}
+		}
+	}
+	/*execute a function when someone clicks in the document:*/
+	document.addEventListener("click", function (e) {
+		closeAllLists(e.target);
+	});
 }
 
 </script>
@@ -1961,7 +2110,10 @@ function SetCurrentPage() {
 		<th width="15%">Edit</th>
 	</tr>
 	<tr>
-		<td width="auto"><div id="appdb_desc_x"></div>
+		<td width="auto">
+			<div class="autocomplete">
+				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" onfocusout='validate_mark_desc(this.value)' autocomplete="off" autocorrect="off" autocapitalize="off">
+			</div>
 		</td>
 		<td width="10%">
 			<input type="text" maxlength="6" class="input_6_table" name="appdb_mark_x" onfocusout='validate_mark(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' autocomplete="off" autocorrect="off" autocapitalize="off">
