@@ -248,7 +248,7 @@ EOF
 	#GUI shows in Mb/s; nvram stores in Kb/s
 	DownCeil="$(printf "%.0f" "$(nvram get qos_ibw)")"
 	UpCeil="$(printf "%.0f" "$(nvram get qos_obw)")"
-	WANMTU="$(nvram get wan_mtu)"
+#	WANMTU="$(nvram get wan_mtu)"
 
 	i=0
 	while [ "$i" -lt "8" ]
@@ -260,16 +260,16 @@ EOF
 		downquantum=$((DownRate${i}*1000/8/10))
 		if [ "$downquantum" -gt "200000" ]; then
 			eval "DownQuantum$i=\$((DownRate${i}\*1000/8/10))"
-		elif [ "$downquantum" -lt "$((WANMTU+14))" ]; then
-			eval "DownQuantum$i=\$((WANMTU+14))"
+#		elif [ "$downquantum" -lt "$((WANMTU+14))" ]; then
+#			eval "DownQuantum$i=\$((WANMTU+14))"
 		else
 			eval "DownQuantum$i=\"default\""
 		fi
 		upquantum=$((UpRate${i}*1000/8/10))
 		if [ "$upquantum" -gt "200000" ]; then
 			eval "UpQuantum$i=\$((UpRate${i}\*1000/8/10))"
-		elif [ "$upquantum" -lt "$((WANMTU+14))" ]; then
-			eval "UpQuantum$i=\$((WANMTU+14))"
+#		elif [ "$upquantum" -lt "$((WANMTU+14))" ]; then
+#			eval "UpQuantum$i=\$((WANMTU+14))"
 		else
 			eval "UpQuantum$i=\"default\""
 		fi
