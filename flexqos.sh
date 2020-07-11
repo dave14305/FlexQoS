@@ -2,7 +2,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=0.9.3
-release=07/11/2020
+release="Jul/11/2020"
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -379,6 +379,8 @@ scriptinfo() {
 debug(){
 	echo -n "[SPOILER=\"FlexQoS Debug\"][CODE]"
 	scriptinfo
+	echo "Log date: $(date +'%d-%b-%Y - %T %Z')"
+	echo "Merlin v.: $(nvram get buildno)_$(nvram get extendno)"
 	echo "Debug:"
 	echo ""
 	get_config
