@@ -1470,7 +1470,13 @@ Check_Lock() {
 	lock="true"
 } # Check_Lock
 
+
+
 arg1="$(echo "$1" | sed 's/^-//')"
+if [ "$#" = "0" ] || [ "$1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # FlexQoS" /jffs/scripts/firewall-start; then
+	arg1="install"
+fi
+
 if [ -z "$2" ]; then
 	wan="$(nvram get wan0_ifname)"
 else
