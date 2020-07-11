@@ -1165,7 +1165,7 @@ install() {
 	echo "Installing FlexQoS..."
 	if ! Firmware_Check; then
 		PressEnter
-		rm "$0"
+		chmod +x "$SCRIPTPATH"
 		exit 5
 	fi
 	Uninstall_FreshJR
@@ -1178,7 +1178,7 @@ install() {
 		download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
 	fi
 	if ! [ -x "$SCRIPTPATH" ]; then
-		chmod 755 "$SCRIPTPATH"
+		chmod +x "$SCRIPTPATH"
 	fi
 	install_webui
 	generate_bwdpi_arrays
