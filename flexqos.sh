@@ -1164,8 +1164,8 @@ install() {
 	scriptinfo
 	echo "Installing FlexQoS..."
 	if ! Firmware_Check; then
+		[ -f "$SCRIPTPATH" ] && chmod +x "$SCRIPTPATH"
 		PressEnter
-		chmod +x "$SCRIPTPATH"
 		exit 5
 	fi
 	Uninstall_FreshJR
@@ -1473,7 +1473,7 @@ Check_Lock() {
 
 
 arg1="$(echo "$1" | sed 's/^-//')"
-if [ "$#" = "0" ] || [ "$1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # FlexQoS" /jffs/scripts/firewall-start; then
+if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # FlexQoS" /jffs/scripts/firewall-start; then
 	arg1="install"
 fi
 
