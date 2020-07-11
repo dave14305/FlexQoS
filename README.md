@@ -22,7 +22,7 @@ FlexQoS requires ASUSWRT-Merlin version 384.18 or higher. Stock ASUS firmware is
 
 In your SSH Client:
 
-``` curl "https://raw.githubusercontent.com/dave14305/FlexQoS/master/flexqos.sh" -o /jffs/addons/flexqos/flexqos.sh --create-dirs && sh /jffs/addons/flexqos/flexqos.sh -install ```
+``` /usr/sbin/curl "https://raw.githubusercontent.com/dave14305/FlexQoS/master/flexqos.sh" -o /jffs/addons/flexqos/flexqos.sh --create-dirs && chmod +x /jffs/addons/flexqos/flexqos.sh && sh /jffs/addons/flexqos/flexqos.sh -install ```
 
 ## Uninstall:
 
