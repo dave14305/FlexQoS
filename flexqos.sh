@@ -2,7 +2,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=0.9.3
-release=07/10/2020
+release=07/11/2020
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -1023,24 +1023,24 @@ install_webui() {
 		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
 		[ -f "${ADDON_DIR}/${SCRIPTNAME}_arrays.js" ] && rm "${ADDON_DIR}/${SCRIPTNAME}_arrays.js"
 	fi
-	am_get_webui_page "$WEBUIPATH"
+	# Check if the webpage is already mounted in the GUI and reuse that page
+	prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_FANCY}\"\}\,$/\1/p" /tmp/menuTree.js 2>/dev/null)"
+	if [ -n "$prev_webui_page" ]; then
+		# use the same filename as before
+		am_webui_page="$prev_webui_page"
+	else
+		# get a new mountpoint
+		am_get_webui_page "$WEBUIPATH"
+	fi
 	if [ "$am_webui_page" = "none" ]; then
 		logger -t "FlexQoS" "No API slots available to install web page"
-	elif [ ! -f /www/user/"$am_webui_page" ]; then
-		# remove previous pages
-		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
-		do
-			rm "$oldfile"
-		done
+	else
+		# only copy file if it's newer than the existing file
+		cp -pu "$WEBUIPATH" /www/user/"$am_webui_page"
 		if [ ! -f /tmp/menuTree.js ]; then
 			cp /www/require/modules/menuTree.js /tmp/
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
-		prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_FANCY}\"\}\,$/\1/p" /tmp/menuTree.js)"
-		if [ -n "$prev_webui_page" ]; then
-			am_webui_page="$prev_webui_page"
-		fi
-		cp "$WEBUIPATH" /www/user/"$am_webui_page"
 		if ! /bin/grep -q "{url: \"$am_webui_page\", tabName: \"FlexQoS\"}," /tmp/menuTree.js; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
 			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
