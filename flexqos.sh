@@ -1148,35 +1148,26 @@ Uninstall_FreshJR() {
 } # Uninstall_FreshJR
 
 Firmware_Check() {
-	echo "Checking firmware version..."
-	# local fwplatform="$(uname -o)"
-	# local fwver="$(nvram get buildno)"
-	# local fwmaj="$(echo "$fwver" | cut -d. -f1)"
-	# local fwmin="$(echo "$fwver" | cut -d. -f2)"
-	# if [ "$fwplatform" != "ASUSWRT-Merlin" ]; then
-		# echo "This version of FlexQoS requires ASUSWRT-Merlin. Stock firmware is no longer supported."
-		# exit 3
-	# fi
-	# if [ "$fwmaj" -ge "384" ] && [ "$fwmin" -ge "18" ]; then
-		# true
-	# else
-		# echo "FlexQoS requires ASUSWRT-Merlin 384.18 or higher. Installation aborted"
-		# exit 5
-	# fi
+	echo "Checking firmware support..."
 	if ! nvram get rc_support | grep -q am_addons; then
-		echo "FlexQoS requires ASUSWRT-Merlin 384.15 or higher. Installation aborted"
-		exit 5
+		echo "FlexQoS requires ASUSWRT-Merlin Addon API support. Installation aborted"
+		return 1
 	fi
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
 		echo "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
-		exit 5
+		return 1
 	fi # adaptive qos not enabled
 } # Firmware_Check
 
 install() {
-	# clear
+	clear
+	scriptinfo
 	echo "Installing FlexQoS..."
-	Firmware_Check
+	if ! Firmware_Check; then
+		PressEnter
+		rm "$0"
+		exit 5
+	fi
 	Uninstall_FreshJR
 	if ! [ -d "$ADDON_DIR" ]; then
 		echo "Creating directories..."
