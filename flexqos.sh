@@ -377,10 +377,11 @@ scriptinfo() {
 } # scriptinfo
 
 debug(){
+	[ -z "$(nvram get odmpid)" ] && RMODEL=$(nvram get productid) || RMODEL=$(nvram get odmpid) 
 	echo -n "[SPOILER=\"FlexQoS Debug\"][CODE]"
 	scriptinfo
 	echo "Log date: $(date +'%d-%b-%Y - %T %Z')"
-	echo "Merlin v.: $(nvram get buildno)_$(nvram get extendno)"
+	echo "Router: Asus $RMODEL (Merlin $(nvram get buildno)_$(nvram get extendno))"
 	echo "Debug:"
 	echo ""
 	get_config
