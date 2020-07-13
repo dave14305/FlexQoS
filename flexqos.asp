@@ -449,6 +449,36 @@ tableValidator.qosIPCIDR = { // only IP or IP plus netmask
 	}
 };
 
+tableRuleDuplicateValidation = {
+	iptables_rule : function(_newRuleArray, _currentRuleArray) {
+		// Check that no 2 rules with the same values exist, ignoring the Class
+		if(_currentRuleArray.length == 0)
+			return true;
+		else {
+			var newRuleArrayTemp = _newRuleArray.slice();
+			newRuleArrayTemp.splice(-1, 1);
+			for(var i = 0; i < _currentRuleArray.length; i += 1) {
+				var currentRuleArrayTemp = _currentRuleArray[i].slice();
+				currentRuleArrayTemp.splice(-1, 1);
+				if(newRuleArrayTemp.toString() == currentRuleArrayTemp.toString())
+					return false;
+			}
+		}
+		return true;
+	}
+} // tableRuleDuplicateValidation
+
+tableRuleValidation = {
+	iptables_rule : function(_newRuleArray) {
+		if(_newRuleArray.length == 7) {
+			if(_newRuleArray[0] == "" && _newRuleArray[1] == "" &&_newRuleArray[3] == "" &&_newRuleArray[4] == "" &&_newRuleArray[5] == "") {
+				return "Define at least one criterion for this rule!";
+			}
+			return HINTPASS;
+		}
+	}
+} // tableRuleValidation
+
 if (qos_mode == 2) {
 	var bwdpi_app_rulelist = "<% nvram_get("bwdpi_app_rulelist"); %>".replace(/&#60/g, "<");
 	var bwdpi_app_rulelist_row = bwdpi_app_rulelist.split("<");
@@ -1594,7 +1624,8 @@ function show_iptables_rules(){
 				}
 			]
 		},
-//		ruleDuplicateValidation : "triggerPort"
+		ruleDuplicateValidation : "iptables_rule",
+		ruleValidation : "iptables_rule"
 	}
 	tableApi.genTableAPI(tableStruct);
 }
