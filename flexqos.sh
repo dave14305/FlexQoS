@@ -39,7 +39,7 @@ release="2020-07-11"
 # Global variables
 SCRIPTNAME="flexqos"
 SCRIPTNAME_FANCY="FlexQoS"
-GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
+GIT_REPO="https://raw.githubusercontent.com/dave14305/$SCRIPTNAME_FANCY"
 if [ "$(am_settings_get "${SCRIPTNAME}_branch")" != "develop" ]; then
 	GIT_BRANCH="master"
 else
@@ -369,7 +369,7 @@ webconfigpage() {
 
 scriptinfo() {
 	echo ""
-	echo "FlexQoS v${version} released ${release}"
+	echo "$SCRIPTNAME_FANCY v${version} released ${release}"
 	if [ "$GIT_BRANCH" != "master" ]; then
 		echo " Development channel"
 	fi
@@ -377,8 +377,8 @@ scriptinfo() {
 } # scriptinfo
 
 debug(){
-	[ -z "$(nvram get odmpid)" ] && RMODEL=$(nvram get productid) || RMODEL=$(nvram get odmpid) 
-	echo -n "[SPOILER=\"FlexQoS Debug\"][CODE]"
+	[ -z "$(nvram get odmpid)" ] && RMODEL=$(nvram get productid) || RMODEL=$(nvram get odmpid)
+	echo -n "[SPOILER=\"$SCRIPTNAME_FANCY Debug\"][CODE]"
 	scriptinfo
 	echo "Debug:"
 	echo ""
@@ -751,12 +751,12 @@ about() {
 	# clear
 	scriptinfo
 	echo "License"
-	echo "  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0)."
+	echo "  $SCRIPTNAME_FANCY is free to use under the GNU General Public License, version 3 (GPL-3.0)."
 	echo "  https://opensource.org/licenses/GPL-3.0"
 	echo ""
 	echo "For discussion visit this thread:"
 	echo "  https://www.snbforums.com/threads/release-freshjr-adaptive-qos-improvements-custom-rules-and-inner-workings.36836/"
-	echo "  https://github.com/dave14305/FlexQoS (Source Code)"
+	echo "  https://github.com/dave14305/$SCRIPTNAME_FANCY (Source Code)"
 	echo ""
 	echo "About"
 	echo "  Script Changes Unidentified traffic destination away from Defaults into Others"
@@ -829,20 +829,17 @@ check_connection() {
 download_file() {
 	if [ "$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" | md5sum | awk '{print $1}')" != "$(md5sum "$2" 2>/dev/null | awk '{print $1}')" ]; then
 		if curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" -o "$2"; then
-			logger -t "FlexQoS" "Updated $(echo "$1" | awk -F / '{print $NF}')"
+			logger -t "$SCRIPTNAME_FANCY" "Updated $(echo "$1" | awk -F / '{print $NF}')"
 		else
-			logger -t "FlexQoS" "Updating $(echo "$1" | awk -F / '{print $NF}') failed"
+			logger -t "$SCRIPTNAME_FANCY" "Updating $(echo "$1" | awk -F / '{print $NF}') failed"
 		fi
 	else
-		logger -t "FlexQoS" "File $(echo "$2" | awk -F / '{print $NF}') is already up-to-date"
+		logger -t "$SCRIPTNAME_FANCY" "File $(echo "$2" | awk -F / '{print $NF}') is already up-to-date"
 	fi
 } # download_file
 
-update() {
-	# clear
-	scriptinfo
-	echo "Checking for updates"
-	echo ""
+checkupdates() {
+	# $1 = show info message (true/false)
 	url="${GIT_URL}/${SCRIPTNAME}.sh"
 	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
 	localmd5="$(md5sum "$0" | awk '{print $1}')"
@@ -851,10 +848,27 @@ update() {
 	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
 	if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
 		if [ "$version" != "$remotever" ]; then
-			echo " FlexQoS v${remotever} is now available!"
+			[ "$1" = "true" ] && echo -e "\033[5m\e[91m  $SCRIPTNAME_FANCY v${remotever} is now available!\033[0m"
+			return 0
 		else
-			echo " FlexQoS hotfix is available."
+			[ "$1" = "true" ] && echo -e "\033[5m\e[91m  $SCRIPTNAME_FANCY hotfix is available.\033[0m"
+			return 0
 		fi
+	else
+		return 1
+	fi
+} #check for updates
+
+update() {
+	# clear
+	# send param $1 to checkupdates so it won't show the message while calling (2) update AFTER the update message is shown on menu.
+	# when there's no update on menu, and user force calls the update check, it'll show the messages
+	#scriptinfo
+	if [ "$1" = "true" ]; then
+		echo "Checking for updates..."
+		echo ""
+	fi
+	if checkupdates $1; then
 		echo -n " Would you like to update now? [1=Yes 2=No] : "
 		read -r yn
 		echo ""
@@ -875,7 +889,7 @@ update() {
 		fi
 	fi
 
-	echo "Installing: FlexQoS v${remotever}"
+	echo "Installing: $SCRIPTNAME_FANCY v${remotever}"
 	echo ""
 	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
 	exec sh "$SCRIPTPATH" -install
@@ -916,6 +930,7 @@ menu() {
 	fi
 	echo "  (7) restart      restart QoS and firewall"
 	echo ""
+	show="true" && checkupdates $show && show="false" && echo "  Use option (2) to update" && echo ""
 	echo "  (u) uninstall    uninstall script"
 	echo "  (e) exit"
 	echo ""
@@ -926,7 +941,7 @@ menu() {
 			about
 		;;
 		'2')
-			update
+			update "$show"
 		;;
 		'3')
 			debug
@@ -957,9 +972,9 @@ menu() {
 		;;
 		'u'|'U')
 			# clear
-			echo "FlexQoS v${version} released ${release}"
+			echo "$SCRIPTNAME_FANCY v${version} released ${release}"
 			echo ""
-			echo -n " Confirm you want to uninstall FlexQoS [1=Yes 2=No] : "
+			echo -n " Confirm you want to uninstall $SCRIPTNAME_FANCY [1=Yes 2=No] : "
 			read -r yn
 			if [ "$yn" = "1" ]; then
 				echo ""
@@ -968,7 +983,7 @@ menu() {
 				exit
 			fi
 			echo ""
-			echo "FlexQoS has NOT been uninstalled"
+			echo "$SCRIPTNAME_FANCY has NOT been uninstalled"
 		;;
 		'e'|'E')
 			return
@@ -988,7 +1003,7 @@ remove_webui() {
 	if [ -n "$am_webui_page" ] && [ "$am_webui_page" != "none" ]; then
 		if [ -f /tmp/menuTree.js ]; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
-			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
+			sed -i "\~tabName: \"$SCRIPTNAME_FANCY\"},~d" /tmp/menuTree.js
 			if diff -q /tmp/menuTree.js /www/require/modules/menuTree.js > /dev/null 2>&1 ; then
 				rm /tmp/menuTree.js
 			else
@@ -999,7 +1014,7 @@ remove_webui() {
 				rm /www/user/"$am_webui_page"
 			fi
 		fi
-		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
+		/bin/grep -l "$SCRIPTNAME_FANCY maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
 		do
 			rm "$oldfile"
 		done
@@ -1050,7 +1065,7 @@ install_webui() {
 		am_get_webui_page "$WEBUIPATH"
 	fi
 	if [ "$am_webui_page" = "none" ]; then
-		logger -t "FlexQoS" "No API slots available to install web page"
+		logger -t "$SCRIPTNAME_FANCY" "No API slots available to install web page"
 	else
 		# only copy file if it's newer than the existing file
 		cp -pu "$WEBUIPATH" /www/user/"$am_webui_page"
@@ -1058,10 +1073,10 @@ install_webui() {
 			cp /www/require/modules/menuTree.js /tmp/
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
-		if ! /bin/grep -q "{url: \"$am_webui_page\", tabName: \"FlexQoS\"}," /tmp/menuTree.js; then
+		if ! /bin/grep -q "{url: \"$am_webui_page\", tabName: \"$SCRIPTNAME_FANCY\"}," /tmp/menuTree.js; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
-			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
-			sed -i "/url: \"QoS_Stats.asp\", tabName:/a {url: \"$am_webui_page\", tabName: \"FlexQoS\"}," /tmp/menuTree.js
+			sed -i "\~tabName: \"$SCRIPTNAME_FANCY\"},~d" /tmp/menuTree.js
+			sed -i "/url: \"QoS_Stats.asp\", tabName:/a {url: \"$am_webui_page\", tabName: \"$SCRIPTNAME_FANCY\"}," /tmp/menuTree.js
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
 	fi
@@ -1081,13 +1096,13 @@ Auto_ServiceEventEnd() {
 		chmod 755 /jffs/scripts/service-event-end
 	fi
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*\{ sh ${SCRIPTPATH}"; then
-		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
-		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
+		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # $SCRIPTNAME_FANCY Addition"
+		sed -i '\~\"wrs\".*# $SCRIPTNAME_FANCY Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "start.*sig_check.*\{ sh ${SCRIPTPATH}"; then
-		cmdline="if [ \"\$1\" = \"start\" ] && [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
-		sed -i '\~\"sig_check\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
+		cmdline="if [ \"\$1\" = \"start\" ] && [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # $SCRIPTNAME_FANCY Addition"
+		sed -i '\~\"sig_check\".*# $SCRIPTNAME_FANCY Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
 }
@@ -1105,8 +1120,8 @@ Auto_FirewallStart() {
 		chmod 755 /jffs/scripts/firewall-start
 	fi
 	if ! /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -qE "${SCRIPTPATH} -start \$1 & "; then
-		cmdline="sh ${SCRIPTPATH} -start \$1 & # FlexQoS Addition"
-		sed -i '\~FlexQoS Addition~d' /jffs/scripts/firewall-start
+		cmdline="sh ${SCRIPTPATH} -start \$1 & # $SCRIPTNAME_FANCY Addition"
+		sed -i '\~$SCRIPTNAME_FANCY Addition~d' /jffs/scripts/firewall-start
 		if /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -q "Skynet"; then
 			# If Skynet also installed, insert this script before it so it doesn't have to wait until Skynet to startup before applying QoS
 			# Won't delay Skynet startup since we fork into the background
@@ -1172,7 +1187,7 @@ Uninstall_FreshJR() {
 Firmware_Check() {
 	echo "Checking firmware support..."
 	if ! nvram get rc_support | grep -q am_addons; then
-		echo "FlexQoS requires ASUSWRT-Merlin Addon API support. Installation aborted"
+		echo "$SCRIPTNAME_FANCY requires ASUSWRT-Merlin Addon API support. Installation aborted"
 		return 1
 	fi
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
@@ -1184,7 +1199,7 @@ Firmware_Check() {
 install() {
 	clear
 	scriptinfo
-	echo "Installing FlexQoS..."
+	echo "Installing $SCRIPTNAME_FANCY..."
 	if ! Firmware_Check; then
 		[ -f "$SCRIPTPATH" ] && chmod +x "$SCRIPTPATH"
 		PressEnter
@@ -1204,13 +1219,13 @@ install() {
 	fi
 	install_webui
 	generate_bwdpi_arrays
-	echo "Adding FlexQoS entries to Merlin user scripts..."
+	echo "Adding $SCRIPTNAME_FANCY entries to Merlin user scripts..."
 	Auto_FirewallStart
 	Auto_ServiceEventEnd
 	echo "Adding nightly cron job..."
 	Auto_Crontab
 	setup_aliases
-	echo "FlexQoS installation complete!"
+	echo "$SCRIPTNAME_FANCY installation complete!"
 
 	scriptinfo
 	webconfigpage
@@ -1228,8 +1243,8 @@ install() {
 
 uninstall() {
 	echo "Removing entries from Merlin user scripts..."
-	sed -i '/FlexQoS/d' /jffs/scripts/firewall-start 2>/dev/null
-	sed -i '/FlexQoS/d' /jffs/scripts/service-event-end 2>/dev/null
+	sed -i '/$SCRIPTNAME_FANCY/d' /jffs/scripts/firewall-start 2>/dev/null
+	sed -i '/$SCRIPTNAME_FANCY/d' /jffs/scripts/service-event-end 2>/dev/null
 	echo "Removing aliases and shortcuts..."
 	sed -i "/${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
 	rm -f /opt/bin/${SCRIPTNAME}
@@ -1237,7 +1252,7 @@ uninstall() {
 	cru d "$SCRIPTNAME"
 	cru d "${SCRIPTNAME}_5min" 2>/dev/null
 	remove_webui
-	echo "Removing FlexQoS settings..."
+	echo "Removing $SCRIPTNAME_FANCY settings..."
 	sed -i "/^${SCRIPTNAME}_/d" /jffs/addons/custom_settings.txt
 	# restore FreshJR_QOS nvram variables if saved during installation
 	if [ -f ${ADDON_DIR}/restore_freshjr_nvram.sh ]; then
@@ -1256,18 +1271,18 @@ uninstall() {
 		echo -n "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
-			echo "Backuping FlexQoS settings..."
+			echo "Backuping $SCRIPTNAME_FANCY settings..."
 			backup backup
 		fi
 	fi
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		echo "Deleting FlexQoS folder contents except Backup file..."
+		echo "Deleting $SCRIPTNAME_FANCY folder contents except Backup file..."
 		/usr/bin/find ${ADDON_DIR} ! -name restore_${SCRIPTNAME}_settings.sh ! -exec test -d {} \; -a -exec rm {} +
 	else
-		echo "Deleting FlexQoS directory..."
+		echo "Deleting $SCRIPTNAME_FANCY directory..."
 		rm -rf "$ADDON_DIR"
 	fi
-	echo "FlexQoS has been uninstalled"
+	echo "$SCRIPTNAME_FANCY has been uninstalled"
 } # uninstall
 
 get_config() {
@@ -1340,7 +1355,7 @@ check_qos_tc() {
 
 startup() {
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
-		logger -t "FlexQoS" "Adaptive QoS is not enabled. Skipping FlexQoS startup."
+		logger -t "$SCRIPTNAME_FANCY" "Adaptive QoS is not enabled. Skipping $SCRIPTNAME_FANCY startup."
 		return 1
 	fi # adaptive qos not enabled
 
@@ -1353,10 +1368,10 @@ startup() {
 		#iptables rules will only be reapplied on firewall "start" due to receiving interface name
 
 		write_iptables_rules
-		iptables_static_rules 2>&1 | logger -t "FlexQoS"
+		iptables_static_rules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
-			logger -t "FlexQoS" "Applying custom iptables rules"
-			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "FlexQoS"
+			logger -t "$SCRIPTNAME_FANCY" "Applying custom iptables rules"
+			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
 		fi
 	fi
 
@@ -1364,16 +1379,16 @@ startup() {
 	sleepdelay=0
 	while check_qos_tc;
 	do
-		[ "$sleepdelay" = "0" ] && logger -t "FlexQoS" "TC Modification Delayed Start"
+		[ "$sleepdelay" = "0" ] && logger -t "$SCRIPTNAME_FANCY" "TC Modification Delayed Start"
 		sleep 10s
 		if [ "$sleepdelay" -ge "300" ]; then
-			logger -t "FlexQoS" "TC Modification Delay reached maximum 300 seconds"
+			logger -t "$SCRIPTNAME_FANCY" "TC Modification Delay reached maximum 300 seconds"
 			break
 		else
 			sleepdelay=$((sleepdelay+10))
 		fi
 	done
-	[ "$sleepdelay" -gt "0" ] && logger -t "FlexQoS" "TC Modification delayed for $sleepdelay seconds"
+	[ "$sleepdelay" -gt "0" ] && logger -t "$SCRIPTNAME_FANCY" "TC Modification delayed for $sleepdelay seconds"
 
 	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
 	if [ -n "$current_undf_rule" ]; then
@@ -1389,16 +1404,16 @@ startup() {
 	if [ "$undf_flowid" = "1:17" ] || [ -z "$undf_flowid" ]; then
 		if [ -z "$1" ]; then
 			# check action was called without a WAN interface passed
-			logger -t "FlexQoS" "Scheduled Persistence Check -> Reapplying Changes"
+			logger -t "$SCRIPTNAME_FANCY" "Scheduled Persistence Check -> Reapplying Changes"
 		fi # check
 
 		set_tc_variables 	#needs to be set before parse_tcrule
 		write_appdb_rules
-		appdb_static_rules 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
+		appdb_static_rules 2>&1 | logger -t "$SCRIPTNAME_FANCY"		#forwards terminal output & errors to logger
 
 		if check_qos_tc; then
-			logger -t "FlexQoS" "Adaptive QoS not fully done setting up prior to modification script"
-			logger -t "FlexQoS" "(Skipping class modification, delay trigger time period needs increase)"
+			logger -t "$SCRIPTNAME_FANCY" "Adaptive QoS not fully done setting up prior to modification script"
+			logger -t "$SCRIPTNAME_FANCY" "(Skipping class modification, delay trigger time period needs increase)"
 		else
 			if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
 				write_custom_rates
@@ -1406,14 +1421,14 @@ startup() {
 		fi # Classes less than 8
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
-			logger -t "FlexQoS" "Applying custom AppDB rules and custom rates"
-			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
+			logger -t "$SCRIPTNAME_FANCY" "Applying custom AppDB rules and custom rates"
+			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
 		fi
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
 		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH check"
 	else # 1:17
-		logger -t "FlexQoS" "No TC modifications necessary"
+		logger -t "$SCRIPTNAME_FANCY" "No TC modifications necessary"
 	fi # 1:17
 } # startup
 
@@ -1496,7 +1511,7 @@ Check_Lock() {
 
 
 arg1="$(echo "$1" | sed 's/^-//')"
-if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # FlexQoS" /jffs/scripts/firewall-start; then
+if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # $SCRIPTNAME_FANCY" /jffs/scripts/firewall-start; then
 	arg1="install"
 fi
 
@@ -1509,12 +1524,12 @@ fi
 case "$arg1" in
 	'start')
 		# triggered from firewall-start with wan iface passed
-		logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
+		logger -t "$SCRIPTNAME_FANCY" "$0 (pid=$$) called with $# args: $*"
 		startup "$2"
 		;;
 	'check')
 		# triggered from cron or service-event-end without wan iface
-		logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
+		logger -t "$SCRIPTNAME_FANCY" "$0 (pid=$$) called with $# args: $*"
 		startup
 		;;
 	'appdb')
@@ -1542,7 +1557,7 @@ case "$arg1" in
 		about
 		;;
 	'update')
-		update
+		update "true"
 		;;
 	'menu'|'')
 		menu
@@ -1553,7 +1568,7 @@ case "$arg1" in
 		else
 			am_settings_set "${SCRIPTNAME}_branch" "develop"
 			echo "Set to development branch. Triggering update..."
-			exec "$0" update
+			exec "$0" update "true"
 		fi
 		;;
 	'stable')
@@ -1562,7 +1577,7 @@ case "$arg1" in
 		else
 			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
 			echo "Set to stable branch. Triggering update..."
-			exec "$0" update
+			exec "$0" update "true"
 		fi
 		;;
 	'restart')
