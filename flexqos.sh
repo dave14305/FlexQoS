@@ -1,7 +1,7 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=0.9.4d
+version=0.9.4
 release="2020-07-11"
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
@@ -883,9 +883,13 @@ update() {
 }
 
 prompt_restart() {
-	echo ""
-	echo -n "Would you like to restart QoS for modifications to take effect? [1=Yes 2=No]: "
-	read -r yn
+	if [ -z "$1" ]; then
+		echo ""
+		echo -n "Would you like to restart QoS for modifications to take effect? [1=Yes 2=No]: "
+		read -r yn
+	else
+		yn="1"
+	fi
 	if [ "$yn" = "1" ]; then
 		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then
 			echo "Restarting QoS and Firewall..."
@@ -894,10 +898,8 @@ prompt_restart() {
 		echo ""
 	else
 		echo ""
-		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then
-			echo "Remember to restart QoS later for modifications to take effect"
-			echo ""
-		fi
+		echo "$SCRIPTNAME_FANCY customizations will not take effect until QoS is restarted."
+		echo ""
 	fi
 } # prompt_restart
 
@@ -912,6 +914,7 @@ menu() {
 		echo "  (5) restore      restore settings from backup"
 		echo "  (6) delete       remove backup"
 	fi
+	echo "  (7) restart      restart QoS and firewall"
 	echo ""
 	echo "  (u) uninstall    uninstall script"
 	echo "  (e) exit"
@@ -943,6 +946,13 @@ menu() {
 				backup "remove"
 			else
 				echo "No backup available"
+			fi
+		;;
+		'7')
+			if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start; then
+				prompt_restart
+			else
+				echo "$SCRIPTNAME_FANCY is not installed correctly. Please update or reinstall."
 			fi
 		;;
 		'u'|'U')
@@ -1070,6 +1080,11 @@ Auto_ServiceEventEnd() {
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*\{ sh ${SCRIPTPATH}"; then
 		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
+		echo "$cmdline" >> /jffs/scripts/service-event-end
+	fi
+	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "start.*sig_check.*\{ sh ${SCRIPTPATH}"; then
+		cmdline="if [ \"\$1\" = \"start\" ] && [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
+		sed -i '\~\"sig_check\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
 }
@@ -1409,6 +1424,7 @@ show_help() {
 	echo "  ${SCRIPTNAME} -about              explains functionality"
 	echo "  ${SCRIPTNAME} -appdb string       search appdb for application marks"
 	echo "  ${SCRIPTNAME} -update             checks for updates"
+	echo "  ${SCRIPTNAME} -restart            restart QoS and Firewall"
 	echo "  ${SCRIPTNAME} -install            install   script"
 	echo "  ${SCRIPTNAME} -uninstall          uninstall script & delete from disk"
 	echo "  ${SCRIPTNAME} -enable             enable    script"
@@ -1545,6 +1561,9 @@ case "$arg1" in
 			echo "Set to stable branch. Triggering update..."
 			exec "$0" update
 		fi
+		;;
+	'restart')
+		prompt_restart force
 		;;
 	*)
 		show_help
