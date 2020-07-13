@@ -2,7 +2,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=0.9.3
-release="Jul/11/2020"
+release="2020/07/11"
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -380,7 +380,7 @@ debug(){
 	[ -z "$(nvram get odmpid)" ] && RMODEL=$(nvram get productid) || RMODEL=$(nvram get odmpid) 
 	echo -n "[SPOILER=\"FlexQoS Debug\"][CODE]"
 	scriptinfo
-	echo "Log date: $(date +'%d-%b-%Y - %T %Z')"
+	echo "Log date: $(date +'%Y-%m-%d %H:%M:%S%z')"
 	echo "Router: Asus $RMODEL (Merlin $(nvram get buildno)_$(nvram get extendno))"
 	echo "Debug:"
 	echo ""
@@ -789,7 +789,7 @@ backup() {
 			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			{
 				echo "#!/bin/sh"
-				echo "# Backup date: $(date +'%d-%b-%Y - %T %Z')"
+				echo "# Backup date: $(date +'%Y-%m-%d %H:%M:%S%z')"
 				echo ". /usr/sbin/helper.sh"
 				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
