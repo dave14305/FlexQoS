@@ -334,7 +334,7 @@ tableValidator.qosIPCIDR = { // only IP or IP plus netmask
 				}
 			}
 			if(j < 3 && i >= 3){
-				if(objValue.charAt(i-3) != '.' && objValue.charAt(i-2) != '.' && objValue.charAt(i-1) != '.'){
+				if(objValue.charAt(i-3) != '!' && objValue.charAt(i-3) != '.' && objValue.charAt(i-2) != '.' && objValue.charAt(i-1) != '.'){
 					$obj.val(objValue + '.');
 				}
 			}
