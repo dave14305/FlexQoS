@@ -1,8 +1,8 @@
 #!/bin/sh
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=0.9.3
-release="2020/07/11"
+version=0.9.4d
+release="2020-07-11"
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -380,10 +380,11 @@ debug(){
 	[ -z "$(nvram get odmpid)" ] && RMODEL=$(nvram get productid) || RMODEL=$(nvram get odmpid) 
 	echo -n "[SPOILER=\"FlexQoS Debug\"][CODE]"
 	scriptinfo
-	echo "Log date: $(date +'%Y-%m-%d %H:%M:%S%z')"
-	echo "Router: Asus $RMODEL (Merlin $(nvram get buildno)_$(nvram get extendno))"
 	echo "Debug:"
 	echo ""
+	echo "Log date: $(date +'%Y-%m-%d %H:%M:%S%z')"
+	echo "Router Model: $RMODEL"
+	echo "Firmware Ver: $(nvram get buildno)_$(nvram get extendno)"
 	get_config
 	set_tc_variables
 	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
