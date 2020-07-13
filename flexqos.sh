@@ -973,6 +973,9 @@ menu() {
 		'e'|'E')
 			return
 		;;
+		*)
+			printf "\n%s is not a valid option!\n" "$input"
+		;;
 	esac
 	PressEnter
 	menu
