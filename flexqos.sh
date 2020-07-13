@@ -999,7 +999,7 @@ remove_webui() {
 				rm /www/user/"$am_webui_page"
 			fi
 		fi
-		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp | while read -r oldfile
+		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
 		do
 			rm "$oldfile"
 		done
