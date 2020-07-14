@@ -1120,18 +1120,32 @@ Auto_FirewallStart() {
 
 Auto_Crontab() {
 	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -check"
+	if [ ! -f "/jffs/scripts/services-start" ]; then
+			echo "#!/bin/sh" > /jffs/scripts/services-start
+			echo >> /jffs/scripts/services-start
+	elif [ -f "/jffs/scripts/services-start" ] && ! head -1 /jffs/scripts/services-start | /bin/grep -qE "^#!/bin/sh"; then
+			sed -i '1s~^~#!/bin/sh\n~' /jffs/scripts/services-start
+	fi
+	if [ ! -x "/jffs/scripts/services-start" ]; then
+		chmod 755 /jffs/scripts/services-start
+	fi
+	if ! /bin/grep -vE "^#" /jffs/scripts/services-start | /bin/grep -qE "${SCRIPTPATH} -check"; then
+		cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # FlexQoS Addition"
+		sed -i '\~FlexQoS Addition~d' /jffs/scripts/services-start
+		echo "$cmdline" >> /jffs/scripts/services-start
+	fi
 } # Auto_Crontab
 
 setup_aliases() {
 	# shortcuts to launching FlexQoS
-	sed -i "/${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
 	if [ -d /opt/bin ]; then
 		echo "Adding ${SCRIPTNAME} link in Entware /opt/bin..."
 		ln -sf "$SCRIPTPATH" /opt/bin/${SCRIPTNAME}
 	else
 		echo "Adding ${SCRIPTNAME} alias in profile.add..."
-		alias ${SCRIPTNAME}="sh ${SCRIPTPATH} -menu"
-		echo "alias ${SCRIPTNAME}=\"sh ${SCRIPTPATH} -menu\"" >> /jffs/configs/profile.add
+		sed -i "/${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
+		alias ${SCRIPTNAME}="sh ${SCRIPTPATH}"
+		echo "alias ${SCRIPTNAME}=\"sh ${SCRIPTPATH}\"" >> /jffs/configs/profile.add
 	fi
 } # setup_aliases
 
@@ -1186,8 +1200,8 @@ install() {
 	scriptinfo
 	echo "Installing FlexQoS..."
 	if ! Firmware_Check; then
-		[ -f "$SCRIPTPATH" ] && chmod +x "$SCRIPTPATH"
 		PressEnter
+		rm -f "$0" 2>/dev/null
 		exit 5
 	fi
 	Uninstall_FreshJR
@@ -1197,7 +1211,7 @@ install() {
 		chmod 755 "$ADDON_DIR"
 	fi
 	if ! [ -f "$SCRIPTPATH" ]; then
-		download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
+		cp -p "$0" "$SCRIPTPATH"
 	fi
 	if ! [ -x "$SCRIPTPATH" ]; then
 		chmod +x "$SCRIPTPATH"
