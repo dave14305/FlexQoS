@@ -1425,7 +1425,7 @@ startup() {
 		fi
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
-		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH check"
+		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
 	else # 1:17
 		logger -t "FlexQoS" "No TC modifications necessary"
 	fi # 1:17
