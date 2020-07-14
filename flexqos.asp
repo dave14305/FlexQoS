@@ -471,7 +471,7 @@ tableRuleDuplicateValidation = {
 tableRuleValidation = {
 	iptables_rule : function(_newRuleArray) {
 		if(_newRuleArray.length == 7) {
-			if(_newRuleArray[0] == "" && _newRuleArray[1] == "" &&_newRuleArray[3] == "" &&_newRuleArray[4] == "" &&_newRuleArray[5] == "") {
+			if(_newRuleArray[0] == "" && _newRuleArray[1] == "" && _newRuleArray[3] == "" && _newRuleArray[4] == "" && _newRuleArray[5] == "") {
 				return "Define at least one criterion for this rule!";
 			}
 			return HINTPASS;
