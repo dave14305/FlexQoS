@@ -801,7 +801,7 @@ backup() {
 		'restore')
 			sh "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			echo "Backup restored!"
-			prompt_restart
+			[ "$2" != "norestart" ] && prompt_restart
 		;;
 		'remove')
 			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
@@ -1234,7 +1234,7 @@ install() {
 		echo -n "Backup found! Would you like to restore it? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
-			backup restore
+			backup restore norestart
 		fi
 	fi
 	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart
@@ -1259,15 +1259,14 @@ uninstall() {
 		sh ${ADDON_DIR}/restore_freshjr_nvram.sh
 	fi
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		echo -n "Backup found!"
-		echo -n "Would you like to delete it? [1=Yes 2=No]: "
+		echo "Backup found! Would you like to delete it? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
 			echo "Deleting Backup..."
 			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		fi
 	else
-		echo -n "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
+		echo "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
 			echo "Backuping FlexQoS settings..."
