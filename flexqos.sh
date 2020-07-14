@@ -2,7 +2,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=0.9.4
-release="2020-07-11"
+release=2020-07-14
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
