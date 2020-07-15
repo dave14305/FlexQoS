@@ -38,7 +38,7 @@ release=2020-07-14
 
 # Global variables
 SCRIPTNAME="flexqos"
-SCRIPTNAME_FANCY="FlexQoS"
+SCRIPTNAME_DISPLAY="FlexQoS"
 GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
 if [ "$(am_settings_get "${SCRIPTNAME}_branch")" != "develop" ]; then
 	GIT_BRANCH="master"
@@ -87,8 +87,24 @@ logmsg() {
 	if [ "$#" = "0" ]; then
 		return
 	fi
-	logger -t "$SCRIPTNAME_FANCY" "$*"
+	logger -t "$SCRIPTNAME_DISPLAY" "$*"
 } # logmsg
+
+Red() {
+	printf -- '\033[1;31m%s\033[0m\n' "$1"
+}
+
+Green() {
+	printf -- '\033[1;32m%s\033[0m\n' "$1"
+}
+
+Blue() {
+	printf -- '\033[1;36m%s\033[0m\n' "$1"
+}
+
+Yellow() {
+	printf -- '\033[1;33m%s\033[0m\n' "$1"
+}
 
 iptables_static_rules() {
 	echo "Applying iptables static rules"
@@ -351,7 +367,7 @@ appdb(){
 } # appdb
 
 webconfigpage() {
-	urlpage=$(sed -nE "/$SCRIPTNAME_FANCY/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)
+	urlpage=$(sed -nE "/$SCRIPTNAME_DISPLAY/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)
 	if [ "$(nvram get http_enable)" = "1" ]; then
 		urlproto="https"
 	else
@@ -370,22 +386,22 @@ webconfigpage() {
 
 	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
 		echo "Advanced configuration available via:"
-		echo "  ${urlproto}://${urldomain}${urlport}/${urlpage}"
+		Blue "  ${urlproto}://${urldomain}${urlport}/${urlpage}"
 	fi
 } # webconfigpage
 
 scriptinfo() {
 	echo ""
-	echo "FlexQoS v${version} released ${release}"
+	Green "$SCRIPTNAME_DISPLAY v${version} released ${release}"
 	if [ "$GIT_BRANCH" != "master" ]; then
-		echo " Development channel"
+		Yellow " Development channel"
 	fi
 	echo ""
 } # scriptinfo
 
 debug(){
 	[ -z "$(nvram get odmpid)" ] && RMODEL=$(nvram get productid) || RMODEL=$(nvram get odmpid) 
-	echo -n "[SPOILER=\"FlexQoS Debug\"][CODE]"
+	echo -n "[SPOILER=\"$SCRIPTNAME_DISPLAY Debug\"][CODE]"
 	scriptinfo
 	echo "Debug:"
 	echo ""
@@ -755,15 +771,14 @@ parse_iptablerule() {
 }
 
 about() {
-	# clear
 	scriptinfo
 	echo "License"
-	echo "  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0)."
+	echo "  $SCRIPTNAME_DISPLAY is free to use under the GNU General Public License, version 3 (GPL-3.0)."
 	echo "  https://opensource.org/licenses/GPL-3.0"
 	echo ""
 	echo "For discussion visit this thread:"
-	echo "  https://www.snbforums.com/threads/release-freshjr-adaptive-qos-improvements-custom-rules-and-inner-workings.36836/"
-	echo "  https://github.com/dave14305/FlexQoS (Source Code)"
+	Blue "  https://www.snbforums.com/threads/64882/"
+	Blue "  https://github.com/dave14305/FlexQoS (Source Code)"
 	echo ""
 	echo "About"
 	echo "  Script Changes Unidentified traffic destination away from Defaults into Others"
@@ -793,8 +808,17 @@ about() {
 
 backup() {
 	case "$1" in
-		'backup')
-			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+		'create')
+			if [ "$2" != "force" ] && [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				grep "# Backup date" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+				echo -n "A backup already exists. Do you want to overwrite this backup? [1=Yes 2=No] "
+				read -r yn
+				if [ "$yn" != "1" ]; then
+					Yellow "Backup cancelled."
+					return
+				fi
+			fi
+			echo "Running backup..."
 			{
 				echo "#!/bin/sh"
 				echo "# Backup date: $(date +'%Y-%m-%d %H:%M:%S%z')"
@@ -803,16 +827,27 @@ backup() {
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
 				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\""
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-			echo "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+			Green "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		;;
 		'restore')
-			sh "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-			echo "Backup restored!"
-			prompt_restart
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				Yellow "$(grep "# Backup date" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh")"
+				echo -n "Do you want to restore this backup? [1=Yes 2=No] "
+				read -r yn
+				if [ "$yn" = "1" ]; then
+					sh "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+					Green "Backup restored!"
+					needrestart=1
+				else
+					Yellow "Restore cancelled."
+				fi
+			else
+				Red "No backup file exists!"
+			fi
 		;;
 		'remove')
-			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-			echo "Backup deleted."
+			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+			Green "Backup deleted."
 		;;
 	esac
 }
@@ -846,7 +881,6 @@ download_file() {
 } # download_file
 
 update() {
-	# clear
 	scriptinfo
 	echo "Checking for updates"
 	echo ""
@@ -858,31 +892,29 @@ update() {
 	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
 	if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
 		if [ "$version" != "$remotever" ]; then
-			echo " FlexQoS v${remotever} is now available!"
+			Green " $SCRIPTNAME_DISPLAY v${remotever} is now available!"
 		else
-			echo " FlexQoS hotfix is available."
+			Green " $SCRIPTNAME_DISPLAY hotfix is available."
 		fi
 		echo -n " Would you like to update now? [1=Yes 2=No] : "
 		read -r yn
 		echo ""
 		if ! [ "$yn" = "1" ]; then
-			echo " No Changes have been made"
-			echo ""
+			Green " No Changes have been made"
 			return 0
 		fi
 	else
-		echo " You have the latest version installed"
+		Green " You have the latest version installed"
 		echo -n " Would you like to overwrite your existing installation anyway? [1=Yes 2=No] : "
 		read -r yn
 		echo ""
 		if ! [ "$yn" = "1" ]; then
-			echo " No Changes have been made"
-			echo ""
+			Green " No Changes have been made"
 			return 0
 		fi
 	fi
 
-	echo "Installing: FlexQoS v${remotever}"
+	echo "Installing: $SCRIPTNAME_DISPLAY v${remotever}"
 	echo ""
 	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
 	exec sh "$SCRIPTPATH" -install
@@ -890,23 +922,29 @@ update() {
 }
 
 prompt_restart() {
-	if [ -z "$1" ]; then
-		echo ""
-		echo -n "Would you like to restart QoS for modifications to take effect? [1=Yes 2=No]: "
-		read -r yn
-	else
+	unset yn
+	if [ "$1" = "force" ]; then
 		yn="1"
+		needrestart=1
 	fi
-	if [ "$yn" = "1" ]; then
-		if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then
-			echo "Restarting QoS and Firewall..."
-			service "restart_qos;restart_firewall"
+	if [ "$needrestart" = "1" ]; then
+		if [ -z "$yn" ]; then
+			echo ""
+			echo -n "Would you like to restart QoS for modifications to take effect? [1=Yes 2=No]: "
+			read -r yn
 		fi
-		echo ""
-	else
-		echo ""
-		echo "$SCRIPTNAME_FANCY customizations will not take effect until QoS is restarted."
-		echo ""
+		if [ "$yn" = "1" ]; then
+			if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then
+				echo "Restarting QoS and Firewall..."
+				service "restart_qos;restart_firewall"
+			else
+				Red "$SCRIPTNAME_DISPLAY is not installed correctly. Please update or reinstall."
+			fi
+		else
+			echo ""
+			Yellow "$SCRIPTNAME_DISPLAY customizations will not take effect until QoS is restarted."
+		fi
+		unset needrestart
 	fi
 } # prompt_restart
 
@@ -916,7 +954,7 @@ menu() {
 	echo "  (1) about        explain functionality"
 	echo "  (2) update       check for updates "
 	echo "  (3) debug        traffic control parameters"
-	echo "  (4) backup       backup settings"
+	echo "  (4) backup       create settings backup"
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
 		echo "  (5) restore      restore settings from backup"
 		echo "  (6) delete       remove backup"
@@ -939,34 +977,21 @@ menu() {
 			debug
 		;;
 		'4')
-			backup "backup"
+			backup create
 		;;
 		'5')
-			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-				backup "restore"
-			else
-				echo "No backup available"
-			fi
+			backup restore
 		;;
 		'6')
-			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-				backup "remove"
-			else
-				echo "No backup available"
-			fi
+			backup remove
 		;;
 		'7')
-			if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start; then
-				prompt_restart
-			else
-				echo "$SCRIPTNAME_FANCY is not installed correctly. Please update or reinstall."
-			fi
+			needrestart=1
+			prompt_restart
 		;;
 		'u'|'U')
-			# clear
-			echo "FlexQoS v${version} released ${release}"
-			echo ""
-			echo -n " Confirm you want to uninstall FlexQoS [1=Yes 2=No] : "
+			scriptinfo
+			echo -n " Confirm you want to uninstall $SCRIPTNAME_DISPLAY [1=Yes 2=No] : "
 			read -r yn
 			if [ "$yn" = "1" ]; then
 				echo ""
@@ -975,13 +1000,13 @@ menu() {
 				exit
 			fi
 			echo ""
-			echo "FlexQoS has NOT been uninstalled"
+			Yellow "$SCRIPTNAME_DISPLAY has NOT been uninstalled"
 		;;
 		'e'|'E')
 			return
 		;;
 		*)
-			printf "\n%s is not a valid option!\n" "$input"
+			Red "$input is not a valid option!"
 		;;
 	esac
 	PressEnter
@@ -1048,7 +1073,7 @@ install_webui() {
 		[ -f "${ADDON_DIR}/${SCRIPTNAME}_arrays.js" ] && rm "${ADDON_DIR}/${SCRIPTNAME}_arrays.js"
 	fi
 	# Check if the webpage is already mounted in the GUI and reuse that page
-	prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_FANCY}\"\}\,$/\1/p" /tmp/menuTree.js 2>/dev/null)"
+	prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_DISPLAY}\"\}\,$/\1/p" /tmp/menuTree.js 2>/dev/null)"
 	if [ -n "$prev_webui_page" ]; then
 		# use the same filename as before
 		am_webui_page="$prev_webui_page"
@@ -1136,7 +1161,7 @@ Auto_Crontab() {
 } # Auto_Crontab
 
 setup_aliases() {
-	# shortcuts to launching FlexQoS
+	# shortcuts to launching script
 	if [ -d /opt/bin ]; then
 		echo "Adding ${SCRIPTNAME} link in Entware /opt/bin..."
 		ln -sf "$SCRIPTPATH" /opt/bin/${SCRIPTNAME}
@@ -1185,13 +1210,13 @@ Uninstall_FreshJR() {
 Firmware_Check() {
 	echo "Checking firmware support..."
 	if ! nvram get rc_support | grep -q am_addons; then
-		echo "FlexQoS requires ASUSWRT-Merlin Addon API support. Installation aborted."
+		Red "$SCRIPTNAME_DISPLAY requires ASUSWRT-Merlin Addon API support. Installation aborted."
 		echo ""
 		echo "Install FreshJR_QOS via amtm as an alternative for your firmware version."
 		return 1
 	fi
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
-		echo "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
+		Red "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
 		return 1
 	fi # adaptive qos not enabled
 } # Firmware_Check
@@ -1199,7 +1224,7 @@ Firmware_Check() {
 install() {
 	clear
 	scriptinfo
-	echo "Installing FlexQoS..."
+	echo "Installing $SCRIPTNAME_DISPLAY..."
 	if ! Firmware_Check; then
 		PressEnter
 		rm -f "$0" 2>/dev/null
@@ -1219,49 +1244,45 @@ install() {
 	fi
 	install_webui
 	generate_bwdpi_arrays
-	echo "Adding FlexQoS entries to Merlin user scripts..."
+	echo "Adding $SCRIPTNAME_DISPLAY entries to Merlin user scripts..."
 	Auto_FirewallStart
 	Auto_ServiceEventEnd
 	echo "Adding nightly cron job..."
 	Auto_Crontab
 	setup_aliases
-	echo "FlexQoS installation complete!"
+	Green "$SCRIPTNAME_DISPLAY installation complete!"
 
 	scriptinfo
 	webconfigpage
 
 	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -qE "^flexqos_[^(ver )]" /jffs/addons/custom_settings.txt ; then
 		echo ""
-		echo -n "Backup found! Would you like to restore it? [1=Yes 2=No]: "
-		read -r yn
-		if [ "$yn" = "1" ]; then
-			backup restore
-		fi
+		Green "Backup found!"
+		backup restore
 	fi
-	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart
+	[ "$(nvram get qos_enable)" = "1" ] && needrestart=1
 } # install
 
 uninstall() {
 	echo "Removing entries from Merlin user scripts..."
 	sed -i '/FlexQoS/d' /jffs/scripts/firewall-start 2>/dev/null
 	sed -i '/FlexQoS/d' /jffs/scripts/service-event-end 2>/dev/null
+	sed -i '/FlexQoS/d' /jffs/scripts/services-start 2>/dev/null
 	echo "Removing aliases and shortcuts..."
 	sed -i "/${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
-	rm -f /opt/bin/${SCRIPTNAME}
+	rm -f /opt/bin/${SCRIPTNAME} 2>/dev/null
 	echo "Removing cron job..."
 	cru d "$SCRIPTNAME"
 	cru d "${SCRIPTNAME}_5min" 2>/dev/null
 	remove_webui
-	echo "Removing FlexQoS settings..."
-	sed -i "/^${SCRIPTNAME}_/d" /jffs/addons/custom_settings.txt
+	echo "Removing $SCRIPTNAME_DISPLAY settings..."
 	# restore FreshJR_QOS nvram variables if saved during installation
 	if [ -f ${ADDON_DIR}/restore_freshjr_nvram.sh ]; then
 		echo "Restoring FreshJR_QOS nvram settings..."
 		sh ${ADDON_DIR}/restore_freshjr_nvram.sh
 	fi
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		echo -n "Backup found!"
-		echo -n "Would you like to delete it? [1=Yes 2=No]: "
+		echo -n "Backup found! Would you like to delete it? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
 			echo "Deleting Backup..."
@@ -1271,18 +1292,20 @@ uninstall() {
 		echo -n "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
-			echo "Backuping FlexQoS settings..."
-			backup backup
+			echo "Backing up $SCRIPTNAME_DISPLAY settings..."
+			backup create force
 		fi
 	fi
+	sed -i "/^${SCRIPTNAME}_/d" /jffs/addons/custom_settings.txt
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		echo "Deleting FlexQoS folder contents except Backup file..."
+		echo "Deleting $SCRIPTNAME_DISPLAY folder contents except Backup file..."
 		/usr/bin/find ${ADDON_DIR} ! -name restore_${SCRIPTNAME}_settings.sh ! -exec test -d {} \; -a -exec rm {} +
 	else
-		echo "Deleting FlexQoS directory..."
+		echo "Deleting $SCRIPTNAME_DISPLAY directory..."
 		rm -rf "$ADDON_DIR"
 	fi
-	echo "FlexQoS has been uninstalled"
+	Green "$SCRIPTNAME_DISPLAY has been uninstalled"
+	needrestart=1
 } # uninstall
 
 get_config() {
@@ -1355,7 +1378,7 @@ check_qos_tc() {
 
 startup() {
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
-		logmsg "Adaptive QoS is not enabled. Skipping FlexQoS startup."
+		logmsg "Adaptive QoS is not enabled. Skipping $SCRIPTNAME_DISPLAY startup."
 		return 1
 	fi # adaptive qos not enabled
 
@@ -1368,10 +1391,10 @@ startup() {
 		#iptables rules will only be reapplied on firewall "start" due to receiving interface name
 
 		write_iptables_rules
-		iptables_static_rules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
+		iptables_static_rules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logmsg "Applying custom iptables rules"
-			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
+			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		fi
 	fi
 
@@ -1409,7 +1432,7 @@ startup() {
 
 		set_tc_variables 	#needs to be set before parse_tcrule
 		write_appdb_rules
-		appdb_static_rules 2>&1 | logger -t "$SCRIPTNAME_FANCY"		#forwards terminal output & errors to logger
+		appdb_static_rules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"		#forwards terminal output & errors to logger
 
 		if check_qos_tc; then
 			logmsg "Adaptive QoS not fully done setting up prior to modification script"
@@ -1422,7 +1445,7 @@ startup() {
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logmsg "Applying custom AppDB rules and custom rates"
-			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
+			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		fi
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
@@ -1433,9 +1456,8 @@ startup() {
 } # startup
 
 show_help() {
-	# clear
 	scriptinfo
-	echo "You have entered an invalid command"
+	Red "You have entered an invalid command"
 	echo ""
 	echo "Available commands:"
 	echo ""
@@ -1480,7 +1502,7 @@ generate_bwdpi_arrays() {
 PressEnter(){
 	echo ""
 	while true; do
-		echo "Press enter to continue..."
+		echo -n "Press enter to continue..."
 		read -r "key"
 		case "$key" in
 			*)
@@ -1507,8 +1529,6 @@ Check_Lock() {
 	echo "$$" > /tmp/${SCRIPTNAME}.lock
 	lock="true"
 } # Check_Lock
-
-
 
 arg1="$(echo "$1" | sed 's/^-//')"
 if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # FlexQoS" /jffs/scripts/firewall-start; then
@@ -1544,11 +1564,12 @@ case "$arg1" in
 	'disable')		# TURNS OFF SCRIPT BUT KEEP FILES
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/firewall-start  2>/dev/null
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/service-event-end  2>/dev/null
+		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/services-start  2>/dev/null
 		cru d "$SCRIPTNAME"
 		remove_webui
 		;;
 	'backup')
-		backup backup
+		backup create force
 		;;
 	'debug')
 		debug
@@ -1588,4 +1609,5 @@ case "$arg1" in
 		;;
 esac
 
+prompt_restart
 if [ "$lock" = "true" ]; then rm -rf "/tmp/${SCRIPTNAME}.lock"; fi
