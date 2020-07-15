@@ -1068,18 +1068,26 @@ install_webui() {
 	[ ! -d "/www/ext/${SCRIPTNAME}" ] && mkdir -p "/www/ext/${SCRIPTNAME}"
 }
 
+Init_UserScript() {
+	if [ -z "$1" ]; then
+		return
+	fi
+	userscript="/jffs/scripts/$1"
+	if [ ! -f "$userscript" ]; then
+		echo "#!/bin/sh" > "$userscript"
+		echo >> "$userscript"
+	elif [ -f "$userscript" ] && ! head -1 "$userscript" | /bin/grep -qE "^#!/bin/sh"; then
+		sed -i '1s~^~#!/bin/sh\n~' "$userscript"
+	fi
+	if [ ! -x "$userscript" ]; then
+		chmod 755 "$userscript"
+	fi
+} # Init_UserScript
+
 Auto_ServiceEventEnd() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
-	if [ ! -f "/jffs/scripts/service-event-end" ]; then
-			echo "#!/bin/sh" > /jffs/scripts/service-event-end
-			echo >> /jffs/scripts/service-event-end
-	elif [ -f "/jffs/scripts/service-event-end" ] && ! head -1 /jffs/scripts/service-event-end | /bin/grep -qE "^#!/bin/sh"; then
-			sed -i '1s~^~#!/bin/sh\n~' /jffs/scripts/service-event-end
-	fi
-	if [ ! -x "/jffs/scripts/service-event-end" ]; then
-		chmod 755 /jffs/scripts/service-event-end
-	fi
+	Init_UserScript "service-event-end"
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*\{ sh ${SCRIPTPATH}"; then
 		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
@@ -1095,16 +1103,8 @@ Auto_ServiceEventEnd() {
 Auto_FirewallStart() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
-	if [ ! -f "/jffs/scripts/firewall-start" ]; then
-			echo "#!/bin/sh" > /jffs/scripts/firewall-start
-			echo >> /jffs/scripts/firewall-start
-	elif [ -f "/jffs/scripts/firewall-start" ] && ! head -1 /jffs/scripts/firewall-start | /bin/grep -qE "^#!/bin/sh"; then
-			sed -i '1s~^~#!/bin/sh\n~' /jffs/scripts/firewall-start
-	fi
-	if [ ! -x "/jffs/scripts/firewall-start" ]; then
-		chmod 755 /jffs/scripts/firewall-start
-	fi
-	if ! /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -qE "${SCRIPTPATH} -start \$1 & "; then
+	Init_UserScript "firewall-start"
+	if ! /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -qF "${SCRIPTPATH} -start \$1 & "; then
 		cmdline="sh ${SCRIPTPATH} -start \$1 & # FlexQoS Addition"
 		sed -i '\~FlexQoS Addition~d' /jffs/scripts/firewall-start
 		if /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -q "Skynet"; then
@@ -1120,15 +1120,7 @@ Auto_FirewallStart() {
 
 Auto_Crontab() {
 	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -check"
-	if [ ! -f "/jffs/scripts/services-start" ]; then
-			echo "#!/bin/sh" > /jffs/scripts/services-start
-			echo >> /jffs/scripts/services-start
-	elif [ -f "/jffs/scripts/services-start" ] && ! head -1 /jffs/scripts/services-start | /bin/grep -qE "^#!/bin/sh"; then
-			sed -i '1s~^~#!/bin/sh\n~' /jffs/scripts/services-start
-	fi
-	if [ ! -x "/jffs/scripts/services-start" ]; then
-		chmod 755 /jffs/scripts/services-start
-	fi
+	Init_UserScript "services-start"
 	if ! /bin/grep -vE "^#" /jffs/scripts/services-start | /bin/grep -qE "${SCRIPTPATH} -check"; then
 		cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # FlexQoS Addition"
 		sed -i '\~FlexQoS Addition~d' /jffs/scripts/services-start
