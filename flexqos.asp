@@ -941,6 +941,7 @@ function initial() {
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
+	check_bandwidth();
 	/*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
 	if (qos_mode == 0){		//if QoS is invalid
@@ -1841,6 +1842,8 @@ function FlexQoS_mod_reset_down()
 	document.getElementById('dcp5').value=100;
 	document.getElementById('dcp6').value=100;
 	document.getElementById('dcp7').value=100;
+
+	check_bandwidth();
 }
 
 function FlexQoS_mod_reset_up()
@@ -1862,6 +1865,8 @@ function FlexQoS_mod_reset_up()
 	document.getElementById('ucp5').value=100;
 	document.getElementById('ucp6').value=100;
 	document.getElementById('ucp7').value=100;
+
+	check_bandwidth();
 }
 
 function FlexQoS_mod_apply() {
@@ -1968,17 +1973,38 @@ function validate_mark_desc(input)
 	var mark=catdb_mark_array[catdb_label_array.indexOf(input)];
 	if ( mark != undefined)
 		document.form.appdb_mark_x.value=mark;
-	else
+	else {
 		document.form.appdb_mark_x.value="";
 		return false;
+	}
 	return 1;
 }
+
+function check_bandwidth() {
+	var drptot=0;
+	var urptot=0;
+	for (var i=0;i<8;i++) {
+		var drp=eval("document.form.drp"+i);
+		var urp=eval("document.form.urp"+i);
+		drptot += parseInt(drp.value);
+		urptot += parseInt(urp.value);
+	}
+	if ( drptot > 100 )
+		document.getElementById('qos_drates_warn').style.display = "";
+	else
+		document.getElementById('qos_drates_warn').style.display = "none";
+	if ( urptot > 100 )
+		document.getElementById('qos_urates_warn').style.display = "";
+	else
+		document.getElementById('qos_urates_warn').style.display = "none";
+} // check_bandwidth
 
 function validate_percent(input)
 {
 	if (!(input)) 						return false;	//cannot be blank
 	if ( /[^0-9]/.test(input) )			return false;	//console.log("fail character");
 	if ( input < 5 || input > 100) 		return false;	//console.log("fail range");
+	check_bandwidth();
 	return 1
 }
 
@@ -2143,7 +2169,7 @@ function autocomplete(inp, arr) {
 	<tr>
 		<td width="auto">
 			<div class="autocomplete">
-				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" onfocusout='validate_mark_desc(this.value)' autocomplete="off" autocorrect="off" autocapitalize="off">
+				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" onfocusout='validate_mark_desc(this.value)' autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type to search application names...">
 			</div>
 		</td>
 		<td width="10%">
@@ -2209,6 +2235,9 @@ function autocomplete(inp, arr) {
 			<td><input id="drp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_6_table" style="margin-left:0px; height:18px;"  maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
 			<td><input id="dcp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_6_table" style="margin-left:0px; height:18px;"  maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
 		</tr>
+		<tr id="qos_drates_warn" style="display:none;">
+			<td colspan="3"><div style="color:#FFCC00;text-align: center;">The total Minimum Reserved Bandwidth exceeds 100%!</div></td>
+		</tr>
 	</tbody>
 </table>
 
@@ -2259,6 +2288,9 @@ function autocomplete(inp, arr) {
 			<th>File Downloads</th>
 			<td><input id="urp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_6_table" style="margin-left:0px; height:18px;"  maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
 			<td><input id="ucp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_6_table" style="margin-left:0px; height:18px;"  maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
+		</tr>
+		<tr id="qos_urates_warn" style="display:none;">
+			<td colspan="3"><div style="color:#FFCC00;text-align: center;">The total Minimum Reserved Bandwidth exceeds 100%!</div></td>
 		</tr>
 	</tbody>
 </table>
