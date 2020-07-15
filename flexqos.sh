@@ -100,21 +100,25 @@ logmsg() {
 	logger -t "$SCRIPTNAME_DISPLAY" "$*"
 } # logmsg
 
-Red() {
-	printf -- '\033[1;31m%s\033[0m\n' "$1"
-}
-
-Green() {
-	printf -- '\033[1;32m%s\033[0m\n' "$1"
-}
-
-Blue() {
-	printf -- '\033[1;36m%s\033[0m\n' "$1"
-}
-
-Yellow() {
-	printf -- '\033[1;33m%s\033[0m\n' "$1"
-}
+echocolor() {
+	case $1 in
+		'red')
+			printf -- '\033[1;31m%s\033[0m\n' "$2"
+		;;
+		'green')
+			printf -- '\033[1;32m%s\033[0m\n' "$2"
+		;;
+		'blue')
+			printf -- '\033[1;36m%s\033[0m\n' "$2"
+		;;
+		'yellow')
+			printf -- '\033[1;36m%s\033[0m\n' "$2"
+		;;
+		*)
+			printf -- "$2\n"
+		;;
+	esac
+} #echo with colors
 
 iptables_static_rules() {
 	echo "Applying iptables static rules"
@@ -396,15 +400,15 @@ webconfigpage() {
 
 	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
 		echo "Advanced configuration available via:"
-		Blue "  ${urlproto}://${urldomain}${urlport}/${urlpage}"
+		echocolor "blue" "  ${urlproto}://${urldomain}${urlport}/${urlpage}"
 	fi
 } # webconfigpage
 
 scriptinfo() {
 	echo ""
-	Green "$SCRIPTNAME_DISPLAY v${version} released ${release}"
+	echocolor "green" "$SCRIPTNAME_DISPLAY v${version} released ${release}"
 	if [ "$GIT_BRANCH" != "master" ]; then
-		Yellow " Development channel"
+		echocolor "yellow" " Development channel"
 	fi
 	echo ""
 } # scriptinfo
@@ -635,7 +639,7 @@ parse_iptablerule() {
 		UP_Rip=""
 	fi
 
-	#protocol (required for port rules)
+	#protocol (requiechocolor "red" for port rules)
 	if [ "$3" = 'tcp' ] || [ "$3" = 'udp' ]; then		#if tcp/udp
 		PROTO="-p ${3}"
 	else
@@ -787,8 +791,8 @@ about() {
 	echo "  https://opensource.org/licenses/GPL-3.0"
 	echo ""
 	echo "For discussion visit this thread:"
-	Blue "  https://www.snbforums.com/threads/64882/"
-	Blue "  https://github.com/dave14305/FlexQoS (Source Code)"
+	echocolor "blue" "  https://www.snbforums.com/threads/64882/"
+	echocolor "blue" "  https://github.com/dave14305/FlexQoS (Source Code)"
 	echo ""
 	echo "About"
 	echo "  Script Changes Unidentified traffic destination away from Defaults into Others"
@@ -824,7 +828,7 @@ backup() {
 				echo -n "A backup already exists. Do you want to overwrite this backup? [1=Yes 2=No] "
 				read -r yn
 				if [ "$yn" != "1" ]; then
-					Yellow "Backup cancelled."
+					echocolor "yellow" "Backup cancelled."
 					return
 				fi
 			fi
@@ -837,27 +841,27 @@ backup() {
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
 				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\""
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-			Green "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+			echocolor "green" "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		;;
 		'restore')
 			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-				Yellow "$(grep "# Backup date" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh")"
+				echocolor "yellow" "$(grep "# Backup date" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh")"
 				echo -n "Do you want to restore this backup? [1=Yes 2=No] "
 				read -r yn
 				if [ "$yn" = "1" ]; then
 					sh "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-					Green "Backup restored!"
+					echocolor "green" "Backup restored!"
 					needrestart=1
 				else
-					Yellow "Restore cancelled."
+					echocolor "yellow" "Restore cancelled."
 				fi
 			else
-				Red "No backup file exists!"
+				echocolor "red" "No backup file exists!"
 			fi
 		;;
 		'remove')
 			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-			Green "Backup deleted."
+			echocolor "green" "Backup deleted."
 		;;
 	esac
 }
@@ -902,24 +906,24 @@ update() {
 	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
 	if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
 		if [ "$version" != "$remotever" ]; then
-			Green " $SCRIPTNAME_DISPLAY v${remotever} is now available!"
+			echocolor "green" " $SCRIPTNAME_DISPLAY v${remotever} is now available!"
 		else
-			Green " $SCRIPTNAME_DISPLAY hotfix is available."
+			echocolor "green" " $SCRIPTNAME_DISPLAY hotfix is available."
 		fi
 		echo -n " Would you like to update now? [1=Yes 2=No] : "
 		read -r yn
 		echo ""
 		if ! [ "$yn" = "1" ]; then
-			Green " No Changes have been made"
+			echocolor "green" " No Changes have been made"
 			return 0
 		fi
 	else
-		Green " You have the latest version installed"
+		echocolor "green" " You have the latest version installed"
 		echo -n " Would you like to overwrite your existing installation anyway? [1=Yes 2=No] : "
 		read -r yn
 		echo ""
 		if ! [ "$yn" = "1" ]; then
-			Green " No Changes have been made"
+			echocolor "green" " No Changes have been made"
 			return 0
 		fi
 	fi
@@ -948,11 +952,11 @@ prompt_restart() {
 				echo "Restarting QoS and Firewall..."
 				service "restart_qos;restart_firewall"
 			else
-				Red "$SCRIPTNAME_DISPLAY is not installed correctly. Please update or reinstall."
+				echocolor "red" "$SCRIPTNAME_DISPLAY is not installed correctly. Please update or reinstall."
 			fi
 		else
 			echo ""
-			Yellow "$SCRIPTNAME_DISPLAY customizations will not take effect until QoS is restarted."
+			echocolor "yellow" "$SCRIPTNAME_DISPLAY customizations will not take effect until QoS is restarted."
 		fi
 		unset needrestart
 	fi
@@ -1011,13 +1015,13 @@ menu() {
 				exit
 			fi
 			echo ""
-			Yellow "$SCRIPTNAME_DISPLAY has NOT been uninstalled"
+			echocolor "yellow" "$SCRIPTNAME_DISPLAY has NOT been uninstalled"
 		;;
 		'e'|'E')
 			return
 		;;
 		*)
-			Red "$input is not a valid option!"
+			echocolor "red" "$input is not a valid option!"
 		;;
 	esac
 	PressEnter
@@ -1192,27 +1196,27 @@ Uninstall_FreshJR() {
 	echo "Removing old FreshJR_QOS files. Reinstall with amtm if necessary."
 	# Remove profile aliases
 	echo -n "Removing profile aliases..."
-	sed -i '/FreshJR_QOS/d' /jffs/configs/profile.add 2>/dev/null && Green "Done." || Red "Failed!"
+	sed -i '/FreshJR_QOS/d' /jffs/configs/profile.add 2>/dev/null && echocolor "green" "Done." || echocolor "red" "Failed!"
 	# Remove cron
 	echo -n "Removing cron job..."
-	cru d FreshJR_QOS 2>/dev/null && Green "Done." || Red "Failed!"
+	cru d FreshJR_QOS 2>/dev/null && echocolor "green" "Done." || echocolor "red" "Failed!"
 	# Remove mount
 	if mount | /bin/grep -q QoS_Stats.asp; then
 		echo -n "Removing old webui mount..."
-		umount /www/QoS_Stats.asp 2>/dev/null && Green "Done." || Red "Failed!"
+		umount /www/QoS_Stats.asp 2>/dev/null && echocolor "green" "Done." || echocolor "red" "Failed!"
 	fi
 	# Remove entries from scripts
 	echo -n "Removing firewall-start entry..."
-	sed -i '/FreshJR_QOS/d' /jffs/scripts/firewall-start 2>/dev/null && Green "Done." || Red "Failed!"
+	sed -i '/FreshJR_QOS/d' /jffs/scripts/firewall-start 2>/dev/null && echocolor "green" "Done." || echocolor "red" "Failed!"
 	# Remove script file
 	if [ -f /jffs/scripts/FreshJR_QOS ]; then
 		echo -n "Removing FreshJR_QOS script..."
-		rm -f /jffs/scripts/FreshJR_QOS 2>/dev/null && Green "Done." || Red "Failed!"
+		rm -f /jffs/scripts/FreshJR_QOS 2>/dev/null && echocolor "green" "Done." || echocolor "red" "Failed!"
 	fi
 	# Remove asp file
 	if [ -f /jffs/scripts/www_FreshJR_QoS_Stats.asp ]; then
 		echo -n "Removing FreshJR_QOS webpage..."
-		rm -f /jffs/scripts/www_FreshJR_QoS_Stats.asp 2>/dev/null && Green "Done." || Red "Failed!"
+		rm -f /jffs/scripts/www_FreshJR_QoS_Stats.asp 2>/dev/null && echocolor "green" "Done." || echocolor "red" "Failed!"
 	fi
 	# leave NVRAM var for now, or convert to settings?
 	convert_nvram
@@ -1221,13 +1225,13 @@ Uninstall_FreshJR() {
 Firmware_Check() {
 	echo "Checking firmware support..."
 	if ! nvram get rc_support | grep -q am_addons; then
-		Red "$SCRIPTNAME_DISPLAY requires ASUSWRT-Merlin Addon API support. Installation aborted."
+		echocolor "red" "$SCRIPTNAME_DISPLAY requires ASUSWRT-Merlin Addon API support. Installation aborted."
 		echo ""
 		echo "Install FreshJR_QOS via amtm as an alternative for your firmware version."
 		return 1
 	fi
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
-		Red "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
+		echocolor "red" "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
 		return 1
 	fi # adaptive qos not enabled
 } # Firmware_Check
@@ -1261,14 +1265,14 @@ install() {
 	echo "Adding nightly cron job..."
 	Auto_Crontab
 	setup_aliases
-	Green "$SCRIPTNAME_DISPLAY installation complete!"
+	echocolor "green" "$SCRIPTNAME_DISPLAY installation complete!"
 
 	scriptinfo
 	webconfigpage
 
 	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -qE "^flexqos_[^(ver )]" /jffs/addons/custom_settings.txt ; then
 		echo ""
-		Green "Backup found!"
+		echocolor "green" "Backup found!"
 		backup restore
 	fi
 	[ "$(nvram get qos_enable)" = "1" ] && needrestart=1
@@ -1315,7 +1319,7 @@ uninstall() {
 		echo "Deleting $SCRIPTNAME_DISPLAY directory..."
 		rm -rf "$ADDON_DIR"
 	fi
-	Green "$SCRIPTNAME_DISPLAY has been uninstalled"
+	echocolor "green" "$SCRIPTNAME_DISPLAY has been uninstalled"
 	needrestart=1
 } # uninstall
 
@@ -1468,7 +1472,7 @@ startup() {
 
 show_help() {
 	scriptinfo
-	Red "You have entered an invalid command"
+	echocolor "red" "You have enteechocolor "red" an invalid command"
 	echo ""
 	echo "Available commands:"
 	echo ""
@@ -1554,12 +1558,12 @@ fi
 
 case "$arg1" in
 	'start')
-		# triggered from firewall-start with wan iface passed
+		# triggeechocolor "red" from firewall-start with wan iface passed
 		logmsg "$0 (pid=$$) called with $# args: $*"
 		startup "$2"
 		;;
 	'check')
-		# triggered from cron or service-event-end without wan iface
+		# triggeechocolor "red" from cron or service-event-end without wan iface
 		logmsg "$0 (pid=$$) called with $# args: $*"
 		startup
 		;;
