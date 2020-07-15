@@ -83,6 +83,13 @@ Streaming_mark_up="0x40040001"
 Downloads_mark_up="0x40030001"
 Default_mark_up="0x403f0001"
 
+logmsg() {
+	if [ "$#" = "0" ]; then
+		return
+	fi
+	logger -t "$SCRIPTNAME_FANCY" "$*"
+} # logmsg
+
 iptables_static_rules() {
 	echo "Applying iptables static rules"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
@@ -829,12 +836,12 @@ check_connection() {
 download_file() {
 	if [ "$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" | md5sum | awk '{print $1}')" != "$(md5sum "$2" 2>/dev/null | awk '{print $1}')" ]; then
 		if curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" -o "$2"; then
-			logger -t "FlexQoS" "Updated $(echo "$1" | awk -F / '{print $NF}')"
+			logmsg "Updated $(echo "$1" | awk -F / '{print $NF}')"
 		else
-			logger -t "FlexQoS" "Updating $(echo "$1" | awk -F / '{print $NF}') failed"
+			logmsg "Updating $(echo "$1" | awk -F / '{print $NF}') failed"
 		fi
 	else
-		logger -t "FlexQoS" "File $(echo "$2" | awk -F / '{print $NF}') is already up-to-date"
+		logmsg "File $(echo "$2" | awk -F / '{print $NF}') is already up-to-date"
 	fi
 } # download_file
 
@@ -1050,7 +1057,7 @@ install_webui() {
 		am_get_webui_page "$WEBUIPATH"
 	fi
 	if [ "$am_webui_page" = "none" ]; then
-		logger -t "FlexQoS" "No API slots available to install web page"
+		logmsg "No API slots available to install web page"
 	else
 		# only copy file if it's newer than the existing file
 		cp -pu "$WEBUIPATH" /www/user/"$am_webui_page"
@@ -1348,7 +1355,7 @@ check_qos_tc() {
 
 startup() {
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
-		logger -t "FlexQoS" "Adaptive QoS is not enabled. Skipping FlexQoS startup."
+		logmsg "Adaptive QoS is not enabled. Skipping FlexQoS startup."
 		return 1
 	fi # adaptive qos not enabled
 
@@ -1361,10 +1368,10 @@ startup() {
 		#iptables rules will only be reapplied on firewall "start" due to receiving interface name
 
 		write_iptables_rules
-		iptables_static_rules 2>&1 | logger -t "FlexQoS"
+		iptables_static_rules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
-			logger -t "FlexQoS" "Applying custom iptables rules"
-			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "FlexQoS"
+			logmsg "Applying custom iptables rules"
+			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
 		fi
 	fi
 
@@ -1372,16 +1379,16 @@ startup() {
 	sleepdelay=0
 	while check_qos_tc;
 	do
-		[ "$sleepdelay" = "0" ] && logger -t "FlexQoS" "TC Modification Delayed Start"
+		[ "$sleepdelay" = "0" ] && logmsg "TC Modification Delayed Start"
 		sleep 10s
 		if [ "$sleepdelay" -ge "300" ]; then
-			logger -t "FlexQoS" "TC Modification Delay reached maximum 300 seconds"
+			logmsg "TC Modification Delay reached maximum 300 seconds"
 			break
 		else
 			sleepdelay=$((sleepdelay+10))
 		fi
 	done
-	[ "$sleepdelay" -gt "0" ] && logger -t "FlexQoS" "TC Modification delayed for $sleepdelay seconds"
+	[ "$sleepdelay" -gt "0" ] && logmsg "TC Modification delayed for $sleepdelay seconds"
 
 	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
 	if [ -n "$current_undf_rule" ]; then
@@ -1397,16 +1404,16 @@ startup() {
 	if [ "$undf_flowid" = "1:17" ] || [ -z "$undf_flowid" ]; then
 		if [ -z "$1" ]; then
 			# check action was called without a WAN interface passed
-			logger -t "FlexQoS" "Scheduled Persistence Check -> Reapplying Changes"
+			logmsg "Scheduled Persistence Check -> Reapplying Changes"
 		fi # check
 
 		set_tc_variables 	#needs to be set before parse_tcrule
 		write_appdb_rules
-		appdb_static_rules 2>&1 | logger -t "FlexQoS"		#forwards terminal output & errors to logger
+		appdb_static_rules 2>&1 | logger -t "$SCRIPTNAME_FANCY"		#forwards terminal output & errors to logger
 
 		if check_qos_tc; then
-			logger -t "FlexQoS" "Adaptive QoS not fully done setting up prior to modification script"
-			logger -t "FlexQoS" "(Skipping class modification, delay trigger time period needs increase)"
+			logmsg "Adaptive QoS not fully done setting up prior to modification script"
+			logmsg "(Skipping class modification, delay trigger time period needs increase)"
 		else
 			if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
 				write_custom_rates
@@ -1414,14 +1421,14 @@ startup() {
 		fi # Classes less than 8
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
-			logger -t "FlexQoS" "Applying custom AppDB rules and custom rates"
-			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "FlexQoS"
+			logmsg "Applying custom AppDB rules and custom rates"
+			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_FANCY"
 		fi
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
 		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH check"
 	else # 1:17
-		logger -t "FlexQoS" "No TC modifications necessary"
+		logmsg "No TC modifications necessary"
 	fi # 1:17
 } # startup
 
@@ -1486,8 +1493,8 @@ PressEnter(){
 
 Kill_Lock() {
 	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" ]; then
-		logger -t "$SCRIPTNAME" "[*] Killing Delayed Process (pid=$(sed -n '1p' /tmp/${SCRIPTNAME}.lock))"
-		logger -t "$SCRIPTNAME" "[*] $(ps | awk -v pid="$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" '$1 == pid')"
+		logmsg "[*] Killing Delayed Process (pid=$(sed -n '1p' /tmp/${SCRIPTNAME}.lock))"
+		logmsg "[*] $(ps | awk -v pid="$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" '$1 == pid')"
 		kill "$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)"
 	fi
 	rm -rf /tmp/${SCRIPTNAME}.lock
@@ -1517,12 +1524,12 @@ fi
 case "$arg1" in
 	'start')
 		# triggered from firewall-start with wan iface passed
-		logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
+		logmsg "$0 (pid=$$) called with $# args: $*"
 		startup "$2"
 		;;
 	'check')
 		# triggered from cron or service-event-end without wan iface
-		logger -t "FlexQoS" "$0 (pid=$$) called with $# args: $*"
+		logmsg "$0 (pid=$$) called with $# args: $*"
 		startup
 		;;
 	'appdb')
