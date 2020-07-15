@@ -1186,7 +1186,9 @@ Uninstall_FreshJR() {
 Firmware_Check() {
 	echo "Checking firmware support..."
 	if ! nvram get rc_support | grep -q am_addons; then
-		echo "FlexQoS requires ASUSWRT-Merlin Addon API support. Installation aborted"
+		echo "FlexQoS requires ASUSWRT-Merlin Addon API support. Installation aborted."
+		echo ""
+		echo "Install FreshJR_QOS via amtm as an alternative for your firmware version."
 		return 1
 	fi
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
