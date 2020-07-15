@@ -639,7 +639,7 @@ parse_iptablerule() {
 		UP_Rip=""
 	fi
 
-	#protocol (requiechocolor "red" for port rules)
+	#protocol (required for port rules)
 	if [ "$3" = 'tcp' ] || [ "$3" = 'udp' ]; then		#if tcp/udp
 		PROTO="-p ${3}"
 	else
@@ -1558,12 +1558,12 @@ fi
 
 case "$arg1" in
 	'start')
-		# triggeechocolor "red" from firewall-start with wan iface passed
+		# triggered from firewall-start with wan iface passed
 		logmsg "$0 (pid=$$) called with $# args: $*"
 		startup "$2"
 		;;
 	'check')
-		# triggeechocolor "red" from cron or service-event-end without wan iface
+		# triggered from cron or service-event-end without wan iface
 		logmsg "$0 (pid=$$) called with $# args: $*"
 		startup
 		;;
