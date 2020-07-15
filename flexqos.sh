@@ -890,10 +890,8 @@ download_file() {
 	fi
 } # download_file
 
-update() {
-	scriptinfo
-	echo "Checking for updates"
-	echo ""
+checkupdates() {
+	# $1 = show info message (true/false)
 	url="${GIT_URL}/${SCRIPTNAME}.sh"
 	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
 	localmd5="$(md5sum "$0" | awk '{print $1}')"
@@ -902,10 +900,23 @@ update() {
 	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
 	if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
 		if [ "$version" != "$remotever" ]; then
-			Green " $SCRIPTNAME_DISPLAY v${remotever} is now available!"
+			[ "$1" = "true" ] && echo -e "\033[5m\e[91m  $SCRIPTNAME_DISPLAY v${remotever} is now available!\033[0m"
+			return 0
 		else
-			Green " $SCRIPTNAME_DISPLAY hotfix is available."
+			[ "$1" = "true" ] && echo -e "\033[5m\e[91m  $SCRIPTNAME_DISPLAY hotfix is available.\033[0m"
+			return 0
 		fi
+	else
+		return 1
+	fi
+} #check for updates
+
+update() {
+	if [ "$1" = "true" ]; then
+		echo "Checking for updates..."
+		echo ""
+	fi
+	if checkupdates $1; then
 		echo -n " Would you like to update now? [1=Yes 2=No] : "
 		read -r yn
 		echo ""
@@ -972,6 +983,7 @@ menu() {
 	fi
 	echo "  (7) restart      restart QoS and firewall"
 	echo ""
+	show="true" && checkupdates $show && show="false" && echo "  Use option (2) to update" && echo ""
 	echo "  (u) uninstall    uninstall script"
 	echo "  (e) exit"
 	echo ""
@@ -982,7 +994,7 @@ menu() {
 			about
 		;;
 		'2')
-			update
+			update "$show"
 		;;
 		'3')
 			debug
@@ -1589,7 +1601,7 @@ case "$arg1" in
 		about
 		;;
 	'update')
-		update
+		update "true"
 		;;
 	'menu'|'')
 		menu
@@ -1600,7 +1612,7 @@ case "$arg1" in
 		else
 			am_settings_set "${SCRIPTNAME}_branch" "develop"
 			echo "Set to development branch. Triggering update..."
-			exec "$0" update
+			exec "$0" update "true"
 		fi
 		;;
 	'stable')
@@ -1609,7 +1621,7 @@ case "$arg1" in
 		else
 			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
 			echo "Set to stable branch. Triggering update..."
-			exec "$0" update
+			exec "$0" update "true"
 		fi
 		;;
 	'restart')
