@@ -1192,27 +1192,27 @@ Uninstall_FreshJR() {
 	echo "Removing old FreshJR_QOS files. Reinstall with amtm if necessary."
 	# Remove profile aliases
 	echo -n "Removing profile aliases..."
-	sed -i '/FreshJR_QOS/d' /jffs/configs/profile.add 2>/dev/null && echo "Done." || echo "Failed!"
+	sed -i '/FreshJR_QOS/d' /jffs/configs/profile.add 2>/dev/null && Green "Done." || Red "Failed!"
 	# Remove cron
 	echo -n "Removing cron job..."
-	cru d FreshJR_QOS 2>/dev/null && echo "Done." || echo "Failed!"
+	cru d FreshJR_QOS 2>/dev/null && Green "Done." || Red "Failed!"
 	# Remove mount
 	if mount | /bin/grep -q QoS_Stats.asp; then
 		echo -n "Removing old webui mount..."
-		umount /www/QoS_Stats.asp 2>/dev/null && echo "Done." || echo "Failed!"
+		umount /www/QoS_Stats.asp 2>/dev/null && Green "Done." || Red "Failed!"
 	fi
 	# Remove entries from scripts
 	echo -n "Removing firewall-start entry..."
-	sed -i '/FreshJR_QOS/d' /jffs/scripts/firewall-start 2>/dev/null && echo "Done." || echo "Failed!"
+	sed -i '/FreshJR_QOS/d' /jffs/scripts/firewall-start 2>/dev/null && Green "Done." || Red "Failed!"
 	# Remove script file
 	if [ -f /jffs/scripts/FreshJR_QOS ]; then
 		echo -n "Removing FreshJR_QOS script..."
-		rm -f /jffs/scripts/FreshJR_QOS 2>/dev/null && echo "Done." || echo "Failed!"
+		rm -f /jffs/scripts/FreshJR_QOS 2>/dev/null && Green "Done." || Red "Failed!"
 	fi
 	# Remove asp file
 	if [ -f /jffs/scripts/www_FreshJR_QoS_Stats.asp ]; then
 		echo -n "Removing FreshJR_QOS webpage..."
-		rm -f /jffs/scripts/www_FreshJR_QoS_Stats.asp 2>/dev/null && echo "Done." || echo "Failed!"
+		rm -f /jffs/scripts/www_FreshJR_QoS_Stats.asp 2>/dev/null && Green "Done." || Red "Failed!"
 	fi
 	# leave NVRAM var for now, or convert to settings?
 	convert_nvram
