@@ -1472,7 +1472,7 @@ startup() {
 
 show_help() {
 	scriptinfo
-	sayc r "You have entesayc r an invalid command"
+	sayc r "You have entered an invalid command"
 	echo ""
 	echo "Available commands:"
 	echo ""
