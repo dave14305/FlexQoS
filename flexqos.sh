@@ -115,7 +115,7 @@ sayc() {
 			printf -- '\033[1;33m%s\033[0m\n' "$2"
 		;;
 		*)
-			printf -- "$2\n"
+			[ -n "$2" ] && printf -- "$2\n" || printf -- "$1\n"
 		;;
 	esac
 } #echo with colors
