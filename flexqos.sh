@@ -959,7 +959,7 @@ prompt_restart() {
 
 menu() {
 	clear
-	sed -n '2,11p' "$0"
+	sed -n '2,10p' "$0"
 	scriptinfo
 	echo "  (1) about        explain functionality"
 	echo "  (2) update       check for updates "
