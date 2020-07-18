@@ -965,12 +965,12 @@ menu() {
 	echo "  (1) about        explain functionality"
 	echo "  (2) update       check for updates "
 	echo "  (3) debug        traffic control parameters"
-	echo "  (4) backup       create settings backup"
+	echo "  (4) restart      restart QoS and firewall"
+	echo "  (5) backup       create settings backup"
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		echo "  (5) restore      restore settings from backup"
-		echo "  (6) delete       remove backup"
+		echo "  (6) restore      restore settings from backup"
+		echo "  (7) delete       remove backup"
 	fi
-	echo "  (7) restart      restart QoS and firewall"
 	echo ""
 	echo "  (u) uninstall    uninstall script"
 	echo "  (e) exit"
@@ -988,18 +988,19 @@ menu() {
 			debug
 		;;
 		'4')
-			backup create
-		;;
-		'5')
-			backup restore
-		;;
-		'6')
-			backup remove
-		;;
-		'7')
 			needrestart=1
 			prompt_restart
 		;;
+		'5')
+			backup create
+		;;
+		'6')
+			backup restore
+		;;
+		'7')
+			backup remove
+		;;
+
 		'u'|'U')
 			scriptinfo
 			echo -n " Confirm you want to uninstall $SCRIPTNAME_DISPLAY [1=Yes 2=No] : "
@@ -1013,7 +1014,7 @@ menu() {
 			echo ""
 			Yellow "$SCRIPTNAME_DISPLAY has NOT been uninstalled"
 		;;
-		'e'|'E')
+		'e'|'E'|'exit')
 			return
 		;;
 		*)
