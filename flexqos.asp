@@ -942,7 +942,6 @@ function initial() {
 	show_iptables_rules();
 	show_appdb_rules();
 	check_bandwidth();
-	/*initiate the autocomplete function on the "myInput" element, and pass along the countries array as possible autocomplete values:*/
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
 	if (qos_mode == 0){		//if QoS is invalid
 		document.getElementById('filter_device').style.display = "none";
@@ -1966,13 +1965,61 @@ function validate_mark(input)
 	return 1;
 }
 
+function get_cat_class(category) {
+	var appdb_class=0;
+	switch (category) {
+		case  9:
+		case 18:
+		case 19:
+		case 20:
+			appdb_class=0;
+			break;
+		case  0:
+		case  5:
+		case  6:
+		case 15:
+		case 17:
+			appdb_class=3;
+			break;
+		case  8:
+			appdb_class=1;
+			break;
+		case  7:
+		case 10:
+		case 11:
+		case 21:
+		case 23:
+			appdb_class=6;
+			break;
+		case 13:
+		case 24:
+			appdb_class=4;
+			break;
+		case  4:
+			appdb_class=2;
+			break;
+		case  1:
+		case  3:
+		case 14:
+			appdb_class=5;
+			break;
+		default:
+			appdb_class=0;
+			break;
+	}
+	return appdb_class;
+} // get_cat_class
+
 function validate_mark_desc(input)
 {
 	if (!(input))		return 1;		//is blank
 
 	var mark=catdb_mark_array[catdb_label_array.indexOf(input)];
-	if ( mark != undefined)
+	if ( mark != undefined) {
+		var cat=parseInt(mark.substr(0,2),16);
 		document.form.appdb_mark_x.value=mark;
+		document.form.appdb_class_x.value=get_cat_class(cat);
+	}
 	else {
 		document.form.appdb_mark_x.value="";
 		return false;
@@ -2169,7 +2216,7 @@ function autocomplete(inp, arr) {
 	<tr>
 		<td width="auto">
 			<div class="autocomplete">
-				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" onfocusout='validate_mark_desc(this.value)' autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type to search application names...">
+				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type to search application names...">
 			</div>
 		</td>
 		<td width="10%">
