@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v0.9.5 released 2020-07-24
+FlexQoS v0.9.6 released 2020-07-24
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -1435,6 +1435,8 @@ function addAppDBRow(obj, head){
 function validAppDBForm(){
 	if(!Block_chars(document.form.appdb_mark_x, ["<" ,">"]))
 		return false;
+	if(!validate_mark_desc(document.form.appdb_desc_x.value))
+		return false;
 	if(document.form.appdb_mark_x.value.length != 6)
 		return false;
 	return true;
@@ -1957,8 +1959,10 @@ function validate_mark(input)
 		if ( /[^0-9a-fA-F]/.test(input) )		return false;	//console.log("fail character");
 	}
 	var mark_desc=catdb_label_array[catdb_mark_array.indexOf(input.toUpperCase())];
-	if ( mark_desc != undefined)
+	if ( mark_desc != undefined) {
 		document.form.appdb_desc_x.value=mark_desc;
+		document.getElementById("appdb_search_x").style.removeProperty("background-color");
+	}
 	else
 		document.form.appdb_desc_x.value="Unknown Mark";
 	document.form.appdb_mark_x.value=input.toUpperCase();
@@ -2019,6 +2023,7 @@ function validate_mark_desc(input)
 		var cat=parseInt(mark.substr(0,2),16);
 		document.form.appdb_mark_x.value=mark;
 		document.form.appdb_class_x.value=get_cat_class(cat);
+		document.getElementById("appdb_search_x").style.removeProperty("background-color");
 	}
 	else {
 		document.form.appdb_mark_x.value="";
@@ -2216,7 +2221,7 @@ function autocomplete(inp, arr) {
 	<tr>
 		<td width="auto">
 			<div class="autocomplete">
-				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type to search application names...">
+				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" onfocusout='validate_mark_desc(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type to search application names...">
 			</div>
 		</td>
 		<td width="10%">

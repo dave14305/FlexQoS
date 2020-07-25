@@ -11,7 +11,7 @@
 ##################################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=0.9.5
+version=0.9.6
 release=2020-07-24
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
