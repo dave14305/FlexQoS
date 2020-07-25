@@ -783,7 +783,7 @@ about() {
 	scriptinfo
 	echo "License"
 	echo "  $SCRIPTNAME_DISPLAY is free to use under the GNU General Public License, version 3 (GPL-3.0)."
-	echo "  https://opensource.org/licenses/GPL-3.0"
+	Blue "  https://opensource.org/licenses/GPL-3.0"
 	echo ""
 	echo "For discussion visit this thread:"
 	Blue "  https://www.snbforums.com/threads/64882/"
@@ -806,13 +806,12 @@ about() {
 	echo "   (Apple AppStore)-  Moved into Downloads"
 	echo "   (Advertisement) -  Moved into Downloads"
 	echo "   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted"
-	echo "   (VPN Fix)       -  Router VPN Client download traffic moved into Downloads instead of showing up in Uploads"
 	echo "   (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into Gaming"
 	echo ""
-	echo "Gaming Rule Note"
+	Red  "Gaming Rule Note"
 	echo "  Gaming traffic originating from ports 80 & 443 is primarily downloads & patches (some lobby/login protocols mixed within)"
 	echo "  Manually configurable rule will take untracked traffic for specified devices, not originating from server ports 80/443, and place it into Gaming"
-	echo "  Use of this gaming rule REQUIRES devices to have a continous static ip assignment && this range needs to be passed into the script"
+	echo "  Use of this gaming rule REQUIRES devices to have a continous static ip assignment & this range needs to be passed into the script"
 }
 
 backup() {
