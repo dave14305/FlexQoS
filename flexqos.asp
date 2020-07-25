@@ -474,6 +474,9 @@ tableRuleValidation = {
 			if(_newRuleArray[0] == "" && _newRuleArray[1] == "" && _newRuleArray[3] == "" && _newRuleArray[4] == "" && _newRuleArray[5] == "") {
 				return "Define at least one criterion for this rule!";
 			}
+			if(_newRuleArray[0] == "" && _newRuleArray[1] == "" && _newRuleArray[3] == "" && _newRuleArray[4] == "" && _newRuleArray[5] != "") {
+				return "Create an AppDB rule instead or define additional criteria!";
+			}
 			return HINTPASS;
 		}
 	}
