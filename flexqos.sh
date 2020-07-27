@@ -1392,7 +1392,7 @@ startup() {
 		write_iptables_rules
 		iptables_static_rules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
-			logmsg "Applying custom iptables rules"
+			logmsg "Applying iptables custom rules"
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		fi
 	fi
@@ -1443,7 +1443,7 @@ startup() {
 		fi # Classes less than 8
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
-			logmsg "Applying custom AppDB rules and custom rates"
+			logmsg "Applying AppDB custom rules and TC rates"
 			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		fi
 
