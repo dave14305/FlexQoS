@@ -1365,7 +1365,7 @@ function draw_chart(data_array, ctx, pie) {
 			code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
 			code += '<td style="padding-left:5px;">' + value.toFixed(2) + unit + '</td>';
 			rate = rate2kbs(data_array[i][2])
-			code += '<td style="padding-left:5px; text-align:right;">' + rate + ' kB/s</td>';
+			code += '<td style="padding-left:5px; text-align:right;">' + rate + ' kbps</td>';
 			rate = comma(data_array[i][3]);
 			code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
 		}
@@ -1399,15 +1399,15 @@ function rate2kbs(rate)
 	{
 		if (rate.includes("Mbit"))
 		{
-			return ( comma(parseInt(rate.replace(/[^0-9]/g,"")*1024/8)));
+			return ( comma(parseInt(rate.replace(/[^0-9]/g,"")*1000)));
 		}
 		else if (rate.includes("Kbit"))
 		{
-			return  ( comma(parseInt(rate.replace(/[^0-9]/g,"")/8)) );
+			return  ( comma(parseInt(rate.replace(/[^0-9]/g,""))) );
 		}
 		else if (rate.includes("bit"))
 		{
-			return ( comma(parseInt(rate.replace(/[^0-9]/g,"")/1024/8)) )
+			return ( comma(parseInt(rate.replace(/[^0-9]/g,"")/1000)) )
 		}
 	}
 
