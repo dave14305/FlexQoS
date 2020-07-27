@@ -134,8 +134,8 @@ iptables_static_rules() {
 
 appdb_static_rules() {
 	echo "Applying AppDB static rules"
-	${tc} filter add dev br0 protocol all prio 10 u32 match mark ${Default_mark_down} 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_down functionality
-	${tc} filter add dev "$tcwan" protocol all prio 10 u32 match mark ${Default_mark_up} 0xc03fffff flowid "$Defaults"		#Used for iptables Default_mark_up functionality
+	${tc} filter add dev br0 protocol all prio 10 u32 match mark ${Default_mark_down} 0xc03fffff flowid "$Defaults"		#Used to establish unique Game Downloads filter
+	${tc} filter add dev "$tcwan" protocol all prio 10 u32 match mark ${Default_mark_up} 0xc03fffff flowid "$Defaults"		#Used to establish unique Game Downloads filter
 } # appdb_static_rules
 
 write_custom_rates() {
@@ -194,7 +194,12 @@ write_custom_rates() {
 
 set_tc_variables(){
 
-	tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \(eth[0-9]\) root.*/\1/p')"
+	if [ -s "/tmp/bwdpi/dev_wan" ]; then
+		tcwan="$(cat /tmp/bwdpi/dev_wan)"
+	fi
+	if [ -z "$tcwan" ]; then
+		tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \(eth[0-9]\) root.*/\1/p')"
+	fi
 	if [ -z "$tcwan" ]; then
 		tcwan="eth0"
 	fi
@@ -424,7 +429,7 @@ debug(){
 		undf_flowid="$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2)"
 		undf_prio="$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2)"
 	else
-		undf_flowid=""
+		undf_flowid="n/a"
 		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc03f0000" -B1 | head -1 | /bin/grep -o "pref.*" | cut -d" " -f2)"
 		undf_prio="$((undf_prio-1))"
 	fi
@@ -859,22 +864,6 @@ backup() {
 		;;
 	esac
 }
-
-check_connection() {
-	livecheck="0"
-	while [ "$livecheck" != "2" ]; do
-		if ping -q -w3 -c1 raw.githubusercontent.com >/dev/null 2>&1; then
-			break
-		else
-			livecheck="$((livecheck + 1))"
-			if [ "$livecheck" != "2" ]; then
-				sleep 3
-			else
-				return "1"
-			fi
-		fi
-	done
-} # check_connection
 
 download_file() {
 	if [ "$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" | md5sum | awk '{print $1}')" != "$(md5sum "$2" 2>/dev/null | awk '{print $1}')" ]; then
@@ -1434,7 +1423,7 @@ startup() {
 	fi
 
 	# if TC modifcations have not been applied then run modification script
-	if [ "$undf_flowid" = "1:17" ] || [ -z "$undf_flowid" ]; then
+	if [ "$(${tc} filter show dev br0 | /bin/grep -ic "$Default_mark_down")" -lt "1" ]; then
 		if [ -z "$1" ]; then
 			# check action was called without a WAN interface passed
 			logmsg "Scheduled Persistence Check -> Reapplying Changes"
