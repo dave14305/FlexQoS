@@ -1827,6 +1827,17 @@ function FlexQoS_reset_appdb() {
 	show_appdb_rules();
 } // FlexQoS_reset_appdb
 
+function FlexQoS_reset_filter() {
+	document.getElementById('protfilter').value="";
+	document.getElementById('devicefilter').value="";
+	document.getElementById('lportfilter').value="";
+	document.getElementById('ripfilter').value="";
+	document.getElementById('rportfilter').value="";
+	document.getElementById('appfilter').value="";
+	for (var i=0;i<6;i++) filter[i]="";
+	draw_conntrack_table();
+} // FlexQoS_reset_filter
+
 function FlexQoS_mod_reset_down()
 {
 	document.getElementById('drp0').value=5;
@@ -2392,7 +2403,7 @@ function autocomplete(inp, arr) {
 <br>
 <!-- FlexQoS Connection Table Start-->
 
-<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections</td></tr></thead>
+<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_reset_filter()'>Reset</small></td></tr></thead>
 	<tr>
 		<th width="5%">Proto</th>
 		<th width="28%">Local IP</th>
@@ -2402,7 +2413,7 @@ function autocomplete(inp, arr) {
 		<th width="27%">Application</th>
 	</tr>
 	<tr>
-		<td><select class="input_option" onchange="set_filter(0, this);">
+		<td><select id="protfilter" class="input_option" onchange="set_filter(0, this);">
 			<option value="">any</option>
 			<option value="tcp">tcp</option>
 			<option value="udp">udp</option>
@@ -2411,10 +2422,10 @@ function autocomplete(inp, arr) {
 				<option value=""> </option>
 			</select>
 		</td>
-		<td><input type="text" class="input_6_table" maxlength="5" oninput="set_filter(2, this);"></input></td>
-		<td><input type="text" class="input_18_table" maxlength="39" oninput="set_filter(3, this);"></input></td>
-		<td><input type="text" class="input_6_table" maxlength="5" oninput="set_filter(4, this);"></input></td>
-		<td><input type="text" class="input_18_table" maxlength="48" oninput="set_filter(5, this);"></input></td>
+		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="5" oninput="set_filter(2, this);"></input></td>
+		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="39" oninput="set_filter(3, this);"></input></td>
+		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="5" oninput="set_filter(4, this);"></input></td>
+		<td><input id="appfilter" type="text" class="input_18_table" maxlength="48" oninput="set_filter(5, this);"></input></td>
 	</tr>
 </table>
 <table cellpadding="4" class="FormTable_table" id="tracked_connections">
