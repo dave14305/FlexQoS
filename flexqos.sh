@@ -1394,7 +1394,10 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logmsg "Applying iptables custom rules"
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
-			/usr/sbin/conntrack -F conntrack
+			if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" = "1" ]; then
+				# Flush conntrack table so that existing connections will be processed by new iptables rules
+				/usr/sbin/conntrack -F conntrack
+			fi
 		fi
 	fi
 
@@ -1603,6 +1606,14 @@ case "$arg1" in
 		;;
 	'restart')
 		prompt_restart force
+		;;
+	'flushct')
+		am_settings_set "${SCRIPTNAME}_conntrack" "1"
+		echo "Enabled conntrack flushing."
+		;;
+	'noflushct')
+		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
+		echo "Disabled conntrack flushing."
 		;;
 	*)
 		show_help
