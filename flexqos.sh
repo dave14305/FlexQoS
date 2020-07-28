@@ -1394,6 +1394,7 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logmsg "Applying iptables custom rules"
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
+			/usr/sbin/conntrack -F conntrack
 		fi
 	fi
 
