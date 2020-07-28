@@ -2036,7 +2036,7 @@ function validate_mark_desc(input)
 	if ( mark != undefined) {
 		var cat=parseInt(mark.substr(0,2),16);
 		document.form.appdb_mark_x.value=mark;
-		document.form.appdb_class_x.value=get_cat_class(cat);
+		//document.form.appdb_class_x.value=get_cat_class(cat);
 		document.getElementById("appdb_search_x").style.removeProperty("background-color");
 	}
 	else {
