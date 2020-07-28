@@ -134,14 +134,6 @@ var appdb_temp_array=[];
 var appdb_rulelist_array="";
 var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
-var gameCIDR;		// CIDR/IP of game devices
-//Syntax Hints
-var ipsyntaxL = '<b>Syntax:</b> <p>&emsp;&nbsp;192.168.X.XXX</p> <p>&emsp;!192.168.X.XXX</p> <p>&nbsp;</p> <p>&emsp;&nbsp;192.168.X.XXX/CIDR</p> <p>&emsp;!192.168.X.XXX/CIDR</p>';
-var ipsyntaxR = '<b>Syntax:</b> <p>&emsp;&nbsp;75.75.75.75</p> <p>&emsp;!75.75.75.75</p> <p>&nbsp;</p> <p>&emsp;&nbsp;75.75.75.75/CIDR</p> <p>&emsp;!75.75.75.75/CIDR</p>';
-var protosyntax = '<b>Protocol</b> <p>&nbsp;&nbsp;TCP OR UDP</p> <p>&nbsp;</p> <b>Note:</b> <p>Conditional Evaluation</p> <p>(only with port rules)</p>' ;
-var portsyntax = '<b>Syntax:</b> <p>&emsp;&nbsp;XXX</p> <p>&emsp;!XXX</p> <p>&nbsp;</p> <p>&emsp;&nbsp;XXXX:YYYY</p> <p>&emsp;!XXXX:YYYY</p> <p>&nbsp;</p> <p>&emsp;&nbsp;XXX,YYY,ZZZ</p> <p>&emsp;!XXX,YYY,ZZZ</p>';
-var marksyntax = '<b>Syntax:</b> <p>&nbsp;&nbsp;XXYYYY</p> <p>&nbsp;</p> <p><b>Note:</b></p> <p>XX&nbsp;&nbsp;&nbsp; - Cat (hex)</p> <p>YYYY - ID &nbsp;(hex or ****)</p> ';
-var classsyntax = '<b>Class:</b> <p>&nbsp;&nbsp;Traffic Destination</p>';
 
 var qos_type = "<% nvram_get("qos_type"); %>";
 if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
@@ -500,10 +492,13 @@ if (qos_mode == 2) {
 		[1, 3, 14],
 		[7, 10, 11, 21, 23]
 	];
-	if ( bwdpi_app_rulelist.indexOf("4,13<") < 0 )
+	if ( bwdpi_app_rulelist_row.indexOf("4,13") < 0 ) {
 		cat_id_array.push([]);
-	else
+		var qos_default=7;
+	} else {
 		cat_id_array.push([4, 13]);
+		var qos_default=bwdpi_app_rulelist_row.indexOf("0,5,6,15,17");
+	}
 
 	var flexqos_newmarks = [
 		[9, 1],   // 0 Net Control mark
@@ -965,7 +960,7 @@ function initial() {
 function get_qos_class(category, appid) {
 	var i, j, catlist, rules;
 	if ((category == 0 && appid == 0) || (qos_mode != 2))
-		return 7;
+		return qos_default;
 	for (i = 0; i < bwdpi_app_rulelist_row.length - 2; i++) {
 		rules = bwdpi_app_rulelist_row[i];
 		if (i == 0)
@@ -1714,7 +1709,7 @@ function set_FlexQoS_mod_vars()
 					iptables_rulelist_array += iptables_temp_rule;
 				}
 				if (FreshJR_nvram[8]) {
-					gameCIDR=FreshJR_nvram[8].toString();
+					var gameCIDR=FreshJR_nvram[8].toString();
 					if (gameCIDR.length > 1)
 						iptables_rulelist_array = "<"+gameCIDR+">>both>>!80,443>000000>1" + iptables_rulelist_array;
 					FreshJR_nvram = "";
