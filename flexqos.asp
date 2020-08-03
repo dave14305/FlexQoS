@@ -156,6 +156,8 @@ var appdb_temp_array=[];
 var appdb_rulelist_array="";
 var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
+var qos_dlbw = "<% nvram_get("qos_ibw"); %>";		// download bandwidth set in QoS settings
+var qos_ulbw = "<% nvram_get("qos_obw"); %>";		// upload bandwidth set in QoS settings
 var qos_ceil = [5, 10, 15, 20, 30, 50, 20, 10];		// array for calculated ceiling per class (placeholder values for now)
 
 var qos_type = "<% nvram_get("qos_type"); %>";
@@ -1386,9 +1388,12 @@ function draw_chart(data_array, ctx, pie) {
 			code += '<td style="text-align:right;padding-left:5px;">' + rate + ' kb</td>';
 			//rate = comma(data_array[i][3]);
 			//code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
-			// calculate rate divided by ceiling
-			rate = qos_ceil[i];  // placeholder, not calculated yet
-			code += '<td class="loading_bar"><div><div id="rx_bar" class="status_bar" style="width:' + rate + '%;background-color:' + color[i] + '"></div></div></td>';
+			if (pie == "dl")
+				rate_max = qos_dlbw;
+			else
+				rate_max = qos_ulbw;
+			rate = rate.replace(",", "");
+			code += '<td class="loading_bar"><div><div id="rx_bar" class="status_bar" style="width:' + Math.round((rate/rate_max)*100) + '%;background-color:' + color[i] + '"></div></div></td>';
 		}
 	}
 	code += '</table>';
