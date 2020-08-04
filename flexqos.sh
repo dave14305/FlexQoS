@@ -1083,8 +1083,7 @@ install_webui() {
 	if [ "$am_webui_page" = "none" ]; then
 		logmsg "No API slots available to install web page"
 	else
-		# only copy file if it's newer than the existing file
-		cp -pu "$WEBUIPATH" /www/user/"$am_webui_page"
+		cp -p "$WEBUIPATH" /www/user/"$am_webui_page"
 		if [ ! -f /tmp/menuTree.js ]; then
 			cp /www/require/modules/menuTree.js /tmp/
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
