@@ -116,7 +116,7 @@ background-color: #2F3A3E !important;
 }
 
 .loading_bar{
-	width:100px;
+	width:150px;
 }
 .loading_bar > div{
 	margin-left:5px;
@@ -158,7 +158,6 @@ var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
 var qos_dlbw = "<% nvram_get("qos_ibw"); %>";		// download bandwidth set in QoS settings
 var qos_ulbw = "<% nvram_get("qos_obw"); %>";		// upload bandwidth set in QoS settings
-var qos_ceil = [5, 10, 15, 20, 30, 50, 20, 10];		// array for calculated ceiling per class (placeholder values for now)
 
 var qos_type = "<% nvram_get("qos_type"); %>";
 if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
@@ -1343,7 +1342,7 @@ function get_data() {
 }
 
 function draw_chart(data_array, ctx, pie) {
-	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px; width:76px;">Total</th><th style="text-align:right;padding-left:30px;">Rate</th><th style="text-align:center;">Class Util</th></tr></thead>';
+	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">Bandwidth Util</th></tr></thead>';
 	var values_array = [];
 	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
@@ -1385,15 +1384,15 @@ function draw_chart(data_array, ctx, pie) {
 			code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
 			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td>';
 			rate = rate2kbs(data_array[i][2]);
-			code += '<td style="text-align:right;padding-left:5px;">' + rate + ' kb</td>';
+			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + rate + ' kb</td>';
 			//rate = comma(data_array[i][3]);
 			//code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
 			if (pie == "dl")
-				rate_max = qos_dlbw;
+				var rate_max = qos_dlbw;
 			else
-				rate_max = qos_ulbw;
-			rate = rate.replace(",", "");
-			code += '<td class="loading_bar"><div><div id="rx_bar" class="status_bar" style="width:' + Math.round((rate/rate_max)*100) + '%;background-color:' + color[i] + '"></div></div></td>';
+				var rate_max = qos_ulbw;
+			var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
+			code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max + ' kb/s"><div><div id="rx_bar" class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
 		}
 	}
 	code += '</table>';
