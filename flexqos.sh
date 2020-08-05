@@ -1395,6 +1395,7 @@ startup() {
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 			if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" = "1" ]; then
 				# Flush conntrack table so that existing connections will be processed by new iptables rules
+				logmsg "Flushing conntrack table"
 				/usr/sbin/conntrack -F conntrack
 			fi
 		fi
