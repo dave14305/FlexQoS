@@ -17,7 +17,7 @@ release=2020-08-08
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
 # Script Changes HTTPS traffic destination away from "Net Control" into "Web Surfing"
 # Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download.
-#Script includes misc hardcoded rules
+# Script includes other default rules:
 #   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into VOIP
 #   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into VOIP
 #   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads
@@ -28,7 +28,6 @@ release=2020-08-08
 #   (Apple AppStore)-  Moved into Downloads
 #   (Advertisement) -  Moved into Downloads
 #   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted
-#   (VPN Fix)       -  Router VPN Client download traffic moved into Downloads instead of showing up in Uploads
 #   (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into "Gaming"
 #
 #  Gaming traffic originating from ports 80 & 443 is primarily downloads & patches (some lobby/login protocols mixed within)
@@ -38,10 +37,6 @@ release=2020-08-08
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
 #  https://opensource.org/licenses/GPL-3.0
 
-# shellcheck source=/dev/null
-# shellcheck disable=SC2054
-# shellcheck disable=SC2039
-# shellcheck disable=SC1090
 # initialize Merlin Addon API helper functions
 . /usr/sbin/helper.sh
 
@@ -1454,9 +1449,9 @@ startup() {
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
 		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
-	else # 1:17
+	else # Game Downloads filter already setup
 		logmsg "No TC modifications necessary"
-	fi # 1:17
+	fi # Game Downloads filter check
 } # startup
 
 show_help() {
@@ -1571,6 +1566,7 @@ case "$arg1" in
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/services-start  2>/dev/null
 		cru d "$SCRIPTNAME"
 		remove_webui
+		prompt_restart force
 		;;
 	'backup')
 		backup create force
