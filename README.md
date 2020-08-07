@@ -29,6 +29,12 @@ In your SSH Client:
 
 ``` /usr/sbin/curl "https://raw.githubusercontent.com/dave14305/FlexQoS/master/flexqos.sh" -o /jffs/addons/flexqos/flexqos.sh --create-dirs && chmod +x /jffs/addons/flexqos/flexqos.sh && sh /jffs/addons/flexqos/flexqos.sh -install ```
 
+If you are migrating from FreshJR_QOS, your existing rules will be converted to the new FlexQoS format, and a backup of your FreshJR_QOS settings will be saved in /jffs/addons/flexqos/restore_freshjr_nvram.sh.
+
+If you are reinstalling FlexQoS and a previous backup file is found at /jffs/addons/flexqos/restore_flexqos_settings.sh you will be prompted to restore the previous settings.
+
+After installation, you will be prompted to restart QoS to enable the FlexQoS features.
+
 ## Basic Usage
 
 The FlexQoS tab is located next to the original Classification tab in the Adaptive QoS section of the router GUI.
@@ -242,9 +248,7 @@ The menu system allows access to functions not yet available in the WebUI:
 
 The About option (1) displays version information and help text related to the script.
 
-Command Line equivalent:
-
-``` flexqos about ```
+Command Line equivalent: ``` flexqos about ```
 
 #### Update
 
@@ -256,9 +260,7 @@ In both cases you will be given the chance to accept or defer the update.
 
 When updating the script, you will be prompted to restart QoS to ensure the latest changes take effect in your router. If you defer this restart, you can invoke the QoS restart later using menu option 4 or the command line function ``` flexqos restart ```
 
-Command Line equivalent:
-
-``` flexqos update ```
+Command Line equivalent: ``` flexqos update ```
 
 #### Debug
 
@@ -266,17 +268,13 @@ The Debug option (3) generates useful information about your QoS setup to share 
 
 If you edit or redact any sensitive information in the debug output (e.g. if one of your rules includes your employer's IP address range), please note the change when posting the output to prevent confusion.
 
-Command Line equivalent:
-
-``` flexqos debug ```
+Command Line equivalent: ``` flexqos debug ```
 
 #### Restart
 
 The Restart option (4) restarts QoS and the router's firewall. The same can be achieved by clicking Apply in the FlexQoS WebUI. This command does not reboot the router.
 
-Command Line equivalent:
-
-``` flexqos restart ```
+Command Line equivalent: ``` flexqos restart ```
 
 #### Backup
 
@@ -284,9 +282,7 @@ The Backup option (5) creates a backup of your FlexQoS custom settings under /jf
 
 If a previous backup already exists, you will be shown the date of the existing backup and prompted to overwrite it.
 
-Command Line equivalent:
-
-``` flexqos backup ```
+Command Line equivalent: ``` flexqos backup ```
 
 #### Restore
 
@@ -306,9 +302,7 @@ If you migrated from FreshJR_QOS to FlexQoS, the uninstaller will restore your F
 
 After uninstalling, you will be prompted to restart QoS to undo the FlexQoS customizations and revert to stock Adaptive QoS settings. No reboots are forced during uninstall.
 
-Command Line equivalent:
-
-``` flexqos uninstall ```
+Command Line equivalent: ``` flexqos uninstall ```
 
 ### Command Line functions
 
