@@ -952,6 +952,7 @@ flushct() {
 		        echo "Disabled conntrack flushing."
 		        ;;
          esac
+}
 menu() {
 	clear
 	sed -n '2,10p' "$0"
@@ -1005,6 +1006,7 @@ menu() {
                         else
                                 flushct on
                         fi
+                ;;
 		'u'|'U')
 			scriptinfo
 			echo -n " Confirm you want to uninstall $SCRIPTNAME_DISPLAY [1=Yes 2=No] : "
@@ -1494,8 +1496,8 @@ show_help() {
 	echo "  ${SCRIPTNAME} -develop            switch to development channel"
 	echo "  ${SCRIPTNAME} -stable             switch to stable channel"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
-        echo "  ${SCRIPTNAME} -flushct            enable conntract flush"
-        echo "  ${SCRIPTNAME} -noflushct          disable conntrack flush"
+	echo "  ${SCRIPTNAME} -flushct            enable conntract flush"
+	echo "  ${SCRIPTNAME} -noflushct          disable conntrack flush"
 	echo ""
 	webconfigpage
 } # show_help
