@@ -941,6 +941,17 @@ prompt_restart() {
 	fi
 } # prompt_restart
 
+flushct() {
+        case "$1" in
+                'on')
+		        am_settings_set "${SCRIPTNAME}_conntrack" "1"
+		        echo "Enabled conntrack flushing."
+		        ;;
+	        'off')
+		        sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
+		        echo "Disabled conntrack flushing."
+		        ;;
+         esac
 menu() {
 	clear
 	sed -n '2,10p' "$0"
@@ -955,6 +966,11 @@ menu() {
 		echo "  (7) delete       remove backup"
 	fi
 	echo ""
+        if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" = "1" ]; then
+                echo "  (c) disableCT     disable conntrack flush"
+        else
+                echo "  (c) enableCT      enable conntract flush"
+        fi
 	echo "  (u) uninstall    uninstall script"
 	echo "  (e) exit"
 	echo ""
@@ -983,7 +999,12 @@ menu() {
 		'7')
 			backup remove
 		;;
-
+                'c')
+                        if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" = "1" ]; then
+                                flushct off
+                        else
+                                flushct on
+                        fi
 		'u'|'U')
 			scriptinfo
 			echo -n " Confirm you want to uninstall $SCRIPTNAME_DISPLAY [1=Yes 2=No] : "
@@ -1473,6 +1494,8 @@ show_help() {
 	echo "  ${SCRIPTNAME} -develop            switch to development channel"
 	echo "  ${SCRIPTNAME} -stable             switch to stable channel"
 	echo "  ${SCRIPTNAME} -menu               interactive main menu"
+        echo "  ${SCRIPTNAME} -flushct            enable conntract flush"
+        echo "  ${SCRIPTNAME} -noflushct          disable conntrack flush"
 	echo ""
 	webconfigpage
 } # show_help
@@ -1605,12 +1628,10 @@ case "$arg1" in
 		prompt_restart force
 		;;
 	'flushct')
-		am_settings_set "${SCRIPTNAME}_conntrack" "1"
-		echo "Enabled conntrack flushing."
+		flushct on
 		;;
 	'noflushct')
-		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
-		echo "Disabled conntrack flushing."
+		flushct off
 		;;
 	*)
 		show_help
