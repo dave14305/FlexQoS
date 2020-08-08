@@ -355,6 +355,16 @@ When switching from one branch to another, an update check is immediately invoke
 
 When you are running the develop branch, the FlexQoS CLI menu headings will indicate "Development channel", and the WebUI will indicate "Dev" next to the version number.
 
+#### flushct / noflushct
+
+``` flexqos flushct ```
+
+``` flexqos noflushct ```
+
+To force all existing connections to be re-evaluated by new iptables rules when applying FlexQoS changes, enable the experimental, advanced setting to reset the conntrack table after restarting FlexQoS. The flushct command enables the reset, and noflushct disables the reset.
+
+This may be useful for users with IOT devices or cameras that establish connections before QoS and the firewall starts up during boot or any other restart activity.
+
 ## Support
 
 See <a href="https://www.snbforums.com/threads/64882/" rel="nofollow">SmallNetBuilder Forums</a> for more information & discussion
