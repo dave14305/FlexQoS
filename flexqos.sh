@@ -17,7 +17,7 @@ release=2020-08-08
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
 # Script Changes HTTPS traffic destination away from "Net Control" into "Web Surfing"
 # Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download.
-#Script includes misc hardcoded rules
+# Script includes other default rules:
 #   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into VOIP
 #   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into VOIP
 #   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads
@@ -28,7 +28,6 @@ release=2020-08-08
 #   (Apple AppStore)-  Moved into Downloads
 #   (Advertisement) -  Moved into Downloads
 #   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted
-#   (VPN Fix)       -  Router VPN Client download traffic moved into Downloads instead of showing up in Uploads
 #   (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into "Gaming"
 #
 #  Gaming traffic originating from ports 80 & 443 is primarily downloads & patches (some lobby/login protocols mixed within)
@@ -38,10 +37,6 @@ release=2020-08-08
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
 #  https://opensource.org/licenses/GPL-3.0
 
-# shellcheck source=/dev/null
-# shellcheck disable=SC2054
-# shellcheck disable=SC2039
-# shellcheck disable=SC1090
 # initialize Merlin Addon API helper functions
 . /usr/sbin/helper.sh
 
@@ -441,33 +436,34 @@ debug(){
 	echo "Down Band: $DownCeil"
 	echo "Up Band  : $UpCeil"
 	echo "***********"
-	echo "Net Control = $Net"
-	echo "Work-From-Home = $VOIP"
-	echo "Gaming = $Gaming"
-	echo "Others = $Others"
-	echo "Web Surfing = $Web"
-	echo "Streaming = $Streaming"
-	echo "Downloads = $Downloads"
-	echo "Defaults = $Defaults"
+	echo "Net Control: $Net"
+	echo "Work-From-Home: $VOIP"
+	echo "Gaming: $Gaming"
+	echo "Others: $Others"
+	echo "Web Surfing: $Web"
+	echo "Streaming: $Streaming"
+	echo "File Downloads: $Downloads"
+	echo "Game Downloads: $Defaults"
 	echo "***********"
-	echo "Downrates -- $DownRate0, $DownRate1, $DownRate2, $DownRate3, $DownRate4, $DownRate5, $DownRate6, $DownRate7"
-	echo "Downceils -- $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
-	echo "Downbursts -- $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
-	echo "DownCbursts -- $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
-	echo "DownQuantums -- $DownQuantum0, $DownQuantum1, $DownQuantum2, $DownQuantum3, $DownQuantum4, $DownQuantum5, $DownQuantum6, $DownQuantum7"
+	echo "Downrates: $DownRate0, $DownRate1, $DownRate2, $DownRate3, $DownRate4, $DownRate5, $DownRate6, $DownRate7"
+	echo "Downceils: $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
+	echo "Downbursts: $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
+	echo "DownCbursts: $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
+	echo "DownQuantums: $DownQuantum0, $DownQuantum1, $DownQuantum2, $DownQuantum3, $DownQuantum4, $DownQuantum5, $DownQuantum6, $DownQuantum7"
 	echo "***********"
-	echo "Uprates -- $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
-	echo "Upceils -- $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
-	echo "Upbursts -- $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
-	echo "UpCbursts -- $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
-	echo "UpQuantums -- $UpQuantum0, $UpQuantum1, $UpQuantum2, $UpQuantum3, $UpQuantum4, $UpQuantum5, $UpQuantum6, $UpQuantum7"
+	echo "Uprates: $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
+	echo "Upceils: $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
+	echo "Upbursts: $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
+	echo "UpCbursts: $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
+	echo "UpQuantums: $UpQuantum0, $UpQuantum1, $UpQuantum2, $UpQuantum3, $UpQuantum4, $UpQuantum5, $UpQuantum6, $UpQuantum7"
+	echo "***********"
 	echo "iptables settings: $(am_settings_get flexqos_iptables)"
 	write_iptables_rules
-	cat /tmp/${SCRIPTNAME}_iprules
+	/bin/sed -E '/^iptables -D POSTROUTING/d; s/iptables -A POSTROUTING -t mangle //g; s/[[:space:]]{2,}/ /g' /tmp/${SCRIPTNAME}_iprules
+	echo "***********"
 	echo "appdb rules: $(am_settings_get flexqos_appdb)"
 	write_appdb_rules
-	write_custom_rates
-	cat /tmp/${SCRIPTNAME}_tcrules
+	/bin/sed -E 's/^realtc //g;' /tmp/${SCRIPTNAME}_tcrules
 	echo "[/CODE][/SPOILER]"
 } # debug
 
@@ -1453,9 +1449,9 @@ startup() {
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
 		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
-	else # 1:17
+	else # Game Downloads filter already setup
 		logmsg "No TC modifications necessary"
-	fi # 1:17
+	fi # Game Downloads filter check
 } # startup
 
 show_help() {
@@ -1570,6 +1566,7 @@ case "$arg1" in
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/services-start  2>/dev/null
 		cru d "$SCRIPTNAME"
 		remove_webui
+		prompt_restart force
 		;;
 	'backup')
 		backup create force

@@ -9,10 +9,6 @@ This script has been tested on ASUS RT-AC68U, running ASUSWRT-Merlin 384.18, usi
 -- Script allows for multiple custom QoS rules using iptables rules
 -- Script allows for redirection of existing identified traffic using AppDB rules
 
-## Full Overview:
-
-See <a href="https://www.snbforums.com/threads/64882/" rel="nofollow">SmallNetBuilder Forums</a> for more information & discussion
-
 ## Adaptive QoS Setup
 
 1. Enable Adaptive QoS in the router's GUI.
@@ -32,6 +28,12 @@ FlexQoS requires ASUSWRT-Merlin version 384.18 or higher.
 In your SSH Client:
 
 ``` /usr/sbin/curl "https://raw.githubusercontent.com/dave14305/FlexQoS/master/flexqos.sh" -o /jffs/addons/flexqos/flexqos.sh --create-dirs && chmod +x /jffs/addons/flexqos/flexqos.sh && sh /jffs/addons/flexqos/flexqos.sh -install ```
+
+If you are migrating from FreshJR_QOS, your existing rules will be converted to the new FlexQoS format, and a backup of your FreshJR_QOS settings will be saved in ```/jffs/addons/flexqos/restore_freshjr_nvram.sh```.
+
+If you are reinstalling FlexQoS and a previous backup file is found at ```/jffs/addons/flexqos/restore_flexqos_settings.sh``` you will be prompted to restore the previous settings.
+
+After installation, you will be prompted to restart QoS to enable the FlexQoS features.
 
 ## Basic Usage
 
@@ -82,7 +84,7 @@ To change the Class that a specific connection is assigned by Adaptive QoS, you 
 
 Through trial and error you will study the Tracked connections table for the specific connections you want to change, looking for combinations that will uniquely isolate your connections. This is where the Filtered connections can be useful to test.
 
-To add a rule, click the plus icon next to the iptables Rules ( Max Limit : 24 ) heading.
+To add a rule, click the ![plus](https://raw.githubusercontent.com/RMerl/asuswrt-merlin.ng/mainline/release/src/router/www/images/New_ui/accountadd.png) icon next to the iptables Rules ( Max Limit : 24 ) heading.
 
 In the Create New Policy pop-up window, you will enter the data you gathered in your testing. Example placeholder text is displayed in each field as a guide.
 
@@ -100,7 +102,7 @@ Click OK to add your rule. Rules are not saved and do not take effect until afte
 
 All iptables rules need at least an IP or port specification. A rule with only a Mark specified is better suited as an AppDB rule and will be rejected in the iptables Rules section.
 
-To delete a rule, click the Delete icon to the right of the rule.
+To delete a rule, click the ![Delete](https://raw.githubusercontent.com/RMerl/asuswrt-merlin.ng/mainline/release/src/router/www/images/New_ui/accountdelete.png) icon to the right of the rule.
 
 To edit an existing rule, click on any field within the row to toggle in-cell editing. Make the necessary changes and then click outside the area of the table to save your changes. The same shortcuts and validations apply to in-cell editing as when adding a rule via the add button.
 
@@ -136,6 +138,8 @@ If you wish to create the Gaming rule from scratch, add a rule with these parame
 - Remote Port: !80,443 (note the exclamation point to invert, i.e. NOT port 80 and NOT port 443)  
 - Mark: 000000  
 - Class: Gaming  
+
+iptables rules that do not specify any IPv4 local or remote IP addresses will also apply to IPv6 traffic. IPv6 addresses are not permitted in any rule.
 
 #### AppDB Redirection Rules
 
@@ -214,10 +218,159 @@ FlexQoS relies solely on the Merlin Addon API custom settings repository, so it 
 
 ## Command Line
 
-*Coming soon*
+<!--- FlexQoS is now included in amtm as the successor to FreshJR_QOS, courtesy of @decoderman. Check option 3 in amtm to install FlexQoS or invoke the command line menu system.--->
 
-## Uninstall:
+Advanced users can invoke the CLI menu with either:
 
-In your SSH Client:
+#### Fully qualified path with menu parameter:
+``` /jffs/addons/flexqos/flexqos.sh -menu ```
 
-``` /jffs/addons/flexqos/flexqos.sh -uninstall ```
+#### Fully qualified path without parameters:
+``` /jffs/addons/flexqos/flexqos.sh ```
+
+#### Entware shortcut or shell alias:
+``` flexqos -menu ```
+
+``` flexqos ```
+
+### Menu
+
+The menu system allows access to functions not yet available in the WebUI:
+
+1. About
+2. Update
+3. Debug
+4. Restart
+5. Backup
+6. Restore (backup)
+7. Delete (backup)
+8. Uninstall
+
+#### About
+
+The About option (1) displays version information and help text related to the script.
+
+Command Line equivalent: ``` flexqos about ```
+
+#### Update
+
+The Update option (2) checks for FlexQoS updates on GitHub and offers to update your installed version to the latest version.
+
+If an update includes a change in version number, it will be indicated in the update message. If there is no change in version, but a different version is available on GitHub, it will be described as a "hotfix".
+
+In both cases you will be given the chance to accept or defer the update.
+
+When updating the script, you will be prompted to restart QoS to ensure the latest changes take effect in your router. If you defer this restart, you can invoke the QoS restart later using menu option 4 or the command line function ``` flexqos restart ```
+
+Command Line equivalent: ``` flexqos update ```
+
+#### Debug
+
+The Debug option (3) generates useful information about your QoS setup to share with the developer and other users to help troubleshoot any issues you may be having with the script or your custom rules.  The debug output includes snbforum.com SPOILER and CODE tags to allow clean copy and paste into a forum post. Please include both the beginning and ending tags. The debug output may be long and you may have to scroll up in your terminal window to capture the beginning of the output.
+
+If you edit or redact any sensitive information in the debug output (e.g. if one of your rules includes your employer's IP address range), please note the change when posting the output to prevent confusion.
+
+Command Line equivalent: ``` flexqos debug ```
+
+#### Restart
+
+The Restart option (4) restarts QoS and the router's firewall. The same can be achieved by clicking Apply in the FlexQoS WebUI. This command does not reboot the router.
+
+Command Line equivalent: ``` flexqos restart ```
+
+#### Backup
+
+The Backup option (5) creates a backup of your FlexQoS custom settings under ```/jffs/addons/flexqos/restore_flexqos_settings.sh```. It is a good idea to copy this file to an alternate location or perform regular JFFS backups since the original settings and the backup both reside in JFFS.
+
+If a previous backup already exists, you will be shown the date of the existing backup and prompted to overwrite it.
+
+Command Line equivalent: ``` flexqos backup ```
+
+#### Restore
+
+The Restore option (6) is only shown if an existing backup file is detected at ```/jffs/addons/flexqos/restore_flexqos_settings.sh```. When you select Restore, the date of the backup file is shown and you are prompted to restore the backup.
+
+When restoring a backup, you will be prompted to restart QoS when exiting the menu, to allow the restored settings to take effect. If you do not restart QoS after the restore, you may see inconsistent behavior in the FlexQoS WebUI because it is reading the restored settings, but they have not been applied yet.
+
+#### Delete
+
+The Delete option (7) is only shown if an existing backup file is detected at ```/jffs/addons/flexqos/restore_flexqos_settings.sh```. This option will delete the existing backup file without confirmation.
+
+#### Uninstall
+
+The Uninstall option (u) will remove the script and its files and directories. You will be prompted to create a backup of your settings before uninstalling, if no backup exists. If a backup does exist, you will be prompted to keep or delete it, in case you plan to reinstall later. In all cases FlexQoS custom settings are deleted during uninstall.
+
+If you migrated from FreshJR_QOS to FlexQoS, the uninstaller will restore your FreshJR_QOS settings if the backup file is found in the ```/jffs/addons/flexqos``` directory.
+
+After uninstalling, you will be prompted to restart QoS to undo the FlexQoS customizations and revert to stock Adaptive QoS settings. No reboots are forced during uninstall.
+
+Command Line equivalent: ``` flexqos uninstall ```
+
+### Command Line functions
+
+Some FlexQoS commands can be invoked directly via the command line by passing the command as a parameter to the flexqos script. Below are the command line functions not covered in the menu section above.
+
+#### appdb
+
+``` flexqos appdb <string> ```
+
+The appdb sub-command will search the ASUS/Trend Micro application database for an application name and display the necessary hexadecimal Mark to create a custom AppDB Redirection rule in the WebUI.
+
+The output also includes the original target Class for the application for reference.
+
+```
+# flexqos appdb itunes
+iTunes/App Store
+ Originally:  Streaming
+ Mark:        04000A
+
+iTunes Festival
+ Originally:  Streaming
+ Mark:        040037
+```
+
+The appdb search will return up to 25 results per search.
+
+Similar functionality can be used in the WebUI by searching in the Application search box under AppDB Redirection Rules in the Customize view.
+
+#### disable / enable
+
+``` flexqos disable ```
+
+``` flexqos enable ```
+
+The disable and enable sub-commands allow disabling and enabling of FlexQoS without uninstalling. Disabling FlexQoS will restart QoS and the firewall immediately.
+
+Enabling FlexQoS will follow the installation process to ensure a consistent installation after disabling.
+
+#### develop / stable
+
+``` flexqos develop ```
+
+``` flexqos stable ```
+
+From time to time, the developer may have preview versions of upcoming FlexQoS updates available in the "develop" branch of the GitHub repository. Most users will want to remain on the stable branch (called "master" on GitHub). But advanced users can toggle between stable and develop by invoking the commands above.
+
+When switching from one branch to another, an update check is immediately invoked to download the appropriate version from GitHub. If you are already on the branch requested, a confirmation is displayed and no update is performed. To check for an available update for your branch, use the normal update function.
+
+When you are running the develop branch, the FlexQoS CLI menu headings will indicate "Development channel", and the WebUI will indicate "Dev" next to the version number.
+
+#### flushct / noflushct
+
+``` flexqos flushct ```
+
+``` flexqos noflushct ```
+
+To force all existing connections to be re-evaluated by new iptables rules when applying FlexQoS changes, enable the experimental, advanced setting to reset the conntrack table after restarting FlexQoS. The flushct command enables the reset, and noflushct disables the reset.
+
+This may be useful for users with IOT devices or cameras that establish connections before QoS and the firewall starts up during boot or any other restart activity.
+
+## Support
+
+See <a href="https://www.snbforums.com/threads/64882/" rel="nofollow">SmallNetBuilder Forums</a> for more information & discussion
+
+Development issues can be posted here on GitHub under the Issues tab.	
+
+## Donate
+
+I'm not in this for the money, but donations are humbly accepted via [PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=KAEKTNUTUDTT4&item_name=FlexQoS+development&currency_code=USD&source=url).
