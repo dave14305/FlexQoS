@@ -29,9 +29,9 @@ In your SSH Client:
 
 ``` /usr/sbin/curl "https://raw.githubusercontent.com/dave14305/FlexQoS/master/flexqos.sh" -o /jffs/addons/flexqos/flexqos.sh --create-dirs && chmod +x /jffs/addons/flexqos/flexqos.sh && sh /jffs/addons/flexqos/flexqos.sh -install ```
 
-If you are migrating from FreshJR_QOS, your existing rules will be converted to the new FlexQoS format, and a backup of your FreshJR_QOS settings will be saved in /jffs/addons/flexqos/restore_freshjr_nvram.sh.
+If you are migrating from FreshJR_QOS, your existing rules will be converted to the new FlexQoS format, and a backup of your FreshJR_QOS settings will be saved in ```/jffs/addons/flexqos/restore_freshjr_nvram.sh```.
 
-If you are reinstalling FlexQoS and a previous backup file is found at /jffs/addons/flexqos/restore_flexqos_settings.sh you will be prompted to restore the previous settings.
+If you are reinstalling FlexQoS and a previous backup file is found at ```/jffs/addons/flexqos/restore_flexqos_settings.sh``` you will be prompted to restore the previous settings.
 
 After installation, you will be prompted to restart QoS to enable the FlexQoS features.
 
@@ -84,7 +84,7 @@ To change the Class that a specific connection is assigned by Adaptive QoS, you 
 
 Through trial and error you will study the Tracked connections table for the specific connections you want to change, looking for combinations that will uniquely isolate your connections. This is where the Filtered connections can be useful to test.
 
-To add a rule, click the plus icon next to the iptables Rules ( Max Limit : 24 ) heading.
+To add a rule, click the ![plus](https://raw.githubusercontent.com/RMerl/asuswrt-merlin.ng/mainline/release/src/router/www/images/New_ui/accountadd.png) icon next to the iptables Rules ( Max Limit : 24 ) heading.
 
 In the Create New Policy pop-up window, you will enter the data you gathered in your testing. Example placeholder text is displayed in each field as a guide.
 
@@ -102,7 +102,7 @@ Click OK to add your rule. Rules are not saved and do not take effect until afte
 
 All iptables rules need at least an IP or port specification. A rule with only a Mark specified is better suited as an AppDB rule and will be rejected in the iptables Rules section.
 
-To delete a rule, click the Delete icon to the right of the rule.
+To delete a rule, click the ![Delete](https://raw.githubusercontent.com/RMerl/asuswrt-merlin.ng/mainline/release/src/router/www/images/New_ui/accountdelete.png) icon to the right of the rule.
 
 To edit an existing rule, click on any field within the row to toggle in-cell editing. Make the necessary changes and then click outside the area of the table to save your changes. The same shortcuts and validations apply to in-cell editing as when adding a rule via the add button.
 
@@ -138,6 +138,8 @@ If you wish to create the Gaming rule from scratch, add a rule with these parame
 - Remote Port: !80,443 (note the exclamation point to invert, i.e. NOT port 80 and NOT port 443)  
 - Mark: 000000  
 - Class: Gaming  
+
+iptables rules that do not specify any IPv4 local or remote IP addresses will also apply to IPv6 traffic. IPv6 addresses are not permitted in any rule.
 
 #### AppDB Redirection Rules
 
@@ -216,7 +218,7 @@ FlexQoS relies solely on the Merlin Addon API custom settings repository, so it 
 
 ## Command Line
 
-FlexQoS is now included in amtm as the successor to FreshJR_QOS, courtesy of @decoderman. Check option 3 in amtm to install FlexQoS or invoke the command line menu system.
+<!--- FlexQoS is now included in amtm as the successor to FreshJR_QOS, courtesy of @decoderman. Check option 3 in amtm to install FlexQoS or invoke the command line menu system.--->
 
 Advanced users can invoke the CLI menu with either:
 
@@ -278,7 +280,7 @@ Command Line equivalent: ``` flexqos restart ```
 
 #### Backup
 
-The Backup option (5) creates a backup of your FlexQoS custom settings under /jffs/addons/flexqos/restore_flexqos_settings.sh. It is a good idea to copy this file to an alternate location or perform regular JFFS backups since the original settings and the backup both reside in JFFS.
+The Backup option (5) creates a backup of your FlexQoS custom settings under ```/jffs/addons/flexqos/restore_flexqos_settings.sh```. It is a good idea to copy this file to an alternate location or perform regular JFFS backups since the original settings and the backup both reside in JFFS.
 
 If a previous backup already exists, you will be shown the date of the existing backup and prompted to overwrite it.
 
@@ -286,19 +288,19 @@ Command Line equivalent: ``` flexqos backup ```
 
 #### Restore
 
-The Restore option (6) is only shown if an existing backup file is detected at /jffs/addons/flexqos/restore_flexqos_settings.sh. When you select Restore, the date of the backup file is shown and you are prompted to restore the backup.
+The Restore option (6) is only shown if an existing backup file is detected at ```/jffs/addons/flexqos/restore_flexqos_settings.sh```. When you select Restore, the date of the backup file is shown and you are prompted to restore the backup.
 
 When restoring a backup, you will be prompted to restart QoS when exiting the menu, to allow the restored settings to take effect. If you do not restart QoS after the restore, you may see inconsistent behavior in the FlexQoS WebUI because it is reading the restored settings, but they have not been applied yet.
 
 #### Delete
 
-The Delete option (7) is only shown if an existing backup file is detected at /jffs/addons/flexqos/restore_flexqos_settings.sh. This option will delete the existing backup file without confirmation.
+The Delete option (7) is only shown if an existing backup file is detected at ```/jffs/addons/flexqos/restore_flexqos_settings.sh```. This option will delete the existing backup file without confirmation.
 
 #### Uninstall
 
 The Uninstall option (u) will remove the script and its files and directories. You will be prompted to create a backup of your settings before uninstalling, if no backup exists. If a backup does exist, you will be prompted to keep or delete it, in case you plan to reinstall later. In all cases FlexQoS custom settings are deleted during uninstall.
 
-If you migrated from FreshJR_QOS to FlexQoS, the uninstaller will restore your FreshJR_QOS settings if the backup file is found in the /jffs/addons/flexqos directory.
+If you migrated from FreshJR_QOS to FlexQoS, the uninstaller will restore your FreshJR_QOS settings if the backup file is found in the ```/jffs/addons/flexqos``` directory.
 
 After uninstalling, you will be prompted to restart QoS to undo the FlexQoS customizations and revert to stock Adaptive QoS settings. No reboots are forced during uninstall.
 
@@ -357,4 +359,8 @@ When you are running the develop branch, the FlexQoS CLI menu headings will indi
 
 See <a href="https://www.snbforums.com/threads/64882/" rel="nofollow">SmallNetBuilder Forums</a> for more information & discussion
 
-Development issues can be posted here on GitHub under the Issues tab.
+Development issues can be posted here on GitHub under the Issues tab.	
+
+## Donate
+
+I'm not in this for the money, but donations are humbly accepted via [PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=KAEKTNUTUDTT4&item_name=FlexQoS+development&currency_code=USD&source=url).
