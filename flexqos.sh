@@ -1536,10 +1536,12 @@ if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* #
 	arg1="install"
 fi
 
-if [ -z "$2" ]; then
-	wan="$(nvram get wan0_ifname)"
-else
-	wan="$2"
+if [ "$arg1" != "update" ]; then
+        if [ -z "$2" ]; then
+	        wan="$(nvram get wan0_ifname)"
+        else
+	        wan="$2"
+        fi
 fi
 
 case "$arg1" in
@@ -1580,7 +1582,7 @@ case "$arg1" in
 		about
 		;;
 	'update')
-		update
+		update "$2"
 		;;
 	'menu'|'')
 		menu
