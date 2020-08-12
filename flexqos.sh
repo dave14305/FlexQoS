@@ -199,6 +199,16 @@ set_tc_variables(){
 		tcwan="eth0"
 	fi
 
+	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
+	if [ -n "$current_undf_rule" ]; then
+		undf_flowid="$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2)"
+		undf_prio="$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2)"
+	else
+		undf_flowid=""
+		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc03f0000" -B1 | head -1 | /bin/grep -o "pref.*" | cut -d" " -f2)"
+		undf_prio="$((undf_prio-1))"
+	fi
+
 	# read priority order of QoS categories as set by user in GUI
 	flowid=0
 	while read -r line;
@@ -419,15 +429,6 @@ debug(){
 	echo "Firmware Ver: $(nvram get buildno)_$(nvram get extendno)"
 	get_config
 	set_tc_variables
-	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
-	if [ -n "$current_undf_rule" ]; then
-		undf_flowid="$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2)"
-		undf_prio="$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2)"
-	else
-		undf_flowid="n/a"
-		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc03f0000" -B1 | head -1 | /bin/grep -o "pref.*" | cut -d" " -f2)"
-		undf_prio="$((undf_prio-1))"
-	fi
 
 	echo "tc WAN iface: $tcwan"
 	echo "Undf Prio: $undf_prio"
@@ -534,6 +535,23 @@ EOF
 	nvram commit
 }
 
+get_flowid() {
+	# destination field
+	case "$1" in
+		0)	flowid="$Net" ;;
+		1)	flowid="$Gaming" ;;
+		2)	flowid="$Streaming" ;;
+		3)	flowid="$VOIP" ;;
+		4)	flowid="$Web" ;;
+		5)	flowid="$Downloads" ;;
+		6)	flowid="$Others" ;;
+		7)	flowid="$Defaults" ;;
+		# return empty if destination missing
+		*)	flowid="" ;;
+	esac
+	echo "$flowid"
+} # get_flowid
+
 parse_tcrule() {
 	#requires global variables previously set by set_tc_variables
 	#----------input-----------
@@ -563,18 +581,7 @@ parse_tcrule() {
 	fi
 
 	# destination field
-	case "$2" in
-		0)	flowid="$Net" ;;
-		1)	flowid="$Gaming" ;;
-		2)	flowid="$Streaming" ;;
-		3)	flowid="$VOIP" ;;
-		4)	flowid="$Web" ;;
-		5)	flowid="$Downloads" ;;
-		6)	flowid="$Others" ;;
-		7)	flowid="$Defaults" ;;
-		#return early if destination missing
-		*)	return ;;
-	esac
+	flowid="$(get_flowid "$2")"
 
 	#prio field
 	if [ "$1" = "000000" ]; then
@@ -1324,6 +1331,17 @@ $(am_settings_get ${SCRIPTNAME}_bandwidth | sed 's/^<//g;s/[<>]/ /g')
 EOF
 } # get_config
 
+validate_iptables_rules() {
+	iptables_rules_defined="$(echo "$iptables_rules" | sed 's/</\n/g' | /bin/grep -vc "^$")"
+	iptables_rules_expected=$((iptables_rules_defined*2))
+	iptables_rulespresent="$(/usr/sbin/iptables -t mangle -S POSTROUTING | /bin/grep -c MARK)"
+	if [ "$iptables_rulespresent" -lt "$iptables_rules_expected" ]; then
+		return 1
+	else
+		return 0
+	fi
+} # validate_iptables_rules
+
 write_iptables_rules() {
 	# loop through iptables rules and write an iptables command to a temporary script file
 	OLDIFS="$IFS"
@@ -1370,6 +1388,37 @@ check_qos_tc() {
 	return 1
 } # check_qos_tc
 
+validate_tc_rules() {
+	{
+		tc filter show dev br0 | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
+		tc filter show dev "$tcwan" | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
+	} > /tmp/${SCRIPTNAME}_checktcrules 2>/dev/null
+	OLDIFS="$IFS"
+	IFS=">"
+	filtermissing="0"
+	while read -r mark class
+	do
+		if [ -n "$mark" ]; then
+			flowid="$(get_flowid "$class")"
+			mark="${mark//\*/0}"
+			if [ "$(/bin/grep -ic "<${mark}>${flowid}" /tmp/${SCRIPTNAME}_checktcrules)" -lt "2" ]; then
+				filtermissing="$((filtermissing+1))"
+				break
+			fi
+		fi
+	done <<EOF
+$(echo "$appdb_rules" | sed 's/</\n/g')
+EOF
+	IFS="$OLDIFS"
+	if [ "$filtermissing" -gt "0" ]; then
+		# reapply tc rules
+		return 1
+	else
+		rm /tmp/${SCRIPTNAME}_checktcrules 2>/dev/null
+		return 0
+	fi
+} # validate_tc_rules
+
 startup() {
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
 		logmsg "Adaptive QoS is not enabled. Skipping $SCRIPTNAME_DISPLAY startup."
@@ -1392,8 +1441,14 @@ startup() {
 			if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" = "1" ]; then
 				# Flush conntrack table so that existing connections will be processed by new iptables rules
 				logmsg "Flushing conntrack table"
-				/usr/sbin/conntrack -F conntrack
+				/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
 			fi
+		fi
+	else
+		if ! validate_iptables_rules; then
+			logmsg "iptables rules missing. Restarting firewall..."
+			service restart_firewall >/dev/null 2>&1 &
+			return
 		fi
 	fi
 
@@ -1412,24 +1467,15 @@ startup() {
 	done
 	[ "$sleepdelay" -gt "0" ] && logmsg "TC Modification delayed for $sleepdelay seconds"
 
-	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
-	if [ -n "$current_undf_rule" ]; then
-		undf_flowid="$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2)"
-		undf_prio="$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2)"
-	else
-		undf_flowid=""
-		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc03f0000" -B1 | head -1 | /bin/grep -o "pref.*" | cut -d" " -f2)"
-		undf_prio="$((undf_prio-1))"
-	fi
+	set_tc_variables 	#needs to be set before parse_tcrule
 
 	# if TC modifcations have not been applied then run modification script
-	if [ "$(${tc} filter show dev br0 | /bin/grep -ic "$Default_mark_down")" -lt "1" ]; then
+	if ! validate_tc_rules; then
 		if [ -z "$1" ]; then
 			# check action was called without a WAN interface passed
 			logmsg "Scheduled Persistence Check -> Reapplying Changes"
 		fi # check
 
-		set_tc_variables 	#needs to be set before parse_tcrule
 		write_appdb_rules
 		appdb_static_rules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"		#forwards terminal output & errors to logger
 
