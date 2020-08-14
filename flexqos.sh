@@ -333,7 +333,7 @@ appdb(){
 			echo " Originally:  Net Control"
 			;;
 		'0'|'5'|'6'|'15'|'17')
-			echo " Originally:  VoIP"
+			echo " Originally:  Work-From-Home"
 			;;
 		'8')
 			echo " Originally:  Gaming"
