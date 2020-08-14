@@ -678,7 +678,7 @@ function draw_conntrack_table() {
 			if (filter[j]) {
 				switch (j) {
 					case 1:
-						if (bwdpi_conntrack[i][1].toLowerCase() != filter[1].toLowerCase())
+						if (bwdpi_conntrack[i][1].toLowerCase().indexOf(filter[1].toLowerCase()) < 0)
 							filtered = 1;
 						break;
 					default:
@@ -841,20 +841,20 @@ function comma(n) {
 function get_devicenames()
 {
 	// populate device["IP"].mac from nvram variable "dhcp_staticlist"
-	decodeURIComponent('<% nvram_char_to_ascii("", "dhcp_staticlist"); %>').split("<").forEach( element => {
-		if ( element.split(">")[1] ){
-			//device[element.split(">")[1]] = { mac:element.split(">")[0].toUpperCase() , name:"DEBUG: NVRAM" };
-			device[element.split(">")[1]] = { mac:element.split(">")[0].toUpperCase() , name:"*" };
-		}
-	});
+	//decodeURIComponent('<% nvram_char_to_ascii("", "dhcp_staticlist"); %>').split("<").forEach( element => {
+	//	if ( element.split(">")[1] ){
+	//		//device[element.split(">")[1]] = { mac:element.split(">")[0].toUpperCase() , name:"DEBUG: NVRAM" };
+	//		device[element.split(">")[1]] = { mac:element.split(">")[0].toUpperCase() , name:"*" };
+	//	}
+	//});
 
 	// populate device["IP"].mac from arp table
-	[<% get_arp_table(); %>].forEach( element => {
-		if ( element[3] ){
-			//device[element[0]] = { mac:element[3].toUpperCase() , name:"DEBUG: ARP" };
-			device[element[0]] = { mac:element[3].toUpperCase() , name:element[4] };
-		}
-	 });
+	//[<% get_arp_table(); %>].forEach( element => {
+	//	if ( element[3] ){
+	//		//device[element[0]] = { mac:element[3].toUpperCase() , name:"DEBUG: ARP" };
+	//		device[element[0]] = { mac:element[3].toUpperCase() , name:element[4] };
+	//	}
+	// });
 
 	//instead temporarily populate device["IP"].name from dhcp table
 	// used as stopgap source of partial information on page load until complete information is later available from asynchronous code
@@ -925,7 +925,7 @@ function update_devicenames(leasearray)
 			}
 
 			//update device filter drop down formated values
-			document.getElementById(ip).innerHTML = ip.padEnd(21," ").replace(/ /g,"&nbsp;") + device[ip].name;
+			document.getElementById(ip).innerHTML = device[ip].name;
 		}
 	});
 }
@@ -939,16 +939,16 @@ function populate_classmenu(){
 }
 
 function populate_devicefilter(){
-	var code = '<option value=""> </option>';
+	var code = '';
 
 	//Presort clients before adding clients into devicefilter to make it easier to read
 	keysSorted = Object.keys(device).sort(function(a,b){ return ip2dec(a)-ip2dec(b) })									// sort by IP
 	//keysSorted = Object.keys(device).sort(function(a,b){ return device[a].name.localeCompare(device[b].name) })		// sort by device name
 	for (i = 0; i < keysSorted.length; i++) {
 		key = keysSorted[i];
-		code += '<option id="' + key + '" value="' + key + '">' + key.replace(ipv6prefix,"").padEnd(21," ").replace(/ /g,"&nbsp;") + device[key].name + "</option>\n";
+		code += '<option id="' + key + '" value="' + key + '">' + device[key].name + "</option>\n";
 	}
-	document.getElementById('devicefilter').innerHTML=code;
+	document.getElementById('devicelist').innerHTML=code;
 }
 
 function initial() {
@@ -959,7 +959,7 @@ function initial() {
 	populate_devicefilter();		//used to populate drop down filter
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
-	deviceFilter = document.getElementById('devicefilter').value;
+	//deviceFilter = document.getElementById('devicelist').value;
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
@@ -1854,7 +1854,7 @@ function FlexQoS_reset_appdb() {
 
 function FlexQoS_reset_filter() {
 	document.getElementById('protfilter').value="";
-	document.getElementById('devicefilter').value="";
+	document.getElementById('lipfilter').value="";
 	document.getElementById('lportfilter').value="";
 	document.getElementById('ripfilter').value="";
 	document.getElementById('rportfilter').value="";
@@ -2442,9 +2442,12 @@ function autocomplete(inp, arr) {
 			<option value="tcp">tcp</option>
 			<option value="udp">udp</option>
 		</select></td>
-		<td><select id="devicefilter" style="max-width: 168px" class="input_option" onchange="set_filter(1, this);">
+		<!-- <td><select id="devicefilter" style="max-width: 168px" class="input_option" onchange="set_filter(1, this);">
 				<option value=""> </option>
 			</select>
+		</td> -->
+		<td><input id="lipfilter" list="devicelist" type="text" class="input_18_table" maxlength="39" oninput="set_filter(1, this);">
+			<datalist id="devicelist"></datalist>
 		</td>
 		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="5" oninput="set_filter(2, this);"></input></td>
 		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="39" oninput="set_filter(3, this);"></input></td>
