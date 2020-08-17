@@ -127,11 +127,12 @@ iptables_static_rules() {
 	fi
 }
 
-appdb_static_rules() {
-	echo "Applying AppDB static rules"
-	${tc} filter add dev br0 protocol all prio 10 u32 match mark ${Default_mark_down} 0xc03fffff flowid "$Defaults"		#Used to establish unique Game Downloads filter
-	${tc} filter add dev "$tcwan" protocol all prio 10 u32 match mark ${Default_mark_up} 0xc03fffff flowid "$Defaults"		#Used to establish unique Game Downloads filter
-} # appdb_static_rules
+write_appdb_static_rules() {
+	{
+		echo "filter add dev br0 protocol all prio 10 u32 match mark ${Default_mark_down} 0xc03fffff flowid $Defaults"		#Used to establish unique Game Downloads filter
+		echo "filter add dev $tcwan protocol all prio 10 u32 match mark ${Default_mark_up} 0xc03fffff flowid $Defaults"		#Used to establish unique Game Downloads filter
+	} > /tmp/${SCRIPTNAME}_tcrules
+} # write_appdb_static_rules
 
 write_custom_rates() {
 	{
@@ -142,7 +143,7 @@ write_custom_rates() {
 			eval DownBurst=\$DownBurst$i
 			eval DownCburst=\$DownCburst$i
 			eval DownQuantum=\$DownQuantum$i
-			printf "${tc} class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %s cburst %s" \
+			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %s cburst %s" \
 					"br0" "$i" "$PARMS" "$i" "$DownRate" "$DownCeil" "$DownBurst" "$DownCburst"
 			[ "$DownQuantum" != "default" ] && printf " quantum %s" "$DownQuantum"
 			printf "\n"
@@ -151,7 +152,7 @@ write_custom_rates() {
 			eval UpBurst=\$UpBurst$i
 			eval UpCburst=\$UpCburst$i
 			eval UpQuantum=\$UpQuantum$i
-			printf "${tc} class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %s cburst %s" \
+			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %s cburst %s" \
 					"$tcwan" "$i" "$PARMS" "$i" "$UpRate" "$UpCeil" "$UpBurst" "$UpCburst"
 			[ "$UpQuantum" != "default" ] && printf " quantum %s" $UpQuantum
 			printf "\n"
@@ -298,7 +299,7 @@ EOF
 		eval "DownBurst${class}=$burst"
 		eval "DownCburst${class}=$cburst"
 	done <<EOF
-$(${tc} class show dev br0 | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
+$(${tc} class show dev br0 parent 1: | sed -nE '/parent/ s/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/p')
 EOF
 
 	#read existing burst/cburst per upload class
@@ -307,7 +308,7 @@ EOF
 		eval "UpBurst${class}=$burst"
 		eval "UpCburst${class}=$cburst"
 	done <<EOF
-$(${tc} class show dev $tcwan | /bin/grep "parent 1:1 " | sed -E 's/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/g')
+$(${tc} class show dev $tcwan parent 1: | sed -nE '/parent/ s/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/p')
 EOF
 
 	#read parameters for fakeTC
@@ -435,8 +436,9 @@ debug(){
 	/bin/sed -E '/^iptables -D POSTROUTING/d; s/iptables -A POSTROUTING -t mangle //g; s/[[:space:]]{2,}/ /g' /tmp/${SCRIPTNAME}_iprules
 	echo "***********"
 	echo "appdb rules: $(am_settings_get flexqos_appdb)"
-	write_appdb_rules
-	/bin/sed -E 's/^realtc //g;' /tmp/${SCRIPTNAME}_tcrules
+	true > /tmp/${SCRIPTNAME}_tcrules
+	write_appdb_custom_rules
+	cat /tmp/${SCRIPTNAME}_tcrules
 	echo "[/CODE][/SPOILER]"
 } # debug
 
@@ -562,7 +564,7 @@ parse_tcrule() {
 	else
 		currmask="0xc03f0000"
 	fi
-	prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80${cat}0000 ${currmask}" -B1 | head -1 | cut -d " " -f7)"
+	prio="$(/bin/grep -i "0x80${cat}0000 ${currmask}" -B1 /tmp/${SCRIPTNAME}_tmp_tcfilterdown | head -1 | cut -d " " -f5)"
 	currprio=$prio
 
 	if [ -z "$prio" ]; then
@@ -574,16 +576,16 @@ parse_tcrule() {
 	{
 		if [ "$id" = "****" -o "$1" = "000000" ] && [ -n "$currprio" ]; then
 			# change existing rule
-			currhandledown="$(${tc} filter show dev br0 | /bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
-			currhandleup="$(${tc} filter show dev $tcwan | /bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" | head -1 | cut -d " " -f10)"
-			echo "${tc} filter change dev br0 prio $currprio protocol all handle $currhandledown u32 flowid $flowid"
-			echo "${tc} filter change dev $tcwan prio $currprio protocol all handle $currhandleup u32 flowid $flowid"
+			currhandledown="$(/bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterdown | head -1 | cut -d " " -f8)"
+			currhandleup="$(/bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterup | head -1 | cut -d " " -f8)"
+			echo "filter change dev br0 prio $currprio protocol all handle $currhandledown u32 flowid $flowid"
+			echo "filter change dev $tcwan prio $currprio protocol all handle $currhandleup u32 flowid $flowid"
 		else
 			# add new rule for individual app one priority level higher (-1)
-			echo "${tc} filter add dev br0 protocol all prio $prio u32 match mark $DOWN_mark flowid $flowid"
-			echo "${tc} filter add dev $tcwan protocol all prio $prio u32 match mark $UP_mark flowid $flowid"
+			echo "filter add dev br0 protocol all prio $prio u32 match mark $DOWN_mark flowid $flowid"
+			echo "filter add dev $tcwan protocol all prio $prio u32 match mark $UP_mark flowid $flowid"
 		fi
-	} >> /tmp/${SCRIPTNAME}_tcrules
+	}
 }
 
 parse_iptablerule() {
@@ -1333,29 +1335,22 @@ write_iptables_rules() {
 	IFS="$OLDIFS"
 } # write_iptables_rules
 
-write_appdb_rules() {
+write_appdb_custom_rules() {
 	# loop through appdb rules and write a tc command to a temporary script file
 	OLDIFS="$IFS"
 	IFS=">"
-	if [ -f "/tmp/${SCRIPTNAME}_tcrules" ]; then
-		rm -f "/tmp/${SCRIPTNAME}_tcrules"
-	fi
-
 	echo "$appdb_rules" | sed 's/</\n/g' | while read -r mark class
 	do
 		if [ -n "$mark" ]; then
-			parse_tcrule "$mark" "$class"
+			parse_tcrule "$mark" "$class" >> /tmp/${SCRIPTNAME}_tcrules
 		fi
 	done
 	IFS="$OLDIFS"
-} # write_appdb_rules
+} # write_appdb_custom_rules
 
 check_qos_tc() {
-	dlclasscnt="$(${tc} class show dev br0 | /bin/grep -c "parent 1:1 ")" # should be 8
-	#ulclasscnt="$(${tc} class show dev $tcwan | /bin/grep -c "parent 1:1 ")" # should be 8
-	dlfiltercnt="$(${tc} filter show dev br0 | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
-	#ulfiltercnt="$(${tc} filter show dev $tcwan | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
-#	if [ "$dlclasscnt" -lt "8" ] || [ "$ulclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ "$ulfiltercnt" -lt "39" ]; then
+	dlclasscnt="$(${tc} class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
+	dlfiltercnt="$(${tc} filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
 	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ]; then
 		return 0
 	fi
@@ -1364,8 +1359,8 @@ check_qos_tc() {
 
 validate_tc_rules() {
 	{
-		tc filter show dev br0 | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
-		tc filter show dev "$tcwan" | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
+		${tc} filter show dev br0 parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
+		${tc} filter show dev "$tcwan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
 	} > /tmp/${SCRIPTNAME}_checktcrules 2>/dev/null
 	OLDIFS="$IFS"
 	IFS=">"
@@ -1450,21 +1445,21 @@ startup() {
 			logmsg "Scheduled Persistence Check -> Reapplying Changes"
 		fi # check
 
-		write_appdb_rules
-		appdb_static_rules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"		#forwards terminal output & errors to logger
+		${tc} filter show dev br0 parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
+		${tc} filter show dev ${tcwan} parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
 
-		if check_qos_tc; then
-			logmsg "Adaptive QoS not fully done setting up prior to modification script"
-			logmsg "(Skipping class modification, delay trigger time period needs increase)"
+		write_appdb_static_rules
+		write_appdb_custom_rules
+
+		if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
+			write_custom_rates
 		else
-			if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
-				write_custom_rates
-			fi
-		fi # Classes less than 8
+			logmsg "Bandwidth too low for custom rates. Skipping."
+		fi
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
-			logmsg "Applying AppDB custom rules and TC rates"
-			. /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
+			logmsg "Applying AppDB rules and TC rates"
+			${tc} -force -batch /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		fi
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
