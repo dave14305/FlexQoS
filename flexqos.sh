@@ -351,6 +351,9 @@ appdb(){
 		'1'|'3'|'14')
 			echo " Originally:  Downloads"
 			;;
+		*)
+			echo " Originally:  Unknown"
+			;;
 		esac
 		echo -n " Mark:        ${cat_hex}"
 		echo "$line" | cut -f 2 -d "," | awk '{printf("%04X \n",$1)}'
