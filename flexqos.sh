@@ -326,38 +326,35 @@ EOF
 
 appdb(){
 	/bin/grep -m 25 -i "$1" /tmp/bwdpi/bwdpi.app.db | while read -r line; do
-		echo "$line" | cut -f 4 -d ","
+		echo "$line" | awk -F "," '{printf "  Application: %s\n         Mark: %02X%04X\nDefault Class: ", $4, $1, $2}'
 		cat_decimal=$(echo "$line" | cut -f 1 -d "," )
-		cat_hex=$( printf "%02X" "$cat_decimal" )
 		case "$cat_decimal" in
 		'9'|'18'|'19'|'20')
-			echo " Originally:  Net Control"
+			printf "Net Control"
 			;;
 		'0'|'5'|'6'|'15'|'17')
-			echo " Originally:  Work-From-Home"
+			printf "Work-From-Home"
 			;;
 		'8')
-			echo " Originally:  Gaming"
+			printf "Gaming"
 			;;
 		'7'|'10'|'11'|'21'|'23')
-			echo " Originally:  Others"
+			printf "Others"
 			;;
 		'13'|'24')
-			echo " Originally:  Web"
+			printf "Web"
 			;;
 		'4')
-			echo " Originally:  Streaming"
+			printf "Streaming"
 			;;
 		'1'|'3'|'14')
-			echo " Originally:  Downloads"
+			printf "Downloads"
 			;;
 		*)
-			echo " Originally:  Unknown"
+			printf "Unknown"
 			;;
 		esac
-		echo -n " Mark:        ${cat_hex}"
-		echo "$line" | cut -f 2 -d "," | awk '{printf("%04X \n",$1)}'
-		echo ""
+		printf "\n\n"
 	done
 } # appdb
 
