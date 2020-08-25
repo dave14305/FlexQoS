@@ -157,7 +157,7 @@ var dhcp_start = "<% nvram_get("dhcp_start"); %>";
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
 var ipv6prefix = "<% nvram_get("ipv6_prefix"); %>".replace(/::$/,":");
 
-const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7";
+const iptables_default_rules = "<WiFi%20Calling>>>udp>>500,4500>>3<Facetime>>>udp>16384:16415>>>3<Usenet>>>tcp>>119,563>>5<Game%20Downloads>>>tcp>>80,443>08****>7";
 const appdb_default_rules = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5";
 const bandwidth_default_rules = "<5>20>15>10>10>30>5>5<100>100>100>100>100>100>100>100<5>20>15>30>10>10>5>5<100>100>100>100>100>100>100>100";
 var iptables_rulelist_array="";
@@ -496,11 +496,11 @@ tableRuleDuplicateValidation = {
 
 tableRuleValidation = {
 	iptables_rule : function(_newRuleArray) {
-		if(_newRuleArray.length == 7) {
-			if(_newRuleArray[0] == "" && _newRuleArray[1] == "" && _newRuleArray[3] == "" && _newRuleArray[4] == "" && _newRuleArray[5] == "") {
+		if(_newRuleArray.length == 8) {
+			if(_newRuleArray[1] == "" && _newRuleArray[2] == "" && _newRuleArray[4] == "" && _newRuleArray[5] == "" && _newRuleArray[6] == "") {
 				return "Define at least one criterion for this rule!";
 			}
-			if(_newRuleArray[0] == "" && _newRuleArray[1] == "" && _newRuleArray[3] == "" && _newRuleArray[4] == "" && _newRuleArray[5] != "") {
+			if(_newRuleArray[1] == "" && _newRuleArray[2] == "" && _newRuleArray[4] == "" && _newRuleArray[5] == "" && _newRuleArray[6] != "") {
 				return "Create an AppDB rule instead or define additional criteria!";
 			}
 			return HINTPASS;
@@ -691,12 +691,12 @@ function draw_conntrack_table() {
 		if (filtered) continue;
 		shownlen++;
 
-		var qos_class = eval_rule(bwdpi_conntrack[i][1], bwdpi_conntrack[i][3], bwdpi_conntrack[i][0], bwdpi_conntrack[i][2], bwdpi_conntrack[i][4], bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
-		if (qos_class == 99)		// 99 means no rule match so use default class for connection category
-			qos_class = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
+		var qos_class = eval_rule(bwdpi_conntrack[i][1], bwdpi_conntrack[i][3], bwdpi_conntrack[i][0], bwdpi_conntrack[i][2], bwdpi_conntrack[i][4], bwdpi_conntrack[i][7], bwdpi_conntrack[i][6], bwdpi_conntrack[i][5]);
+		if (qos_class.qosclass == 99)		// 99 means no rule match so use default class for connection category
+			qos_class.qosclass = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
 		// Prepend Class priority number for sorting, but only prepend it once
-		if ( ! bwdpi_conntrack[i][5].startsWith(qos_class+'_') )
-			bwdpi_conntrack[i][5] =	qos_class + '_' + bwdpi_conntrack[i][5];
+		if ( ! bwdpi_conntrack[i][5].startsWith(qos_class.qosclass+'_') )
+			bwdpi_conntrack[i][5] =	qos_class.qosclass + '_' + qos_class.desc;
 
 		tabledata.push(bwdpi_conntrack[i]);
 	}
@@ -1008,7 +1008,7 @@ function compIPV6(input) {
 	return input.replace(/(^|:)0{1,4}/g, ':');
 }
 
-function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst){
+function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst, Desc){
 	var rule =[];		//user rule in specific format later used for quick evaluation
 	//rule[0]=enabled filters flag (8bit)
 	//rule[1]=protocol
@@ -1029,9 +1029,11 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst){
 	//rule[16]=Mark (General Category Match)
 	//rule[17]=Mark (Specific Traffic Match)
 	//rule[18]=QoS Destination
+	//rule[19]=Rule Description
 
 	rule[0]=0;
 	if (Dst)	rule[18]=bwdpi_app_rulelist_row.indexOf(cat_id_array[Dst].toString());
+	if (Desc)	rule[19]=decodeURIComponent(Desc);
 	Proto = Proto.toLowerCase();
 	if ( Proto )
 	{
@@ -1134,8 +1136,9 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst){
 	return rule;
 };
 
-function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
+function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 	var last_matching_rule = 99;  // return 99 if no matches
+	var last_matching_desc = CDesc;
 
 	// save the iptables_rules[i][18] when a match
 	for (i=0;i<iptables_rules.length;i++) {
@@ -1250,6 +1253,7 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 		// console.log("rule matches current connection");
 		// stop at first match and save class and new mark
 		last_matching_rule=iptables_rules[i][18];  // save the rule's target Class
+		last_matching_desc=iptables_rules[i][19];  // save the rule's Name as application name
 		CCat=flexqos_newmarks[last_matching_rule][0];
 		CId=flexqos_newmarks[last_matching_rule][1];
 		break;
@@ -1277,11 +1281,11 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId){
 		}
 
 		// console.log("rule matches current connection");
-		return appdb_rules[i][18];
+		return { qosclass: appdb_rules[i][18], desc: CDesc };
 	} // for each appdb rule in array
 	// if we reach here, we either have a connection that matches nothing and will return 99
 	// or an iptables connection whose new mark was not overridden by an appdb rule
-	return last_matching_rule;
+	return { qosclass: last_matching_rule, desc: last_matching_desc };
 }  // eval_rule
 
 function redraw() {
@@ -1529,24 +1533,28 @@ function show_iptables_rules(){
 		},
 		header: [
 			{
-				"title" : "Local IP/CIDR",
-				"width" : "14%"
+				"title" : "Rule Name",
+				"width" : "10%"
 			},
 			{
-				"title" : "Remote IP/CIDR",
-				"width" : "14%"
+				"title" : "Local IP",
+				"width" : "11%"
 			},
 			{
-				"title" : "Protocol",
-				"width" : "9%"
+				"title" : "Remote IP",
+				"width" : "11%"
+			},
+			{
+				"title" : "Proto",
+				"width" : "7%"
 			},
 			{
 				"title" : "Local Port",
-				"width" : "15%"
+				"width" : "14%"
 			},
 			{
 				"title" : "Remote Port",
-				"width" : "15%"
+				"width" : "14%"
 			},
 			{
 				"title" : "Mark",
@@ -1559,6 +1567,14 @@ function show_iptables_rules(){
 		],
 		createPanel: {
 			inputs : [
+				{
+					"editMode" : "text",
+					"title" : "Rule Description",
+					"maxlength" : "27",
+					"valueMust" : false,
+					"placeholder": "Rule Description",
+					"validator" : "description"
+				},
 				{
 					"editMode" : "text",
 					"title" : "Local IP/CIDR",
@@ -1614,6 +1630,13 @@ function show_iptables_rules(){
 		},
 		clickRawEditPanel: {
 			inputs : [
+				{
+					"editMode" : "text",
+					"maxlength" : "27",
+					"valueMust" : false,
+					"styleList" : {"word-wrap":"break-word","overflow-wrap":"break-word","font-size":"90%"},
+					"validator" : "description"
+				},
 				{
 					"editMode" : "text",
 					"maxlength" : "19",
@@ -1720,7 +1743,7 @@ function set_FlexQoS_mod_vars()
 		if ( custom_settings.flexqos_iptables == undefined )  // rules not yet converted to API format
 			{
 				// prepend default rules which can be later edited/deleted by user
-				iptables_rulelist_array = iptables_default_rules;
+				iptables_rulelist_array = decodeURIComponent(iptables_default_rules);
 				var FreshJR_nvram = decodeURIComponent('<% nvram_char_to_ascii("",fb_comment); %>')+'>'+decodeURIComponent('<% nvram_char_to_ascii("",fb_email_dbg); %>');
 				FreshJR_nvram = FreshJR_nvram.split('>');
 				for (var j=0;j<FreshJR_nvram.length;j++) {
@@ -1729,24 +1752,24 @@ function set_FlexQoS_mod_vars()
 					if (FreshJR_nvram[j].length == 7) {
 						for (var k=0;k<FreshJR_nvram[j].length;k++) {
 							if (k==0)
-								iptables_temp_rule += "<";
+								iptables_temp_rule += "<>";
 							else
 								iptables_temp_rule += ">";
 							iptables_temp_rule += FreshJR_nvram[j][k];
 						} // for inner loop
 					} // an iptables rule
-				if (iptables_temp_rule != "<>>both>>>>0")
+				if (iptables_temp_rule != "<>>>both>>>>0")
 					iptables_rulelist_array += iptables_temp_rule;
 				}
 				if (FreshJR_nvram[8]) {
 					var gameCIDR=FreshJR_nvram[8].toString();
 					if (gameCIDR.length > 1)
-						iptables_rulelist_array = "<"+gameCIDR+">>both>>!80,443>000000>1" + iptables_rulelist_array;
+						iptables_rulelist_array = "<Gaming%20Rule>"+gameCIDR+">>both>>!80,443>000000>1" + iptables_rulelist_array;
 					FreshJR_nvram = "";
 				}
 			}
 		else // rules are migrated to new API variables
-			iptables_rulelist_array = custom_settings.flexqos_iptables;
+			iptables_rulelist_array = decodeURIComponent(custom_settings.flexqos_iptables);
 
 		if ( custom_settings.flexqos_appdb == undefined )
 		{
@@ -1789,7 +1812,7 @@ function set_FlexQoS_mod_vars()
 		for (r=0;r<iptables_temp_array.length;r++){
 			if (iptables_temp_array[r] != "") {
 				iptables_temp_array[r]=iptables_temp_array[r].split(">");
-				iptables_rules.unshift(create_rule(iptables_temp_array[r][0], iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6]));
+				iptables_rules.unshift(create_rule(iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6], iptables_temp_array[r][7], iptables_temp_array[r][0]));
 			}
 		}
 
@@ -1835,7 +1858,7 @@ function set_FlexQoS_mod_vars()
 }
 
 function FlexQoS_reset_iptables() {
-	iptables_rulelist_array = iptables_default_rules;
+	iptables_rulelist_array = decodeURIComponent(iptables_default_rules);
 	iptables_temp_array = [];
 	iptables_temp_array = iptables_rulelist_array.split("<");
 	iptables_temp_array.shift();
@@ -1942,7 +1965,10 @@ function FlexQoS_mod_apply() {
 		if(iptables_temp_array[i].length != 0) {
 			iptables_rulelist_array += "<";
 			for(var j = 0; j < iptables_temp_array[i].length; j += 1) {
-				iptables_rulelist_array += iptables_temp_array[i][j];
+				if ( j == 0 )
+					iptables_rulelist_array += encodeURIComponent(iptables_temp_array[i][j]);
+				else
+					iptables_rulelist_array += iptables_temp_array[i][j];
 				if( (j + 1) != iptables_temp_array[i].length)
 					iptables_rulelist_array += ">";
 			}

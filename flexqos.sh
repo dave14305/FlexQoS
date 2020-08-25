@@ -477,11 +477,11 @@ EOF
 
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables)" ]; then
 		if [ "$gameCIDR" ]; then
-			tmp_iptables_rules="<${gameCIDR}>>both>>!80,443>000000>1"
+			tmp_iptables_rules="<Gaming>${gameCIDR}>>both>>!80,443>000000>1"
 		fi
-		tmp_iptables_rules="${tmp_iptables_rules}<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
-		tmp_iptables_rules="${tmp_iptables_rules}<${e1}>${e2}>${e3}>${e4}>${e5}>${e6}>${e7}<${f1}>${f2}>${f3}>${f4}>${f5}>${f6}>${f7}<${g1}>${g2}>${g3}>${g4}>${g5}>${g6}>${g7}<${h1}>${h2}>${h3}>${h4}>${h5}>${h6}>${h7}"
-		tmp_iptables_rules=$(echo "$tmp_iptables_rules" | sed 's/<>>>>>>//g')
+		tmp_iptables_rules="${tmp_iptables_rules}<WiFi%20Calling>>>udp>>500,4500>>3<Facetime>>>udp>16384:16415>>>3<Usenet>>>tcp>>119,563>>5<Game%20Downloads>>tcp>>80,443>08****>7"
+		tmp_iptables_rules="${tmp_iptables_rules}<Rule1>${e1}>${e2}>${e3}>${e4}>${e5}>${e6}>${e7}<Rule2>${f1}>${f2}>${f3}>${f4}>${f5}>${f6}>${f7}<Rule3>${g1}>${g2}>${g3}>${g4}>${g5}>${g6}>${g7}<Rule4>${h1}>${h2}>${h3}>${h4}>${h5}>${h6}>${h7}"
+		tmp_iptables_rules=$(echo "$tmp_iptables_rules" | sed -E 's/<Rule[1-4]>>>>>>>//g')
 		am_settings_set ${SCRIPTNAME}_iptables "$tmp_iptables_rules"
 	fi
 
@@ -1326,7 +1326,7 @@ write_iptables_rules() {
 		rm -f "/tmp/${SCRIPTNAME}_iprules"
 	fi
 
-	echo "$iptables_rules" | sed 's/</\n/g' | while read -r localip remoteip proto lport rport mark class
+	echo "$iptables_rules" | sed 's/</\n/g' | while read -r rulename localip remoteip proto lport rport mark class
 	do
 		if [ -n "${localip}${remoteip}${proto}${lport}${rport}${mark}" ]; then
 			parse_iptablerule "$localip" "$remoteip" "$proto" "$lport" "$rport" "$mark" "$class"
