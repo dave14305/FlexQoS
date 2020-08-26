@@ -1288,8 +1288,10 @@ uninstall() {
 get_config() {
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables)" ]; then
 		am_settings_set "${SCRIPTNAME}_iptables" "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
+		am_settings_set "${SCRIPTNAME}_iptables_names" "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads"
 	fi
 	iptables_rules="$(am_settings_get ${SCRIPTNAME}_iptables)"
+	iptables_names="$(am_settings_get ${SCRIPTNAME}_iptables_names)"
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
 		am_settings_set "${SCRIPTNAME}_appdb" "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
 	fi
@@ -1326,7 +1328,7 @@ write_iptables_rules() {
 		rm -f "/tmp/${SCRIPTNAME}_iprules"
 	fi
 
-	echo "$iptables_rules" | sed 's/</\n/g' | while read -r rulename localip remoteip proto lport rport mark class
+	echo "$iptables_rules" | sed 's/</\n/g' | while read -r localip remoteip proto lport rport mark class
 	do
 		if [ -n "${localip}${remoteip}${proto}${lport}${rport}${mark}" ]; then
 			parse_iptablerule "$localip" "$remoteip" "$proto" "$lport" "$rport" "$mark" "$class"

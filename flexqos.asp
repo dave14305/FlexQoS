@@ -157,11 +157,14 @@ var dhcp_start = "<% nvram_get("dhcp_start"); %>";
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
 var ipv6prefix = "<% nvram_get("ipv6_prefix"); %>".replace(/::$/,":");
 
-const iptables_default_rules = "<WiFi%20Calling>>>udp>>500,4500>>3<Facetime>>>udp>16384:16415>>>3<Usenet>>>tcp>>119,563>>5<Game%20Downloads>>>tcp>>80,443>08****>7";
+const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7";
+const iptables_default_rulenames = "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads";
 const appdb_default_rules = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5";
 const bandwidth_default_rules = "<5>20>15>10>10>30>5>5<100>100>100>100>100>100>100>100<5>20>15>30>10>10>5>5<100>100>100>100>100>100>100>100";
 var iptables_rulelist_array="";
+var iptables_rulename_array="";
 var iptables_temp_array=[];
+var iptables_names_temp_array=[];
 var appdb_temp_array=[];
 var appdb_rulelist_array="";
 var iptables_rules = [];	// array for iptables rules
@@ -1743,33 +1746,51 @@ function set_FlexQoS_mod_vars()
 		if ( custom_settings.flexqos_iptables == undefined )  // rules not yet converted to API format
 			{
 				// prepend default rules which can be later edited/deleted by user
-				iptables_rulelist_array = decodeURIComponent(iptables_default_rules);
+				iptables_rulelist_array = iptables_default_rules;
+				iptables_rulename_array = decodeURIComponent(iptables_default_rulenames);
 				var FreshJR_nvram = decodeURIComponent('<% nvram_char_to_ascii("",fb_comment); %>')+'>'+decodeURIComponent('<% nvram_char_to_ascii("",fb_email_dbg); %>');
 				FreshJR_nvram = FreshJR_nvram.split('>');
 				for (var j=0;j<FreshJR_nvram.length;j++) {
 					var iptables_temp_rule = "";
+					var iptables_temp_rulename = "";
 					FreshJR_nvram[j] = FreshJR_nvram[j].split(";");
 					if (FreshJR_nvram[j].length == 7) {
 						for (var k=0;k<FreshJR_nvram[j].length;k++) {
-							if (k==0)
-								iptables_temp_rule += "<>";
+							if (k==0) {
+								iptables_temp_rule += "<";
+								iptables_temp_rulename += "<FreshJR Rule " + eval("j + 1");
+							}
 							else
 								iptables_temp_rule += ">";
 							iptables_temp_rule += FreshJR_nvram[j][k];
 						} // for inner loop
 					} // an iptables rule
-				if (iptables_temp_rule != "<>>>both>>>>0")
-					iptables_rulelist_array += iptables_temp_rule;
+					if (iptables_temp_rule != "<>>both>>>>0") {
+						iptables_rulelist_array += iptables_temp_rule;
+						iptables_rulename_array += iptables_temp_rulename;
+					}
 				}
 				if (FreshJR_nvram[8]) {
 					var gameCIDR=FreshJR_nvram[8].toString();
-					if (gameCIDR.length > 1)
-						iptables_rulelist_array = "<Gaming%20Rule>"+gameCIDR+">>both>>!80,443>000000>1" + iptables_rulelist_array;
+					if (gameCIDR.length > 1) {
+						iptables_rulelist_array = "<"+gameCIDR+">>both>>!80,443>000000>1" + iptables_rulelist_array;
+						iptables_rulename_array = "<Gaming%20Rule" + iptables_rulename_array;
+					}
 					FreshJR_nvram = "";
 				}
 			}
-		else // rules are migrated to new API variables
-			iptables_rulelist_array = decodeURIComponent(custom_settings.flexqos_iptables);
+		else { // rules are migrated to new API variables
+			iptables_rulelist_array = custom_settings.flexqos_iptables;
+			if ( custom_settings.flexqos_iptables_names == undefined ) {
+				iptables_rulename_array = "";
+				var iptables_rulecount = iptables_rulelist_array.split("<").length;
+				for (var i=0;i<iptables_rulecount;i++) {
+					iptables_rulename_array += "<Rule " + ( i + 1 );
+				}
+			}
+			else
+				iptables_rulename_array = decodeURIComponent(custom_settings.flexqos_iptables_names);
+		}
 
 		if ( custom_settings.flexqos_appdb == undefined )
 		{
@@ -1787,7 +1808,7 @@ function set_FlexQoS_mod_vars()
 							appdb_temp_rule += ">";
 						appdb_temp_rule += FreshJR_nvram[j][k];
 					} // for inner loop
-				if (appdb_temp_rule != "<>0" || appdb_temp_rule != "<>")
+				if (appdb_temp_rule != "<>0" && appdb_temp_rule != "<>")
 					appdb_rulelist_array += appdb_temp_rule;
 				}
 				FreshJR_nvram = "";
@@ -1808,10 +1829,14 @@ function set_FlexQoS_mod_vars()
 
 		var r=0;
 		iptables_temp_array = iptables_rulelist_array.split("<");
+		var iptables_names_temp_array = iptables_rulename_array.split("<");
 		iptables_temp_array.shift();
+		iptables_names_temp_array.shift();
 		for (r=0;r<iptables_temp_array.length;r++){
 			if (iptables_temp_array[r] != "") {
 				iptables_temp_array[r]=iptables_temp_array[r].split(">");
+				if (iptables_names_temp_array[r])
+					iptables_temp_array[r].unshift(iptables_names_temp_array[r]);
 				iptables_rules.unshift(create_rule(iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6], iptables_temp_array[r][7], iptables_temp_array[r][0]));
 			}
 		}
@@ -1858,13 +1883,19 @@ function set_FlexQoS_mod_vars()
 }
 
 function FlexQoS_reset_iptables() {
-	iptables_rulelist_array = decodeURIComponent(iptables_default_rules);
+	iptables_rulelist_array = iptables_default_rules;
+	iptables_rulename_array = decodeURIComponent(iptables_default_rulenames);
 	iptables_temp_array = [];
 	iptables_temp_array = iptables_rulelist_array.split("<");
 	iptables_temp_array.shift();
+	iptables_names_temp_array = [];
+	iptables_names_temp_array = iptables_rulename_array.split("<");
+	iptables_names_temp_array.shift();
 	for (r=0;r<iptables_temp_array.length;r++){
 		if (iptables_temp_array[r] != "") {
 			iptables_temp_array[r]=iptables_temp_array[r].split(">");
+			if (iptables_names_temp_array[r])
+				iptables_temp_array[r].unshift(iptables_names_temp_array[r]);
 		}
 	}
 	show_iptables_rules();
@@ -1960,17 +1991,20 @@ function FlexQoS_mod_apply() {
 		}
 	}
 
-	var iptables_rulelist_array = "";
+	iptables_rulelist_array = "";
+	iptables_rulename_array = "";
 	for(var i = 0; i < iptables_temp_array.length; i++) {
 		if(iptables_temp_array[i].length != 0) {
 			iptables_rulelist_array += "<";
-			for(var j = 0; j < iptables_temp_array[i].length; j += 1) {
+			iptables_rulename_array += "<";
+			for(var j = 0; j < iptables_temp_array[i].length; j++) {
 				if ( j == 0 )
-					iptables_rulelist_array += encodeURIComponent(iptables_temp_array[i][j]);
-				else
+					iptables_rulename_array += encodeURIComponent(iptables_temp_array[i][j]);
+				else {
 					iptables_rulelist_array += iptables_temp_array[i][j];
-				if( (j + 1) != iptables_temp_array[i].length)
-					iptables_rulelist_array += ">";
+					if( (j + 1) != iptables_temp_array[i].length)
+						iptables_rulelist_array += ">";
+				}
 			}
 		}
 	}
@@ -1992,11 +2026,16 @@ function FlexQoS_mod_apply() {
 		alert("Total iptables rules exceeds 2999 bytes! Please delete or consolidate!");
 		return
 	}
+	if (iptables_rulename_array.length > 2999) {
+		alert("Total iptables rule names exceed 2999 bytes! Please shorten or consolidate rules!");
+		return
+	}
 	if (appdb_rulelist_array.length > 2999) {
 		alert("Total AppDB rules exceeds 2999 bytes! Please delete or consolidate!");
 		return
 	}
 	custom_settings.flexqos_iptables = iptables_rulelist_array;
+	custom_settings.flexqos_iptables_names = iptables_rulename_array;
 	custom_settings.flexqos_appdb = appdb_rulelist_array;
 	custom_settings.flexqos_bandwidth = bandwidth;
 
