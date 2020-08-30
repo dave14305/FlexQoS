@@ -1511,7 +1511,7 @@ function show_iptables_rules(){
 		},
 		header: [
 			{
-				"title" : "Rule Name",
+				"title" : "Name",
 				"width" : "10%"
 			},
 			{
@@ -1524,23 +1524,23 @@ function show_iptables_rules(){
 			},
 			{
 				"title" : "Proto",
-				"width" : "7%"
-			},
-			{
-				"title" : "Local Port",
-				"width" : "14%"
-			},
-			{
-				"title" : "Remote Port",
-				"width" : "14%"
-			},
-			{
-				"title" : "Mark",
 				"width" : "9%"
 			},
 			{
+				"title" : "Local Port",
+				"width" : "12%"
+			},
+			{
+				"title" : "Remote Port",
+				"width" : "12%"
+			},
+			{
+				"title" : "Mark",
+				"width" : "8%"
+			},
+			{
 				"title" : "Class",
-				"width" : "18%"
+				"width" : "21%"
 			}
 		],
 		createPanel: {
