@@ -149,10 +149,10 @@ background-color: #2F3A3E !important;
 var custom_settings = <% get_custom_settings(); %>;
 var device = {};		// devices database --> device["IP"] = { mac: "AA:BB:CC:DD:EE:FF" , name:"name" }
 var clientlist = <% get_clientlist_from_json_database(); %>;		// data from /jffs/nmp_cl_json.js (used to correlate mac addresses to corresponding device names  )
-var tablesize = 500;		//max size of tracked connections table
 var tabledata;		//tabled of tracked connections after device-filtered
 var filter = Array(6);
-var sortmode=6;		//current sort mode of tracked connections table (default =6)
+var sortdir = 0;
+var sortfield = 5;
 var dhcp_start = "<% nvram_get("dhcp_start"); %>";
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
 var ipv6prefix = "<% nvram_get("ipv6_prefix"); %>".replace(/::$/,":");
@@ -705,133 +705,108 @@ function draw_conntrack_table() {
 	}
 	//draw table
 	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
-	updateTable()
+	updateTable();
+}
+
+function setsort(newfield) {
+	if (newfield != sortfield) {
+		sortdir = 0;
+		sortfield = newfield;
+	 } else {
+		sortdir = (sortdir ? 0 : 1);
+	}
+}
+
+function table_sort(a, b){
+	var aa, bb;
+	switch (sortfield) {
+		case 0:		// Proto
+		case 1:		// Source IP
+		case 3:		// Destination IP
+			if (sortdir) {
+				aa = full_IPv6(a[sortfield].toString());
+				bb = full_IPv6(b[sortfield].toString());
+				if (aa == bb) return 0;
+				else if (aa > bb) return -1;
+				else return 1;
+			} else {
+				aa = full_IPv6(a[sortfield].toString());
+				bb = full_IPv6(b[sortfield].toString());
+				if (aa == bb) return 0;
+				else if (aa > bb) return 1;
+				else return -1;
+			}
+			break;
+		case 2:		// Local Port
+		case 4:		// Remote Port
+			if (sortdir)
+				return parseInt(b[sortfield]) - parseInt(a[sortfield]);
+			else
+				return parseInt(a[sortfield]) - parseInt(b[sortfield]);
+			break;
+		case 5:		// Label
+			if (sortdir) {
+				aa = a[sortfield];
+				bb = b[sortfield];
+				if(aa == bb) return 0;
+				else if(aa > bb) return -1;
+				else return 1;
+			} else {
+				aa = a[sortfield];
+				bb = b[sortfield];
+				if(aa == bb) return 0;
+				else if(aa > bb) return 1;
+				else return -1;
+			}
+			break;
+	}
 }
 
 function updateTable()
 {
-	//table header
-	var header = new Array(6);
-	header[0]='<th width="5%"  style="cursor: pointer;" onclick="sortmode=1; updateTable()" >Proto</th>';
-	header[1]='<th width="28%" style="cursor: pointer;" onclick="sortmode=2; updateTable()" >Local IP</th>';
-	header[2]='<th width="6%"  style="cursor: pointer;" onclick="sortmode=3; updateTable()" >Port</th>';
-	header[3]='<th width="28%" style="cursor: pointer;" onclick="sortmode=4; updateTable()" >Remote IP</th>';
-	header[4]='<th width="6%"  style="cursor: pointer;" onclick="sortmode=5; updateTable()" >Port</th>';
-	header[5]='<th width="27%" style="cursor: pointer;" onclick="sortmode=6; updateTable()" >Application</th>';
-
 	//sort table data
-	switch(sortmode) {
-	case 1:
-		// sort by protocol
-		header[0]='<th width="5%"  style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px -1px 0px 0px inset;" onclick="sortmode=7; updateTable()" >Proto</th>';
+	if (sortfield < 5)
 		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return a[0].localeCompare(b[0])} );
-		break;
-	case 2:
-		// sort by local IP
-		header[1]='<th width="28%" style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px -1px 0px 0px inset;" onclick="sortmode=8; updateTable()" >Local IP</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
+	else
 		tabledata.sort(function(a,b) {return a[1].localeCompare(b[1])} );
-		break;
-	case 3:
-		// sort by local port
-		header[2]='<th width="6%"  style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px -1px 0px 0px inset;" onclick="sortmode=9; updateTable()" >Port</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return a[2]-b[2]} );
-		break;
-	case 4:
-		// sort by remote IP
-		header[3]='<th width="28%" style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px -1px 0px 0px inset;" onclick="sortmode=10; updateTable()" >Remote IP</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return full_IPv6(a[3]).localeCompare(full_IPv6(b[3]))} );
-		break;
-	case 5:
-		// sort by remote port
-		header[4]='<th width="6%"  style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px -1px 0px 0px inset;" onclick="sortmode=11; updateTable()" >Port</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return a[4]-b[4]} );
-		break;
-	case 6:
-		// sort by label
-		header[5]='<th width="27%" style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px -1px 0px 0px inset;" onclick="sortmode=12; updateTable()" >Application</th>';
-		tabledata.sort(function(a,b) {return a[1].localeCompare(b[1])} );
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		break;
-	case 7:
-		// sort by protocol
-		header[0]='<th width="5%"  style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px 1px 0px 0px inset;" onclick="sortmode=1; updateTable()" >Proto</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return b[0].localeCompare(a[0])} );
-		break;
-	case 8:
-		// sort by local IP
-		header[1]='<th width="28%" style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px 1px 0px 0px inset;" onclick="sortmode=2; updateTable()" >Local IP</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return b[1].localeCompare(a[1])} );
-		break;
-	case 9:
-		// sort by local port
-		header[2]='<th width="6%"  style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px 1px 0px 0px inset;" onclick="sortmode=3; updateTable()" >Port</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return b[2]-a[2]} );
-		break;
-	case 10:
-		// sort by remote IP
-		header[3]='<th width="28%" style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px 1px 0px 0px inset;" onclick="sortmode=4; updateTable()" >Remote IP</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return full_IPv6(b[3]).localeCompare(full_IPv6(a[3]))} );
-		break;
-	case 11:
-		// sort by remote port
-		header[4]='<th width="6%"  style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px 1px 0px 0px inset;" onclick="sortmode=5; updateTable()" >Port</th>';
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-		tabledata.sort(function(a,b) {return b[4]-a[4]} );
-		break;
-	case 12:
-		// sort by label
-		header[5]='<th width="27%" style="cursor: pointer; box-shadow: rgb(255, 204, 0) 0px 1px 0px 0px inset;" onclick="sortmode=6; updateTable()" >Application</th>';
-		tabledata.sort(function(a,b) {return a[1].localeCompare(b[1])} );
-		tabledata.sort(function(a,b) {return b[5].localeCompare(a[5])} );
-		break;
-	}
+	tabledata.sort(table_sort);
 
 	//generate table
-	var tbl  = document.getElementById('tableContainer');
-	var code = '<tr class="row_title">'+header[0]+header[1]+header[2]+header[3]+header[4]+header[5]+'</tr>';
+	var code = '<tr class="row_title">' +
+		'<th width="5%" id="track_header_0" style="cursor: pointer;" onclick="setsort(0); updateTable()">Proto</th>' +
+		'<th width="28%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Source IP</th>' +
+		'<th width="6%" id="track_header_2" style="cursor: pointer;" onclick="setsort(2); updateTable()">Port</th>' +
+		'<th width="28%" id="track_header_3" style="cursor: pointer;" onclick="setsort(3); updateTable()">Destination IP</th>' +
+		'<th width="6%" id="track_header_4" style="cursor: pointer;" onclick="setsort(4); updateTable()">Port</th>' +
+		'<th width="27%" id="track_header_5" style="cursor: pointer;" onclick="setsort(5); updateTable()">Application</th></tr>';
 
 	for(var i = 0; i < tabledata.length; i++){
-		if(tabledata[i])
-		{
-			qos_class = tabledata[i][5].split("_")[0];
-			label = tabledata[i][5].split("_")[1];
-			var mark = (parseInt(tabledata[i][7]).toString(16).padStart(2,'0') + parseInt(tabledata[i][6]).toString(16).padStart(4,'0')).toUpperCase();
-			if (device[tabledata[i][1]]) {
-				srchost = (device[tabledata[i][1]].name == "") ? tabledata[i][1] : device[tabledata[i][1]].name;
-			} else {
-				srchost = tabledata[i][1];
-			}
+		var qos_class = tabledata[i][5].split("_")[0];
+		var label = tabledata[i][5].split("_")[1];
+		var mark = (parseInt(tabledata[i][7]).toString(16).padStart(2,'0') + parseInt(tabledata[i][6]).toString(16).padStart(4,'0')).toUpperCase();
+		if (device[tabledata[i][1]]) {
+			srchost = (device[tabledata[i][1]].name == "") ? tabledata[i][1] : device[tabledata[i][1]].name;
+		} else {
+			srchost = tabledata[i][1];
+		}
 
-			code += '<tr>'
-			+ '<td>' + tabledata[i][0] + '</td>'
-			+ '<td title="' + tabledata[i][1] + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
-			+ '<td>' + tabledata[i][2] + '</td>'
-			+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
-			+ '<td>' + tabledata[i][4] + '</td>'
-			+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
-			+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
-			+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
-			+ '</td></tr>';
-		}
-		else
-		{
-			code += '<tr></tr>';
-		}
+		code += '<tr>'
+		+ '<td>' + tabledata[i][0] + '</td>'
+		+ '<td title="' + srchost + '"' + (tabledata[i][1].length > 32 ? ' style="font-size: 80%;"' : '') + '>' + tabledata[i][1] + '</td>'
+		+ '<td>' + tabledata[i][2] + '</td>'
+		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
+		+ '<td>' + tabledata[i][4] + '</td>'
+		+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
+		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
+		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
+		+ '</td></tr>';
 	}
 	if (tabledata.length == maxshown)
 	{
 		code += '<tr><td colspan="6"><span style="text-align: center;">List truncated to ' + maxshown + ' elements - use a filter</td></tr>';
 	}
-	tbl.innerHTML = code;
+	document.getElementById('tableContainer').innerHTML = code;
+	document.getElementById('track_header_' + sortfield).style.boxShadow = "rgb(255, 204, 0) 0px " + (sortdir == 1 ? "1" : "-1") + "px 0px 0px inset";
 }
 
 function comma(n) {
