@@ -1785,7 +1785,7 @@ function set_FlexQoS_mod_vars()
 				iptables_rulename_array = "";
 				var iptables_rulecount = iptables_rulelist_array.split("<").length;
 				for (var i=0;i<iptables_rulecount;i++) {
-					iptables_rulename_array += "<Rule " + ( i + 1 );
+					iptables_rulename_array += "<Rule " + eval(" i + 1 ");
 				}
 			}
 			else
