@@ -814,6 +814,7 @@ backup() {
 				echo "# Backup date: $(date +'%Y-%m-%d %H:%M:%S%z')"
 				echo ". /usr/sbin/helper.sh"
 				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
+				echo "am_settings_set flexqos_iptables_names \"$(am_settings_get flexqos_iptables_names)\""
 				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
 				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\""
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
@@ -1237,6 +1238,7 @@ install() {
 		Green "Backup found!"
 		backup restore
 	fi
+	sed -i "/^${SCRIPTNAME}_conntrack 1/d" /jffs/addons/custom_settings.txt
 	[ "$(nvram get qos_enable)" = "1" ] && needrestart=1
 } # install
 
@@ -1291,6 +1293,16 @@ get_config() {
 		am_settings_set "${SCRIPTNAME}_iptables_names" "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads"
 	fi
 	iptables_rules="$(am_settings_get ${SCRIPTNAME}_iptables)"
+	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables_names)" ]; then
+		iptables_rules_defined="$(echo "$iptables_rules" | sed 's/</\n/g' | /bin/grep -vc "^$")"
+		n=1
+		names=""
+		while [ "$n" -le "$iptables_rules_defined" ]; do
+			names="${names}<Rule%20${n}"
+			n="$((n+1))"
+		done
+		am_settings_set "${SCRIPTNAME}_iptables_names" "$names"
+	fi
 	iptables_names="$(am_settings_get ${SCRIPTNAME}_iptables_names)"
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
 		am_settings_set "${SCRIPTNAME}_appdb" "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
@@ -1409,7 +1421,7 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logmsg "Applying iptables custom rules"
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
-			if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" = "1" ]; then
+			if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" != "0" ]; then
 				# Flush conntrack table so that existing connections will be processed by new iptables rules
 				logmsg "Flushing conntrack table"
 				/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
@@ -1624,11 +1636,11 @@ case "$arg1" in
 		prompt_restart force
 		;;
 	'flushct')
-		am_settings_set "${SCRIPTNAME}_conntrack" "1"
+		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
 		echo "Enabled conntrack flushing."
 		;;
 	'noflushct')
-		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
+		am_settings_set "${SCRIPTNAME}_conntrack" "0"
 		echo "Disabled conntrack flushing."
 		;;
 	*)
