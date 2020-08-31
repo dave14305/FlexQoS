@@ -354,8 +354,9 @@ function draw_conntrack_table() {
 		for (j = 0; j < 6; j++) {
 			if (filter[j]) {
 				switch (j) {
+					case 0:
 					case 1:
-						if (bwdpi_conntrack[i][1].toLowerCase() != filter[1].toLowerCase())
+						if (bwdpi_conntrack[i][j].toLowerCase() != filter[j].toLowerCase())
 							filtered = 1;
 						break;
 					default:
@@ -368,12 +369,12 @@ function draw_conntrack_table() {
 		if (filtered) continue;
 		shownlen++;
 
-		var qos_class = eval_rule(bwdpi_conntrack[i][1], bwdpi_conntrack[i][3], bwdpi_conntrack[i][0], bwdpi_conntrack[i][2], bwdpi_conntrack[i][4], bwdpi_conntrack[i][7], bwdpi_conntrack[i][6], bwdpi_conntrack[i][5]);
-		if (qos_class.qosclass == 99)		// 99 means no rule match so use default class for connection category
-			qos_class.qosclass = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
+		var rule_result = eval_rule(bwdpi_conntrack[i][1], bwdpi_conntrack[i][3], bwdpi_conntrack[i][0], bwdpi_conntrack[i][2], bwdpi_conntrack[i][4], bwdpi_conntrack[i][7], bwdpi_conntrack[i][6], bwdpi_conntrack[i][5]);
+		if (rule_result.qosclass == 99)		// 99 means no rule match so use default class for connection category
+			rule_result.qosclass = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
 		// Prepend Class priority number for sorting, but only prepend it once
-		if ( ! bwdpi_conntrack[i][5].startsWith(qos_class.qosclass+'_') )
-			bwdpi_conntrack[i][5] =	qos_class.qosclass + '_' + qos_class.desc;
+		if ( ! bwdpi_conntrack[i][5].startsWith(rule_result.qosclass+'_') )
+			bwdpi_conntrack[i][5] =	rule_result.qosclass + '_' + rule_result.desc;
 
 		tabledata.push(bwdpi_conntrack[i]);
 	}
