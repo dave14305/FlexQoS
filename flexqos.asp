@@ -1117,11 +1117,9 @@ function addAppDBRow(obj, head){
 }
 
 function validAppDBForm(){
-	if(!Block_chars(document.form.appdb_mark_x, ["<" ,">"]))
-		return false;
-	if(!validate_mark_desc(document.form.appdb_desc_x.value))
-		return false;
 	if(document.form.appdb_mark_x.value.length != 6)
+		return false;
+	if(!validate_mark(document.form.appdb_mark_x.value))
 		return false;
 	return true;
 }
@@ -2027,23 +2025,12 @@ function FlexQoS_mod_apply() {
 function validate_mark(input)
 {
 	if (!(input))		return 1;		//is blank
-
 	if (input.length != 6 )		return false;	//console.log("fail length");
-	if (input.substr(-4) == "****")
-	{
-		if ( /[^0-9a-fA-F]/.test(input.substr(0,2) ))		return false;	//console.log("fail beg character");
-	}
-	else
-	{
-		if ( /[^0-9a-fA-F]/.test(input) )		return false;	//console.log("fail character");
-	}
-	var mark_desc=catdb_label_array[catdb_mark_array.indexOf(input.toUpperCase())];
-	if ( mark_desc != undefined) {
-		document.form.appdb_desc_x.value=mark_desc;
-		document.getElementById("appdb_search_x").style.removeProperty("background-color");
-	}
-	else
+	if ( catdb_mark_array.indexOf(input.toUpperCase()) < 0 ) {
 		document.form.appdb_desc_x.value="Unknown Mark";
+		return false;
+	}
+	document.form.appdb_desc_x.value=catdb_label_array[catdb_mark_array.indexOf(input.toUpperCase())];
 	document.form.appdb_mark_x.value=input.toUpperCase();
 	return 1;
 }
@@ -2098,11 +2085,11 @@ function validate_mark_desc(input)
 	if (!(input))		return 1;		//is blank
 
 	var mark=catdb_mark_array[catdb_label_array.indexOf(input)];
-	if ( mark != undefined) {
+	if ( mark != undefined ) {
 		var cat=parseInt(mark.substr(0,2),16);
 		document.form.appdb_mark_x.value=mark;
-		//document.form.appdb_class_x.value=get_cat_class(cat);
-		document.getElementById("appdb_search_x").style.removeProperty("background-color");
+		document.form.appdb_mark_x.style.removeProperty("background-color");
+		document.form.appdb_class_x.value=get_cat_class(cat);
 	}
 	else {
 		document.form.appdb_mark_x.value="";
@@ -2299,11 +2286,11 @@ function autocomplete(inp, arr) {
 	<tr>
 		<td width="auto">
 			<div class="autocomplete">
-				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" onfocusout='validate_mark_desc(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type to search application names...">
+				<input id="appdb_search_x" type="text" maxlength="52" class="input_32_table" name="appdb_desc_x" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Type to search application names...">
 			</div>
 		</td>
 		<td width="10%">
-			<input type="text" maxlength="6" class="input_6_table" name="appdb_mark_x" onfocusout='validate_mark(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' autocomplete="off" autocorrect="off" autocapitalize="off">
+			<input type="text" maxlength="6" class="input_6_table" name="appdb_mark_x" onfocusout='validate_mark(this.value) ? this.style.removeProperty("background-color") : this.style.backgroundColor="#A86262"' autocomplete="off" autocorrect="off" autocapitalize="off">
 		</td>
 		<td width="20%">
 			<select name="appdb_class_x" id="appdb_class_x" class="input_option">
