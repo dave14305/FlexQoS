@@ -861,35 +861,35 @@ update() {
 	echo ""
 	url="${GIT_URL}/${SCRIPTNAME}.sh"
 	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
-	localmd5="$(md5sum "$0" | awk '{print $1}')"
-	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.sh" | md5sum | awk '{print $1}')"
-	localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
-	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
 	if [ "$1" != "force" ]; then
-                if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
-		        if [ "$version" != "$remotever" ]; then
-		        	Green " $SCRIPTNAME_DISPLAY v${remotever} is now available!"
-	        	else
-	        		Green " $SCRIPTNAME_DISPLAY hotfix is available."
-	        	fi
-	        	echo -n " Would you like to update now? [1=Yes 2=No] : "
-	        	read -r yn
-	        	echo ""
-	        	if ! [ "$yn" = "1" ]; then
-	        		Green " No Changes have been made"
-	        		return 0
-	        	fi
-        	else
-	        	Green " You have the latest version installed"
-	        	echo -n " Would you like to overwrite your existing installation anyway? [1=Yes 2=No] : "
-	        	read -r yn
-        		echo ""
-	        	if ! [ "$yn" = "1" ]; then
-	        		Green " No Changes have been made"
-	        		return 0
-	        	fi
-        	fi
-        fi
+		localmd5="$(md5sum "$0" | awk '{print $1}')"
+		remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${url}" | md5sum | awk '{print $1}')"
+		localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
+		remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
+		if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
+			if [ "$version" != "$remotever" ]; then
+				Green " $SCRIPTNAME_DISPLAY v${remotever} is now available!"
+			else
+				Green " $SCRIPTNAME_DISPLAY hotfix is available."
+			fi
+			echo -n " Would you like to update now? [1=Yes 2=No] : "
+			read -r yn
+			echo ""
+			if ! [ "$yn" = "1" ]; then
+				Green " No Changes have been made"
+				return 0
+			fi
+		else
+			Green " You have the latest version installed"
+			echo -n " Would you like to overwrite your existing installation anyway? [1=Yes 2=No] : "
+			read -r yn
+			echo ""
+			if ! [ "$yn" = "1" ]; then
+				Green " No Changes have been made"
+				return 0
+			fi
+		fi
+	fi
 
 	echo "Installing: $SCRIPTNAME_DISPLAY v${remotever}"
 	echo ""
@@ -1563,12 +1563,10 @@ if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* #
 	arg1="install"
 fi
 
-if [ "$arg1" != "update" ]; then
-        if [ -z "$2" ]; then
-	        wan="$(nvram get wan0_ifname)"
-        else
-	        wan="$2"
-        fi
+if [ -z "$2" ]; then
+	wan="$(nvram get wan0_ifname)"
+else
+	wan="$2"
 fi
 
 case "$arg1" in
@@ -1609,7 +1607,10 @@ case "$arg1" in
 		about
 		;;
 	'update')
-		update "$2"
+		update
+		;;
+	'forceupdate')
+		update force
 		;;
 	'menu'|'')
 		menu
@@ -1620,7 +1621,7 @@ case "$arg1" in
 		else
 			am_settings_set "${SCRIPTNAME}_branch" "develop"
 			echo "Set to development branch. Triggering update..."
-			exec "$0" update force
+			exec "$0" forceupdate
 		fi
 		;;
 	'stable')
@@ -1629,7 +1630,7 @@ case "$arg1" in
 		else
 			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
 			echo "Set to stable branch. Triggering update..."
-			exec "$0" update force
+			exec "$0" forceupdate
 		fi
 		;;
 	'restart')
