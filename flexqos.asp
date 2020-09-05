@@ -467,7 +467,7 @@ function updateTable()
 
 		code += '<tr>'
 		+ '<td>' + tabledata[i][0] + '</td>'
-		+ '<td title="' + srchost + '"' + (tabledata[i][1].length > 32 ? ' style="font-size: 80%;"' : '') + '>' + tabledata[i][1] + '</td>'
+		+ '<td title="' + tabledata[i][1]  + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
 		+ '<td>' + tabledata[i][2] + '</td>'
 		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
 		+ '<td>' + tabledata[i][4] + '</td>'
