@@ -505,16 +505,16 @@ EOF
 
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
 		tmp_appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
-		if [ "$r1" ]; then
+		if [ -n "$r1" ]; then
 			tmp_appdb_rules="${tmp_appdb_rules}<${r1}>${d1}"
 		fi
-		if [ "$r2" ]; then
+		if [ -n "$r2" ]; then
 			tmp_appdb_rules="${tmp_appdb_rules}<${r2}>${d2}"
 		fi
-		if [ "$r3" ]; then
+		if [ -n "$r3" ]; then
 			tmp_appdb_rules="${tmp_appdb_rules}<${r3}>${d3}"
 		fi
-		if [ "$r4" ]; then
+		if [ -n "$r4" ]; then
 			tmp_appdb_rules="${tmp_appdb_rules}<${r4}>${d4}"
 		fi
 		am_settings_set ${SCRIPTNAME}_appdb "$tmp_appdb_rules"
