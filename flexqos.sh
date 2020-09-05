@@ -10,8 +10,8 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.0.0
-release=2020-08-08
+version=1.0.1
+release=2020-09-05
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Defaults" into "Others"
@@ -154,7 +154,7 @@ write_custom_rates() {
 			eval UpQuantum=\$UpQuantum$i
 			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %s cburst %s" \
 					"$tcwan" "$i" "$PARMS" "$i" "$UpRate" "$UpCeil" "$UpBurst" "$UpCburst"
-			[ "$UpQuantum" != "default" ] && printf " quantum %s" $UpQuantum
+			[ "$UpQuantum" != "default" ] && printf " quantum %s" "$UpQuantum"
 			printf "\n"
 		done
 	} >> /tmp/${SCRIPTNAME}_tcrules
@@ -477,12 +477,30 @@ EOF
 
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables)" ]; then
 		if [ "$gameCIDR" ]; then
-			tmp_iptables_rules="<Gaming>${gameCIDR}>>both>>!80,443>000000>1"
+			tmp_iptables_rules="<${gameCIDR}>>both>>!80,443>000000>1"
+			tmp_iptables_names="<Gaming"
 		fi
-		tmp_iptables_rules="${tmp_iptables_rules}<WiFi%20Calling>>>udp>>500,4500>>3<Facetime>>>udp>16384:16415>>>3<Usenet>>>tcp>>119,563>>5<Game%20Downloads>>tcp>>80,443>08****>7"
-		tmp_iptables_rules="${tmp_iptables_rules}<Rule1>${e1}>${e2}>${e3}>${e4}>${e5}>${e6}>${e7}<Rule2>${f1}>${f2}>${f3}>${f4}>${f5}>${f6}>${f7}<Rule3>${g1}>${g2}>${g3}>${g4}>${g5}>${g6}>${g7}<Rule4>${h1}>${h2}>${h3}>${h4}>${h5}>${h6}>${h7}"
-		tmp_iptables_rules=$(echo "$tmp_iptables_rules" | sed -E 's/<Rule[1-4]>>>>>>>//g')
+		tmp_iptables_rules="${tmp_iptables_rules}<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>tcp>>80,443>08****>7"
+		tmp_iptables_names="${tmp_iptables_names}<WiFi%20Calling<Facetime<Usenet<Game%20Downloads"
+		# if e1-7 blank, don't write name
+		if [ -n "${e1}${e2}${e4}${e5}${e6}" ]; then
+			tmp_iptables_rules="${tmp_iptables_rules}<${e1}>${e2}>${e3}>${e4}>${e5}>${e6}>${e7}"
+			tmp_iptables_names="${tmp_iptables_names}<FreshJR%20Rule%201"
+		fi
+		if [ -n "${f1}${f2}${f4}${f5}${f6}" ]; then
+			tmp_iptables_rules="${tmp_iptables_rules}<${f1}>${f2}>${f3}>${f4}>${f5}>${f6}>${f7}"
+			tmp_iptables_names="${tmp_iptables_names}<FreshJR%20Rule%202"
+		fi
+		if [ -n "${g1}${g2}${g4}${g5}${g6}" ]; then
+			tmp_iptables_rules="${tmp_iptables_rules}<${g1}>${g2}>${g3}>${g4}>${g5}>${g6}>${g7}"
+			tmp_iptables_names="${tmp_iptables_names}<FreshJR%20Rule%203"
+		fi
+		if [ -n "${h1}${h2}${h4}${h5}${h6}" ]; then
+			tmp_iptables_rules="${tmp_iptables_rules}<${h1}>${h2}>${h3}>${h4}>${h5}>${h6}>${h7}"
+			tmp_iptables_names="${tmp_iptables_names}<FreshJR%20Rule%204"
+		fi
 		am_settings_set ${SCRIPTNAME}_iptables "$tmp_iptables_rules"
+		am_settings_set ${SCRIPTNAME}_iptables_names "$tmp_iptables_names"
 	fi
 
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then

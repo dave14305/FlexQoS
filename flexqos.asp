@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.0.0 released 2020-08-08
+FlexQoS v1.0.1 released 2020-09-01
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -449,9 +449,9 @@ function updateTable()
 	//generate table
 	var code = '<tr class="row_title">' +
 		'<th width="5%" id="track_header_0" style="cursor: pointer;" onclick="setsort(0); updateTable()">Proto</th>' +
-		'<th width="28%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Source IP</th>' +
+		'<th width="28%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Local IP</th>' +
 		'<th width="6%" id="track_header_2" style="cursor: pointer;" onclick="setsort(2); updateTable()">Port</th>' +
-		'<th width="28%" id="track_header_3" style="cursor: pointer;" onclick="setsort(3); updateTable()">Destination IP</th>' +
+		'<th width="28%" id="track_header_3" style="cursor: pointer;" onclick="setsort(3); updateTable()">Remote IP</th>' +
 		'<th width="6%" id="track_header_4" style="cursor: pointer;" onclick="setsort(4); updateTable()">Port</th>' +
 		'<th width="27%" id="track_header_5" style="cursor: pointer;" onclick="setsort(5); updateTable()">Application</th></tr>';
 
@@ -467,7 +467,7 @@ function updateTable()
 
 		code += '<tr>'
 		+ '<td>' + tabledata[i][0] + '</td>'
-		+ '<td title="' + tabledata[i][1] + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
+		+ '<td title="' + srchost + '"' + (tabledata[i][1].length > 32 ? ' style="font-size: 80%;"' : '') + '>' + tabledata[i][1] + '</td>'
 		+ '<td>' + tabledata[i][2] + '</td>'
 		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
 		+ '<td>' + tabledata[i][4] + '</td>'
@@ -496,7 +496,6 @@ function get_devicenames()
 	// populate device["IP"].mac from nvram variable "dhcp_staticlist"
 	decodeURIComponent('<% nvram_char_to_ascii("", "dhcp_staticlist"); %>').split("<").forEach( element => {
 		if ( element.split(">")[1] ){
-			//device[element.split(">")[1]] = { mac:element.split(">")[0].toUpperCase() , name:"DEBUG: NVRAM" };
 			device[element.split(">")[1]] = { mac:element.split(">")[0].toUpperCase() , name:"*" };
 		}
 	});
@@ -504,7 +503,6 @@ function get_devicenames()
 	// populate device["IP"].mac from arp table
 	[<% get_arp_table(); %>].forEach( element => {
 		if ( element[3] ){
-			//device[element[0]] = { mac:element[3].toUpperCase() , name:"DEBUG: ARP" };
 			device[element[0]] = { mac:element[3].toUpperCase() , name:element[4] };
 		}
 	 });
@@ -608,7 +606,7 @@ function initial() {
 	SetCurrentPage();
 	show_menu();
 	set_FlexQoS_mod_vars();
-	get_devicenames();		//used for printing name next to IP
+	get_devicenames();
 	populate_devicefilter();		//used to populate drop down filter
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
@@ -1548,7 +1546,6 @@ function show_iptables_rules(){
 					"editMode" : "text",
 					"title" : "Rule Description",
 					"maxlength" : "27",
-					"valueMust" : false,
 					"placeholder": "Rule Description",
 					"validator" : "description"
 				},
@@ -1610,7 +1607,6 @@ function show_iptables_rules(){
 				{
 					"editMode" : "text",
 					"maxlength" : "27",
-					"valueMust" : false,
 					"styleList" : {"word-wrap":"break-word","overflow-wrap":"break-word","font-size":"90%"},
 					"validator" : "description"
 				},
