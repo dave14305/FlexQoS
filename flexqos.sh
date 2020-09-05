@@ -504,7 +504,7 @@ EOF
 	fi
 
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
-		tmp_appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
+		tmp_appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4"
 		if [ -n "$r1" ]; then
 			tmp_appdb_rules="${tmp_appdb_rules}<${r1}>${d1}"
 		fi
@@ -517,6 +517,7 @@ EOF
 		if [ -n "$r4" ]; then
 			tmp_appdb_rules="${tmp_appdb_rules}<${r4}>${d4}"
 		fi
+		tmp_appdb_rules="${tmp_appdb_rules}<13****>4<14****>4<1A****>5"
 		am_settings_set ${SCRIPTNAME}_appdb "$tmp_appdb_rules"
 	fi
 
