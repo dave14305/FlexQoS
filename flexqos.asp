@@ -2238,7 +2238,7 @@ function autocomplete(inp, arr) {
 <input type="hidden" name="next_page" value="">
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_script" value="">
-<input type="hidden" name="action_wait" value="15">
+<input type="hidden" name="action_wait" value="30">
 <input type="hidden" name="flag" value="">
 <input type="hidden" name="amng_custom" id="amng_custom" value="">
 <table class="content" align="center" cellpadding="0" cellspacing="0">
