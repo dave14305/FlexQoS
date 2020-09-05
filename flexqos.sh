@@ -480,7 +480,7 @@ EOF
 			tmp_iptables_rules="<${gameCIDR}>>both>>!80,443>000000>1"
 			tmp_iptables_names="<Gaming"
 		fi
-		tmp_iptables_rules="${tmp_iptables_rules}<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>tcp>>80,443>08****>7"
+		tmp_iptables_rules="${tmp_iptables_rules}<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
 		tmp_iptables_names="${tmp_iptables_names}<WiFi%20Calling<Facetime<Usenet<Game%20Downloads"
 		# if e1-7 blank, don't write name
 		if [ -n "${e1}${e2}${e4}${e5}${e6}" ]; then
