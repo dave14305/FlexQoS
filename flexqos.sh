@@ -1250,7 +1250,7 @@ install() {
 		chmod +x "$SCRIPTPATH"
 	fi
 	install_webui
-	generate_bwdpi_arrays
+	generate_bwdpi_arrays force
 	echo "Adding $SCRIPTNAME_DISPLAY entries to Merlin user scripts..."
 	Auto_FirewallStart
 	Auto_ServiceEventEnd
@@ -1542,6 +1542,7 @@ generate_bwdpi_arrays() {
 	# prepend wc variables with zero in case file doesn't exist, to avoid bad number error
 	if [ ! -f "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || \
 		[ /jffs/signature/rule.trf -nt "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || \
+		[ "$1" = "force" ] || \
 		[ "0$(wc -c < /www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js)" -lt "0$(wc -c 2>/dev/null < /tmp/bwdpi/bwdpi.app.db)" ]; then
 	{
 		printf "var catdb_mark_array = [ \"000000\""
