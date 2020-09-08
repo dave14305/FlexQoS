@@ -1113,10 +1113,11 @@ Init_UserScript() {
 	fi
 	userscript="/jffs/scripts/$1"
 	if [ ! -f "$userscript" ]; then
-		echo "#!/bin/sh" > "$userscript"
-		echo >> "$userscript"
+		printf "#!/bin/sh\n\n" > "$userscript"
 	elif [ -f "$userscript" ] && ! head -1 "$userscript" | /bin/grep -qE "^#!/bin/sh"; then
 		sed -i '1s~^~#!/bin/sh\n~' "$userscript"
+	elif [ "$(tail -c1 "$userscript" | wc -l)" = "0" ]; then
+		printf "\n" >> "$userscript"
 	fi
 	if [ ! -x "$userscript" ]; then
 		chmod 755 "$userscript"
