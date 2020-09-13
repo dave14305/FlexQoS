@@ -69,23 +69,23 @@ fi
 # marks for iptable rules
 # Note these marks are same as filter match/mask combo but have a 1 at the end.
 # That trailing 1 prevents them from being caught by unidentified mask
-Net_mark_down="0x80090001"
-VOIP_mark_down="0x80060001"
-Gaming_mark_down="0x80080001"
-Others_mark_down="0x800a0001"
-Web_mark_down="0x80180001"
-Streaming_mark_down="0x80040001"
-Downloads_mark_down="0x80030001"
-Default_mark_down="0x803f0001"
+Net_mark_down="0x8009ffff"
+VOIP_mark_down="0x8006ffff"
+Gaming_mark_down="0x8008ffff"
+Others_mark_down="0x800affff"
+Web_mark_down="0x8018ffff"
+Streaming_mark_down="0x8004ffff"
+Downloads_mark_down="0x8003ffff"
+Default_mark_down="0x803fffff"
 
-Net_mark_up="0x40090001"
-VOIP_mark_up="0x40060001"
-Gaming_mark_up="0x40080001"
-Others_mark_up="0x400a0001"
-Web_mark_up="0x40180001"
-Streaming_mark_up="0x40040001"
-Downloads_mark_up="0x40030001"
-Default_mark_up="0x403f0001"
+Net_mark_up="0x4009ffff"
+VOIP_mark_up="0x400ffff"
+Gaming_mark_up="0x4008ffff"
+Others_mark_up="0x400affff"
+Web_mark_up="0x4018ffff"
+Streaming_mark_up="0x4004ffff"
+Downloads_mark_up="0x4003ffff"
+Default_mark_up="0x403fffff"
 
 logmsg() {
 	if [ "$#" = "0" ]; then
@@ -710,36 +710,36 @@ parse_iptablerule() {
 	#destination mark
 	case "$7" in
 		0)
-			DOWN_dst="-j MARK --set-mark ${Net_mark_down}"
-			UP_dst="-j MARK --set-mark ${Net_mark_up}"
+			DOWN_dst="-j MARK --set-mark ${Net_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Net_mark_up}/0x3fffff"
 			;;
 		1)
-			DOWN_dst="-j MARK --set-mark ${Gaming_mark_down}"
-			UP_dst="-j MARK --set-mark ${Gaming_mark_up}"
+			DOWN_dst="-j MARK --set-mark ${Gaming_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Gaming_mark_up}/0x3fffff"
 			;;
 		2)
-			DOWN_dst="-j MARK --set-mark ${Streaming_mark_down}"
-			UP_dst="-j MARK --set-mark ${Streaming_mark_up}"
+			DOWN_dst="-j MARK --set-mark ${Streaming_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Streaming_mark_up}/0x3fffff"
 			;;
 		3)
-			DOWN_dst="-j MARK --set-mark ${VOIP_mark_down}"
-			UP_dst="-j MARK --set-mark ${VOIP_mark_up}"
+			DOWN_dst="-j MARK --set-mark ${VOIP_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${VOIP_mark_up}/0x3fffff"
 			;;
 		4)
-			DOWN_dst="-j MARK --set-mark ${Web_mark_down}"
-			UP_dst="-j MARK --set-mark ${Web_mark_up}"
+			DOWN_dst="-j MARK --set-mark ${Web_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Web_mark_up}/0x3fffff"
 			;;
 		5)
-			DOWN_dst="-j MARK --set-mark ${Downloads_mark_down}"
-			UP_dst="-j MARK --set-mark ${Downloads_mark_up}"
+			DOWN_dst="-j MARK --set-mark ${Downloads_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Downloads_mark_up}/0x3fffff"
 			;;
 		6)
-			DOWN_dst="-j MARK --set-mark ${Others_mark_down}"
-			UP_dst="-j MARK --set-mark ${Others_mark_up}"
+			DOWN_dst="-j MARK --set-mark ${Others_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Others_mark_up}/0x3fffff"
 			;;
 		7)
-			DOWN_dst="-j MARK --set-mark ${Default_mark_down}"
-			UP_dst="-j MARK --set-mark ${Default_mark_up}"
+			DOWN_dst="-j MARK --set-mark ${Default_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Default_mark_up}/0x3fffff"
 			;;
 		*)
 			#if destinations is empty return early
