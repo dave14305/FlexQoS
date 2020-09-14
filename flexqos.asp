@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
 FlexQoS v1.0.1 released 2020-09-07
 FlexQoS maintained by dave14305
@@ -373,8 +373,8 @@ function draw_conntrack_table() {
 		if (rule_result.qosclass == 99)		// 99 means no rule match so use default class for connection category
 			rule_result.qosclass = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
 		// Prepend Class priority number for sorting, but only prepend it once
-		if ( ! bwdpi_conntrack[i][5].startsWith(rule_result.qosclass+'_') )
-			bwdpi_conntrack[i][5] =	rule_result.qosclass + '_' + rule_result.desc;
+		if ( ! bwdpi_conntrack[i][5].startsWith(rule_result.qosclass+'>') )
+			bwdpi_conntrack[i][5] =	rule_result.qosclass + '>' + rule_result.desc;
 
 		tabledata.push(bwdpi_conntrack[i]);
 	}
@@ -456,8 +456,8 @@ function updateTable()
 		'<th width="27%" id="track_header_5" style="cursor: pointer;" onclick="setsort(5); updateTable()">Application</th></tr>';
 
 	for(var i = 0; i < tabledata.length; i++){
-		var qos_class = tabledata[i][5].split("_")[0];
-		var label = tabledata[i][5].split("_")[1];
+		var qos_class = tabledata[i][5].split(">")[0];
+		var label = tabledata[i][5].split(">")[1];
 		var mark = (parseInt(tabledata[i][7]).toString(16).padStart(2,'0') + parseInt(tabledata[i][6]).toString(16).padStart(4,'0')).toUpperCase();
 		if (device[tabledata[i][1]]) {
 			srchost = (device[tabledata[i][1]].name == "") ? tabledata[i][1] : device[tabledata[i][1]].name;
@@ -2265,7 +2265,7 @@ function autocomplete(inp, arr) {
 <div id="FlexQoS_mod" style="display:none;">
 <div style="display:inline-block; margin:0px 0px 10px 5px; font-size:14px; text-shadow: 1px 1px 0px black;"><b>QoS Customization</b></div>
 <div style="margin:0px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_apply();"><span style="padding:0 0 0 0" align="center">Apply</span></div>
-<div id="iptables_rules_block" style=""></div>
+<div id="iptables_rules_block"></div>
 
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 	<thead>
@@ -2299,7 +2299,7 @@ function autocomplete(inp, arr) {
 	</tr>
 </tbody>
 </table>
-<div id="appdb_rules_block" style=""></div>
+<div id="appdb_rules_block"></div>
 
 <table border="0" cellpadding="0" cellspacing="0" class="FormTable" style="float:left; width:350px; display:inline-table; margin: 10px auto 10px auto">
 <thead><td colspan="3">Download Bandwidth<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_mod_reset_down()'>Reset</small></td></thead>
