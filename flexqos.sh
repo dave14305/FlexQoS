@@ -205,19 +205,37 @@ set_tc_variables(){
 			eval "Cat${flowid}UpCeilPercent=$ucp7"
 			;;
 		'4')
-			if [ -z "$Streaming" ]; then		# only process 4 if streaming not done (only process it once)
-				Streaming="1:1${flowid}"
-				eval "Cat${flowid}DownBandPercent=$drp5"
-				eval "Cat${flowid}DownCeilPercent=$dcp5"
-				eval "Cat${flowid}UpBandPercent=$urp5"
-				eval "Cat${flowid}UpCeilPercent=$ucp5"
+			if echo "$(nvram get bwdpi_app_rulelist)" | /bin/grep -qE "<4,13(<.*)?<4<"; then
+			# Learn-From-Home is higher priority than Streaming
+				if [ -z "$Defaults" ]; then
+					Defaults="1:1${flowid}"
+					eval "Cat${flowid}DownBandPercent=$drp6"
+					eval "Cat${flowid}DownCeilPercent=$dcp6"
+					eval "Cat${flowid}UpBandPercent=$urp6"
+					eval "Cat${flowid}UpCeilPercent=$ucp6"
+				else
+					Streaming="1:1${flowid}"
+					eval "Cat${flowid}DownBandPercent=$drp5"
+					eval "Cat${flowid}DownCeilPercent=$dcp5"
+					eval "Cat${flowid}UpBandPercent=$urp5"
+					eval "Cat${flowid}UpCeilPercent=$ucp5"
+				fi
 			else
-				Defaults="1:1${flowid}"
-				eval "Cat${flowid}DownBandPercent=$drp6"
-				eval "Cat${flowid}DownCeilPercent=$dcp6"
-				eval "Cat${flowid}UpBandPercent=$urp6"
-				eval "Cat${flowid}UpCeilPercent=$ucp6"
-			fi
+			# Streaming is higher priority than Learn-From-Home
+				if [ -z "$Streaming" ]; then
+					Streaming="1:1${flowid}"
+					eval "Cat${flowid}DownBandPercent=$drp5"
+					eval "Cat${flowid}DownCeilPercent=$dcp5"
+					eval "Cat${flowid}UpBandPercent=$urp5"
+					eval "Cat${flowid}UpCeilPercent=$ucp5"
+				else
+					Defaults="1:1${flowid}"
+					eval "Cat${flowid}DownBandPercent=$drp6"
+					eval "Cat${flowid}DownCeilPercent=$dcp6"
+					eval "Cat${flowid}UpBandPercent=$urp6"
+					eval "Cat${flowid}UpCeilPercent=$ucp6"
+				fi
+			fi  # Check Learn-From-Home and Streaming priority order
 			;;
 		'7')
 			Others="1:1${flowid}"
