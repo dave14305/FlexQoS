@@ -79,7 +79,7 @@ Downloads_mark_down="0x8003ffff"
 Default_mark_down="0x803fffff"
 
 Net_mark_up="0x4009ffff"
-VOIP_mark_up="0x400ffff"
+VOIP_mark_up="0x4006ffff"
 Gaming_mark_up="0x4008ffff"
 Others_mark_up="0x400affff"
 Web_mark_up="0x4018ffff"
