@@ -986,7 +986,7 @@ menu() {
 		echo "  (7) delete       remove backup"
 	fi
 	echo ""
-	echo "  (u) uninstall    uninstall script"
+	echo "  (9) uninstall    uninstall script"
 	echo "  (e) exit"
 	echo ""
 	echo -n "Make a selection: "
@@ -1014,8 +1014,7 @@ menu() {
 		'7')
 			backup remove
 		;;
-
-		'u'|'U')
+		'9')
 			scriptinfo
 			echo -n " Confirm you want to uninstall $SCRIPTNAME_DISPLAY [1=Yes 2=No] : "
 			read -r yn

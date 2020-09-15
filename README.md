@@ -298,7 +298,7 @@ The Delete option (7) is only shown if an existing backup file is detected at ``
 
 #### Uninstall
 
-The Uninstall option (u) will remove the script and its files and directories. You will be prompted to create a backup of your settings before uninstalling, if no backup exists. If a backup does exist, you will be prompted to keep or delete it, in case you plan to reinstall later. In all cases FlexQoS custom settings are deleted during uninstall.
+The Uninstall option (9) will remove the script and its files and directories. You will be prompted to create a backup of your settings before uninstalling, if no backup exists. If a backup does exist, you will be prompted to keep or delete it, in case you plan to reinstall later. In all cases FlexQoS custom settings are deleted during uninstall.
 
 If you migrated from FreshJR_QOS to FlexQoS, the uninstaller will restore your FreshJR_QOS settings if the backup file is found in the ```/jffs/addons/flexqos``` directory.
 
