@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.0.1 released 2020-09-07
+FlexQoS v1.0.3 released 2020-09-21
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -210,17 +210,6 @@ if (qos_mode == 2) {
 		cat_id_array.push([4, 13]);
 		var qos_default=bwdpi_app_rulelist_row.indexOf("0,5,6,15,17");
 	}
-
-	var flexqos_newmarks = [
-		[9, 1],   // 0 Net Control mark
-		[8, 1],   // 1 Gaming mark
-		[4, 1],   // 2 Streaming mark
-		[6, 1],   // 3 VoIP mark
-		[24, 1],  // 4 Web mark
-		[3, 1],   // 5 Downloads mark
-		[10, 1],  // 6 Others mark
-		[63, 1]   // 7 Defaults/Game Transferring mark
-	];
 } else {
 	var category_title = ["", "Highest", "High", "Medium", "Low", "Lowest"];
 }
