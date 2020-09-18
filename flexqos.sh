@@ -129,8 +129,22 @@ iptables_static_rules() {
 
 write_appdb_static_rules() {
 	{
-		echo "filter add dev br0 protocol all prio 10 u32 match mark ${Default_mark_down} 0xc03fffff flowid $Defaults"		#Used to establish unique Game Downloads filter
-		echo "filter add dev $tcwan protocol all prio 10 u32 match mark ${Default_mark_up} 0xc03fffff flowid $Defaults"		#Used to establish unique Game Downloads filter
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Net_mark_down} 0xc03fffff flowid $Net"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Net_mark_up} 0xc03fffff flowid $Net"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${VOIP_mark_down} 0xc03fffff flowid $VOIP"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${VOIP_mark_up} 0xc03fffff flowid $VOIP"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Gaming_mark_down} 0xc03fffff flowid $Gaming"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Gaming_mark_up} 0xc03fffff flowid $Gaming"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Others_mark_down} 0xc03fffff flowid $Others"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Others_mark_up} 0xc03fffff flowid $Others"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Web_mark_down} 0xc03fffff flowid $Web"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Web_mark_up} 0xc03fffff flowid $Web"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Streaming_mark_down} 0xc03fffff flowid $Streaming"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Streaming_mark_up} 0xc03fffff flowid $Streaming"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Downloads_mark_down} 0xc03fffff flowid $Downloads"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Downloads_mark_up} 0xc03fffff flowid $Downloads"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Default_mark_down} 0xc03fffff flowid $Defaults"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Default_mark_up} 0xc03fffff flowid $Defaults"
 	} > /tmp/${SCRIPTNAME}_tcrules
 } # write_appdb_static_rules
 

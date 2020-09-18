@@ -788,10 +788,6 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst, Desc){
 };
 
 function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
-	var last_matching_rule = 99;  // return 99 if no matches
-	var last_matching_desc = CDesc;
-
-	// save the iptables_rules[i][18] when a match
 	for (i=0;i<iptables_rules.length;i++) {
 		//eval false if rule has no filters or destination specified
 		if (!iptables_rules[i] || !iptables_rules[i][0] || (iptables_rules[i][18]==undefined) )
@@ -902,12 +898,8 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 		}
 
 		// console.log("rule matches current connection");
-		// stop at first match and save class and new mark
-		last_matching_rule=iptables_rules[i][18];  // save the rule's target Class
-		last_matching_desc=iptables_rules[i][19];  // save the rule's Name as application name
-		CCat=flexqos_newmarks[last_matching_rule][0];
-		CId=flexqos_newmarks[last_matching_rule][1];
-		break;
+		// stop at first match
+		return { qosclass: iptables_rules[i][18], desc: iptables_rules[i][19] };
 	} // for each iptables rule in array
 
 	for (i=0;i<appdb_rules.length;i++) {
@@ -935,8 +927,7 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 		return { qosclass: appdb_rules[i][18], desc: CDesc };
 	} // for each appdb rule in array
 	// if we reach here, we either have a connection that matches nothing and will return 99
-	// or an iptables connection whose new mark was not overridden by an appdb rule
-	return { qosclass: last_matching_rule, desc: last_matching_desc };
+	return { qosclass: 99, desc: CDesc };
 }  // eval_rule
 
 function redraw() {
