@@ -10,16 +10,16 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.0.2
-release=2020-09-14
+version=1.0.3
+release=2020-09-21
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
-# Script Changes Unidentified traffic destination away from "Defaults" into "Others"
+# Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
 # Script Changes HTTPS traffic destination away from "Net Control" into "Web Surfing"
 # Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download.
 # Script includes other default rules:
-#   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into VOIP
-#   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into VOIP
+#   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into Work-From-Home
+#   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into Work-From-Home
 #   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads
 #   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into Game Downloads.
 #   (Snapchat)      -  Moved into Others
@@ -70,22 +70,22 @@ fi
 # Note these marks are same as filter match/mask combo but have a 1 at the end.
 # That trailing 1 prevents them from being caught by unidentified mask
 Net_mark_down="0x8009ffff"
-VOIP_mark_down="0x8006ffff"
+Work_mark_down="0x8006ffff"
 Gaming_mark_down="0x8008ffff"
 Others_mark_down="0x800affff"
 Web_mark_down="0x8018ffff"
 Streaming_mark_down="0x8004ffff"
 Downloads_mark_down="0x8003ffff"
-Default_mark_down="0x803fffff"
+Learn_mark_down="0x803fffff"
 
 Net_mark_up="0x4009ffff"
-VOIP_mark_up="0x4006ffff"
+Work_mark_up="0x4006ffff"
 Gaming_mark_up="0x4008ffff"
 Others_mark_up="0x400affff"
 Web_mark_up="0x4018ffff"
 Streaming_mark_up="0x4004ffff"
 Downloads_mark_up="0x4003ffff"
-Default_mark_up="0x403fffff"
+Learn_mark_up="0x403fffff"
 
 logmsg() {
 	if [ "$#" = "0" ]; then
@@ -131,8 +131,8 @@ write_appdb_static_rules() {
 	{
 		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Net_mark_down} 0xc03fffff flowid $Net"
 		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Net_mark_up} 0xc03fffff flowid $Net"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${VOIP_mark_down} 0xc03fffff flowid $VOIP"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${VOIP_mark_up} 0xc03fffff flowid $VOIP"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Work_mark_down} 0xc03fffff flowid $Work"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Work_mark_up} 0xc03fffff flowid $Work"
 		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Gaming_mark_down} 0xc03fffff flowid $Gaming"
 		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Gaming_mark_up} 0xc03fffff flowid $Gaming"
 		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Others_mark_down} 0xc03fffff flowid $Others"
@@ -143,8 +143,8 @@ write_appdb_static_rules() {
 		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Streaming_mark_up} 0xc03fffff flowid $Streaming"
 		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Downloads_mark_down} 0xc03fffff flowid $Downloads"
 		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Downloads_mark_up} 0xc03fffff flowid $Downloads"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Default_mark_down} 0xc03fffff flowid $Defaults"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Default_mark_up} 0xc03fffff flowid $Defaults"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Learn_mark_down} 0xc03fffff flowid $Defaults"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Learn_mark_up} 0xc03fffff flowid $Defaults"
 	} > /tmp/${SCRIPTNAME}_tcrules
 } # write_appdb_static_rules
 
@@ -205,7 +205,7 @@ set_tc_variables(){
 		fi
 		case ${line} in
 		'0')
-			VOIP="1:1${flowid}"
+			Work="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp1"
 			eval "Cat${flowid}DownCeilPercent=$dcp1"
 			eval "Cat${flowid}UpBandPercent=$urp1"
@@ -221,8 +221,8 @@ set_tc_variables(){
 		'4')
 			if echo "$(nvram get bwdpi_app_rulelist)" | /bin/grep -qE "<4,13(<.*)?<4<"; then
 			# Learn-From-Home is higher priority than Streaming
-				if [ -z "$Defaults" ]; then
-					Defaults="1:1${flowid}"
+				if [ -z "$Learn" ]; then
+					Learn="1:1${flowid}"
 					eval "Cat${flowid}DownBandPercent=$drp6"
 					eval "Cat${flowid}DownCeilPercent=$dcp6"
 					eval "Cat${flowid}UpBandPercent=$urp6"
@@ -243,7 +243,7 @@ set_tc_variables(){
 					eval "Cat${flowid}UpBandPercent=$urp5"
 					eval "Cat${flowid}UpCeilPercent=$ucp5"
 				else
-					Defaults="1:1${flowid}"
+					Learn="1:1${flowid}"
 					eval "Cat${flowid}DownBandPercent=$drp6"
 					eval "Cat${flowid}DownCeilPercent=$dcp6"
 					eval "Cat${flowid}UpBandPercent=$urp6"
@@ -280,7 +280,7 @@ set_tc_variables(){
 			eval "Cat${flowid}UpCeilPercent=$ucp4"
 			;;
 		'na')
-			Defaults="1:1${flowid}"
+			Learn="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp6"
 			eval "Cat${flowid}DownCeilPercent=$dcp6"
 			eval "Cat${flowid}UpBandPercent=$urp6"
@@ -443,13 +443,13 @@ debug(){
 	echo "Up Band  : $UpCeil"
 	echo "***********"
 	echo "Net Control: $Net"
-	echo "Work-From-Home: $VOIP"
+	echo "Work-From-Home: $Work"
 	echo "Gaming: $Gaming"
 	echo "Others: $Others"
 	echo "Web Surfing: $Web"
 	echo "Streaming: $Streaming"
 	echo "File Downloads: $Downloads"
-	echo "Game Downloads: $Defaults"
+	echo "Game Downloads: $Learn"
 	echo "***********"
 	echo "Downrates: $DownRate0, $DownRate1, $DownRate2, $DownRate3, $DownRate4, $DownRate5, $DownRate6, $DownRate7"
 	echo "Downceils: $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
@@ -576,11 +576,11 @@ get_flowid() {
 		0)	flowid="$Net" ;;
 		1)	flowid="$Gaming" ;;
 		2)	flowid="$Streaming" ;;
-		3)	flowid="$VOIP" ;;
+		3)	flowid="$Work" ;;
 		4)	flowid="$Web" ;;
 		5)	flowid="$Downloads" ;;
 		6)	flowid="$Others" ;;
-		7)	flowid="$Defaults" ;;
+		7)	flowid="$Learn" ;;
 		# return empty if destination missing
 		*)	flowid="" ;;
 	esac
@@ -754,8 +754,8 @@ parse_iptablerule() {
 			UP_dst="-j MARK --set-mark ${Streaming_mark_up}/0x3fffff"
 			;;
 		3)
-			DOWN_dst="-j MARK --set-mark ${VOIP_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${VOIP_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark ${Work_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Work_mark_up}/0x3fffff"
 			;;
 		4)
 			DOWN_dst="-j MARK --set-mark ${Web_mark_down}/0x3fffff"
@@ -770,8 +770,8 @@ parse_iptablerule() {
 			UP_dst="-j MARK --set-mark ${Others_mark_up}/0x3fffff"
 			;;
 		7)
-			DOWN_dst="-j MARK --set-mark ${Default_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Default_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark ${Learn_mark_down}/0x3fffff"
+			UP_dst="-j MARK --set-mark ${Learn_mark_up}/0x3fffff"
 			;;
 		*)
 			#if destinations is empty return early
@@ -833,14 +833,14 @@ about() {
 	Blue "  https://github.com/dave14305/FlexQoS (Source Code)"
 	echo ""
 	echo "About"
-	echo "  Script Changes Unidentified traffic destination away from Defaults into Others"
+	echo "  Script Changes Unidentified traffic destination away from Work-From-Home into Others"
 	echo "  Script Changes HTTPS traffic destination away from Net Control into Web Surfing"
 	echo "  Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download."
 	echo "  Script Repurposes Learn-From-Home to contain Game Downloads"
 	echo ""
 	echo "  Script includes misc default rules"
-	echo "   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into VOIP"
-	echo "   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into VOIP"
+	echo "   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into Work-From-Home"
+	echo "   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into Work-From-Home"
 	echo "   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads"
 	echo "   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into Game Downloads."
 	echo "   (Snapchat)      -  Moved into Others"
