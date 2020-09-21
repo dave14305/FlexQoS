@@ -428,7 +428,6 @@ debug(){
 	echo "tc WAN iface: $tcwan"
 	echo "Undf Prio: $undf_prio"
 	echo "Undf FlowID: $undf_flowid"
-	echo "Classes Present: $ClassesPresent"
 	echo "Down Band: $DownCeil"
 	echo "Up Band  : $UpCeil"
 	echo "***********"
