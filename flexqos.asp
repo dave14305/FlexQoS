@@ -1825,7 +1825,7 @@ function set_FlexQoS_mod_vars()
 					break;
 			}
 			for (var c=0;c<bandwidth_array[b].length;c++) {
-				if (bandwidth_array[b][c] >=5 && bandwidth_array[b][c]<=maxpct)
+				if (bandwidth_array[b][c] >=1 && bandwidth_array[b][c]<=maxpct)
 					document.getElementById(temp_elemid + c).value=bandwidth_array[b][c];
 			}
 		}
