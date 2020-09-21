@@ -143,8 +143,8 @@ write_appdb_static_rules() {
 		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Streaming_mark_up} 0xc03fffff flowid $Streaming"
 		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Downloads_mark_down} 0xc03fffff flowid $Downloads"
 		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Downloads_mark_up} 0xc03fffff flowid $Downloads"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Learn_mark_down} 0xc03fffff flowid $Defaults"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Learn_mark_up} 0xc03fffff flowid $Defaults"
+		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Learn_mark_down} 0xc03fffff flowid $Learn"
+		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Learn_mark_up} 0xc03fffff flowid $Learn"
 	} > /tmp/${SCRIPTNAME}_tcrules
 } # write_appdb_static_rules
 
@@ -157,19 +157,15 @@ write_custom_rates() {
 			eval DownBurst=\$DownBurst$i
 			eval DownCburst=\$DownCburst$i
 			eval DownQuantum=\$DownQuantum$i
-			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %s cburst %s" \
-					"br0" "$i" "$PARMS" "$i" "$DownRate" "$DownCeil" "$DownBurst" "$DownCburst"
-			[ "$DownQuantum" != "default" ] && printf " quantum %s" "$DownQuantum"
-			printf "\n"
+			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %sb cburst %sb quantum %s\n" \
+					"br0" "$i" "$PARMS" "$i" "$DownRate" "$DownCeil" "$DownBurst" "$DownCburst" "$DownQuantum"
 			eval UpRate=\$UpRate$i
 			eval UpCeil=\$UpCeil$i
 			eval UpBurst=\$UpBurst$i
 			eval UpCburst=\$UpCburst$i
 			eval UpQuantum=\$UpQuantum$i
-			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %s cburst %s" \
-					"$tcwan" "$i" "$PARMS" "$i" "$UpRate" "$UpCeil" "$UpBurst" "$UpCburst"
-			[ "$UpQuantum" != "default" ] && printf " quantum %s" "$UpQuantum"
-			printf "\n"
+			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %sb cburst %sb quantum %s\n" \
+					"$tcwan" "$i" "$PARMS" "$i" "$UpRate" "$UpCeil" "$UpBurst" "$UpCburst" "$UpQuantum"
 		done
 	} >> /tmp/${SCRIPTNAME}_tcrules
 } # write_custom_rates
@@ -220,7 +216,7 @@ set_tc_variables(){
 			;;
 		'4')
 			if echo "$(nvram get bwdpi_app_rulelist)" | /bin/grep -qE "<4,13(<.*)?<4<"; then
-			# Learn-From-Home is higher priority than Streaming
+				# Learn-From-Home is higher priority than Streaming
 				if [ -z "$Learn" ]; then
 					Learn="1:1${flowid}"
 					eval "Cat${flowid}DownBandPercent=$drp6"
@@ -235,7 +231,7 @@ set_tc_variables(){
 					eval "Cat${flowid}UpCeilPercent=$ucp5"
 				fi
 			else
-			# Streaming is higher priority than Learn-From-Home
+				# Streaming is higher priority than Learn-From-Home
 				if [ -z "$Streaming" ]; then
 					Streaming="1:1${flowid}"
 					eval "Cat${flowid}DownBandPercent=$drp5"
@@ -295,7 +291,7 @@ EOF
 	#GUI shows in Mb/s; nvram stores in Kb/s
 	DownCeil="$(printf "%.0f" "$(nvram get qos_ibw)")"
 	UpCeil="$(printf "%.0f" "$(nvram get qos_obw)")"
-#	WANMTU="$(nvram get wan_mtu)"
+	WANMTU="$(nvram get wan_mtu)"
 
 	i=0
 	while [ "$i" -lt "8" ]
@@ -305,43 +301,37 @@ EOF
 		eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
 		eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
 		downquantum=$((DownRate${i}*1000/8/10))
-		if [ "$downquantum" -gt "200000" ]; then
-			eval "DownQuantum$i=\$((DownRate${i}\*1000/8/10))"
-#		elif [ "$downquantum" -lt "$((WANMTU+14))" ]; then
-#			eval "DownQuantum$i=\$((WANMTU+14))"
-		else
-			eval "DownQuantum$i=\"default\""
+		if [ "$downquantum" -lt "$((WANMTU+14))" ]; then
+			downquantum="$((WANMTU+14))"
 		fi
 		upquantum=$((UpRate${i}*1000/8/10))
-		if [ "$upquantum" -gt "200000" ]; then
-			eval "UpQuantum$i=\$((UpRate${i}\*1000/8/10))"
-#		elif [ "$upquantum" -lt "$((WANMTU+14))" ]; then
-#			eval "UpQuantum$i=\$((WANMTU+14))"
-		else
-			eval "UpQuantum$i=\"default\""
+		if [ "$upquantum" -lt "$((WANMTU+14))" ]; then
+			upquantum="$((WANMTU+14))"
 		fi
+		downburst=$((((DownRate${i}*1000/1280000))*1600))
+		if [ "$downburst" -lt "3200" ]; then
+			downburst=3200
+		fi
+		downcburst=$((((DownCeil${i}*1000/1280000))*1600))
+		if [ "$downcburst" -lt "3200" ]; then
+			downcburst=3200
+		fi
+		upburst=$((((UpRate${i}*1000/1280000))*1600))
+		if [ "$upburst" -lt "3200" ]; then
+			upburst=3200
+		fi
+		upcburst=$((((UpCeil${i}*1000/1280000))*1600))
+		if [ "$upcburst" -lt "3200" ]; then
+			upcburst=3200
+		fi
+		eval "DownQuantum${i}=$downquantum"
+		eval "UpQuantum${i}=$upquantum"
+		eval "DownBurst${i}=$downburst"
+		eval "DownCburst${i}=$downcburst"
+		eval "UpBurst${i}=$upburst"
+		eval "UpCburst${i}=$upcburst"
 		i="$((i+1))"
 	done
-
-	ClassesPresent=0
-	#read existing burst/cburst per download class
-	while read -r class burst cburst
-	do
-		ClassesPresent=$((ClassesPresent+1))
-		eval "DownBurst${class}=$burst"
-		eval "DownCburst${class}=$cburst"
-	done <<EOF
-$(${tc} class show dev br0 parent 1: | sed -nE '/parent/ s/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/p')
-EOF
-
-	#read existing burst/cburst per upload class
-	while read -r class burst cburst
-	do
-		eval "UpBurst${class}=$burst"
-		eval "UpCburst${class}=$cburst"
-	done <<EOF
-$(${tc} class show dev $tcwan parent 1: | sed -nE '/parent/ s/.*htb 1:1([0-7]).* burst ([0-9]+[A-Za-z]*).* cburst ([0-9]+[A-Za-z]*)/\1 \2 \3/p')
-EOF
 
 	#read parameters for fakeTC
 	PARMS=""
