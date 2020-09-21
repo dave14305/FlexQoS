@@ -2098,7 +2098,7 @@ function validate_percent(input)
 {
 	if (!(input)) 						return false;	//cannot be blank
 	if ( /[^0-9]/.test(input) )			return false;	//console.log("fail character");
-	if ( input < 5 || input > 100) 		return false;	//console.log("fail range");
+	if ( input < 1 || input > 100) 		return false;	//console.log("fail range");
 	check_bandwidth();
 	return 1
 }
