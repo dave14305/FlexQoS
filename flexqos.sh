@@ -40,6 +40,11 @@ release=2020-09-21
 # initialize Merlin Addon API helper functions
 . /usr/sbin/helper.sh
 
+if [ "$1" = "-x" ]; then
+	shift
+	set -x
+fi
+
 # Global variables
 SCRIPTNAME="flexqos"
 SCRIPTNAME_DISPLAY="FlexQoS"
