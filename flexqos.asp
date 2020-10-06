@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
 FlexQoS v1.0.3 released 2020-09-21
 FlexQoS maintained by dave14305
@@ -2108,6 +2108,45 @@ function SetCurrentPage() {
 	document.form.current_page.value = window.location.pathname.substring(1);
 }
 
+function update_status(){
+	$.ajax({
+    	url: '/ext/flexqos/detect_update.js',
+    	dataType: 'script',
+		timeout: 3000,
+    	error:	function(xhr){
+    		setTimeout('update_status();', 1000);
+    	},
+    	success: function(){
+			document.getElementById("ver_check").disabled = false;
+			document.getElementById("ver_update_scan").style.display = "none";
+			if ( verUpdateStatus != "NoUpdate") {
+				/* version update or hotfix available */
+				/* toggle update button */
+				document.getElementById("versionStatus").innerHTML = " " + verUpdateStatus + " available!";
+				document.getElementById("versionStatus").style.display = "";
+				document.getElementById("ver_check").style.display = "none";
+				document.getElementById("ver_update").style.display = "";
+			}
+  		}
+  	});
+}
+
+function version_check() {
+	document.getElementById("ver_check").disabled = true;
+	document.ver_check.action_script.value="start_flexqosupdatecheck"
+	document.ver_check.submit();
+	document.getElementById("ver_update_scan").style.display = "";
+	setTimeout("update_status();", 4000);
+}
+
+function version_update() {
+	document.getElementById("ver_update").disabled = true;
+	document.ver_check.action_script.value="start_flexqosupdateforce"
+	document.ver_check.submit();
+	document.getElementById("ver_update_scan").style.display = "";
+	/* setTimeout("update_status();", 4000); */
+}
+
 function autocomplete(inp, arr) {
 	/*the autocomplete function takes two arguments,
 	the text field element and an array of possible autocompleted values:*/
@@ -2237,8 +2276,10 @@ function autocomplete(inp, arr) {
 <tbody bgcolor="#4D595D">
 <tr>
 <td valign="top">
-<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span></div>
+<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span><img id="ver_update_scan" style="display:none;" src="images/InternetScan.gif"><span id="versionStatus" style="color:#FFCC00" display="none"></span></div>
 <div id="FlexQoS_mod_toggle" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_toggle();"><span style="padding:0 0 0" align="center">Customize</span></div>
+<div id="ver_check" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="version_check();"><span style="padding:0 0 0" align="center">Check for Update</span></div>
+<div id="ver_update" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold; display:none;" class="titlebtn" onclick="version_update();"><span style="padding:0 0 0" align="center">Update</span></div>
 <div style="margin-bottom:10px" class="splitLine"></div>
 
 <!-- FlexQoS UI Start-->
@@ -2483,6 +2524,14 @@ function autocomplete(inp, arr) {
 <td width="10" align="center" valign="top">&nbsp;</td>
 </tr>
 </table>
+</form>
+<form method="post" name="ver_check" action="/start_apply.htm" target="hidden_frame">
+	<input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
+	<input type="hidden" name="current_page" value="">
+	<input type="hidden" name="next_page" value="">
+	<input type="hidden" name="action_mode" value="apply">
+	<input type="hidden" name="action_script" value="">
+	<input type="hidden" name="action_wait" value="">
 </form>
 <div id="footer"></div>
 </body>
