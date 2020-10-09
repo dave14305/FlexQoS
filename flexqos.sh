@@ -10,8 +10,8 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.0.3
-release=2020-09-21
+version=1.0.4
+release=2020-10-09
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
@@ -916,6 +916,7 @@ checkForUpdate() {
 	# 3. Write new version or md5 mismatches to js
 	# 4. Indicate completion to js file so webpage will write the new available update message
 	logmsg "Checking for updates..."
+	printf "var verUpdateStatus = \"%s\"\n" "InProgress" > /www/ext/${SCRIPTNAME}/detect_update.js
 	url="${GIT_URL}/${SCRIPTNAME}.sh"
 	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
 	localmd5="$(md5sum "$0" | awk '{print $1}')"
@@ -924,7 +925,7 @@ checkForUpdate() {
 	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
 	if [ "${version//.}" -lt "${remotever//.}" ]; then		# remove dots from version numbers for numeric comparison
 		# Version upgrade
-		printf "var verUpdateStatus = \"%s\"\n" "$remotever" > /www/ext/${SCRIPTNAME}/detect_update.js
+		printf "var verUpdateStatus = \"v%s\"\n" "$remotever" > /www/ext/${SCRIPTNAME}/detect_update.js
 		logmsg "Version $remotever available!"
 	elif [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
 		# Hotfix

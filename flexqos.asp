@@ -1,6 +1,6 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.0.3 released 2020-09-21
+FlexQoS v1.0.4 released 2020-10-09
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -2117,15 +2117,19 @@ function update_status(){
     		setTimeout('update_status();', 1000);
     	},
     	success: function(){
-			document.getElementById("ver_check").disabled = false;
-			document.getElementById("ver_update_scan").style.display = "none";
-			if ( verUpdateStatus != "NoUpdate") {
-				/* version update or hotfix available */
-				/* toggle update button */
-				document.getElementById("versionStatus").innerHTML = " " + verUpdateStatus + " available!";
-				document.getElementById("versionStatus").style.display = "";
-				document.getElementById("ver_check").style.display = "none";
-				document.getElementById("ver_update").style.display = "";
+			if ( verUpdateStatus == "InProgress" )
+				setTimeout('update_status();', 1000);
+			else {
+				document.getElementById("ver_check").disabled = false;
+				document.getElementById("ver_update_scan").style.display = "none";
+				if ( verUpdateStatus != "NoUpdate") {
+					/* version update or hotfix available */
+					/* toggle update button */
+					document.getElementById("versionStatus").innerHTML = " " + verUpdateStatus + " available!";
+					document.getElementById("versionStatus").style.display = "";
+					document.getElementById("ver_check").style.display = "none";
+					document.getElementById("ver_update").style.display = "";
+				}
 			}
   		}
   	});
@@ -2136,7 +2140,7 @@ function version_check() {
 	document.ver_check.action_script.value="start_flexqosupdatecheck"
 	document.ver_check.submit();
 	document.getElementById("ver_update_scan").style.display = "";
-	setTimeout("update_status();", 4000);
+	setTimeout("update_status();", 2000);
 }
 
 function version_update() {
