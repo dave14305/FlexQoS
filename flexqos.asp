@@ -340,7 +340,7 @@ function draw_conntrack_table() {
 
 		// Filter in place?
 		var filtered = 0;
-		for (j = 0; j < 6; j++) {
+		for (j = 0; j < 5; j++) { // only check proto, IP and ports; defer application check until after rule eval
 			if (filter[j]) {
 				switch (j) {
 					case 0:
@@ -364,7 +364,10 @@ function draw_conntrack_table() {
 		// Prepend Class priority number for sorting, but only prepend it once
 		if ( ! bwdpi_conntrack[i][5].startsWith(rule_result.qosclass+'>') )
 			bwdpi_conntrack[i][5] =	rule_result.qosclass + '>' + rule_result.desc;
-
+		if (filter[5]) { // Application filter to be evaluated after rules applied
+			if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5]) < 0)
+				continue;
+		}
 		tabledata.push(bwdpi_conntrack[i]);
 	}
 	//draw table
