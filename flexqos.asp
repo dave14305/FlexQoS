@@ -464,8 +464,8 @@ function updateTable()
 		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
 		+ '<td>' + tabledata[i][4] + '</td>'
 		+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
-		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
-		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
+		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
+		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
 		+ '</td></tr>';
 	}
 	if (tabledata.length == maxshown)
@@ -914,6 +914,8 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 			// console.log("traffic ID mismatch");
 			continue;
 		}
+		else
+			CDesc = CDesc + ' ~';
 
 		// console.log("rule matches current connection");
 		return { qosclass: appdb_rules[i][18], desc: CDesc };
