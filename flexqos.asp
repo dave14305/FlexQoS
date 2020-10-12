@@ -285,8 +285,10 @@ function cidr_end(addr) {
 };
 
 function set_filter(field, o) {
-	filter[field] = o.value.toLowerCase();
-	draw_conntrack_table();
+	if (o.value != "!") {
+		filter[field] = o.value.toLowerCase();
+		draw_conntrack_table();
+	}
 }
 
 function draw_conntrack_table() {
