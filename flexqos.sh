@@ -1194,6 +1194,7 @@ install_webui() {
 		fi
 	fi
 	[ ! -d "/www/ext/${SCRIPTNAME}" ] && mkdir -p "/www/ext/${SCRIPTNAME}"
+    [ ! -f "/www/ext/${SCRIPTNAME}/detect_update.js" ] && echo verUpdateStatus="NoUpdate" > /www/ext/${SCRIPTNAME}/detect_update.js
 }
 
 Init_UserScript() {
