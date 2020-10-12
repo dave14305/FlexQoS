@@ -349,8 +349,13 @@ function draw_conntrack_table() {
 							filtered = 1;
 						break;
 					default:
-						if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
-							filtered = 1;
+						if (filter[j].charAt(0)=="!") {
+							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j].replace("!", "")) >= 0)
+								filtered = 1;
+						} else {
+							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
+								filtered = 1;
+						}
 				}
 				if (filtered) continue;
 			}
@@ -365,8 +370,13 @@ function draw_conntrack_table() {
 		if ( ! bwdpi_conntrack[i][5].startsWith(rule_result.qosclass+'>') )
 			bwdpi_conntrack[i][5] =	rule_result.qosclass + '>' + rule_result.desc;
 		if (filter[5]) { // Application filter to be evaluated after rules applied
-			if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5]) < 0)
-				continue;
+			if (filter[5].charAt(0)=="!") {
+				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5].replace("!", "")) >= 0)
+					continue;
+			} else {
+				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5]) < 0)
+					continue;
+			}
 		}
 		tabledata.push(bwdpi_conntrack[i]);
 	}
@@ -2526,10 +2536,10 @@ function autocomplete(inp, arr) {
 				<option value=""> </option>
 			</select>
 		</td>
-		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="5" oninput="set_filter(2, this);"></input></td>
-		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="39" oninput="set_filter(3, this);"></input></td>
-		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="5" oninput="set_filter(4, this);"></input></td>
-		<td><input id="appfilter" type="text" class="input_18_table" maxlength="48" oninput="set_filter(5, this);"></input></td>
+		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(2, this);"></input></td>
+		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="40" oninput="set_filter(3, this);"></input></td>
+		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(4, this);"></input></td>
+		<td><input id="appfilter" type="text" class="input_18_table" maxlength="49" oninput="set_filter(5, this);"></input></td>
 	</tr>
 </table>
 <table cellpadding="4" class="FormTable_table" id="tracked_connections">
