@@ -412,15 +412,13 @@ function table_sort(a, b){
 				return parseInt(a[sortfield]) - parseInt(b[sortfield]);
 			break;
 		case 5:		// Label
+			aa = a[sortfield].toLowerCase();
+			bb = b[sortfield].toLowerCase();
 			if (sortdir) {
-				aa = a[sortfield];
-				bb = b[sortfield];
 				if(aa == bb) return 0;
 				else if(aa > bb) return -1;
 				else return 1;
 			} else {
-				aa = a[sortfield];
-				bb = b[sortfield];
 				if(aa == bb) return 0;
 				else if(aa > bb) return 1;
 				else return -1;
