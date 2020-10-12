@@ -17,6 +17,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
+<link rel="stylesheet" type="text/css" href="device-map/device-map.css">
 <link rel="stylesheet" type="text/css" href="/js/table/table.css">
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/chart.min.js"></script>
@@ -24,6 +25,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
+<script type="text/javascript" src="/client_function.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/js/table/table.js"></script>
 <script type="text/javascript" src="/ext/flexqos/flexqos_arrays.js"></script>
@@ -609,10 +611,11 @@ function initial() {
 	show_menu();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
-	populate_devicefilter();		//used to populate drop down filter
+//	populate_devicefilter();		//used to populate drop down filter
+	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
-	deviceFilter = document.getElementById('devicefilter').value;
+//	deviceFilter = document.getElementById('devicefilter').value;
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
@@ -623,15 +626,15 @@ function initial() {
 		document.getElementById('tracked_connections').style.display = "none";
 		document.getElementById('refresh_data').style.display = "none";
 	}
-	$.ajax({
-		url: "Main_DHCPStatus_Content.asp",
-		success: function(result){
-			result = result.match(/leasearray=([\s\S]*?);/);
-			if (result[1]){
-				update_devicenames(eval(result[1])); //regex data string into actual array
-			}
-		}
-	});
+//	$.ajax({
+//		url: "Main_DHCPStatus_Content.asp",
+//		success: function(result){
+//			result = result.match(/leasearray=([\s\S]*?);/);
+//			if (result[1]){
+//				update_devicenames(eval(result[1])); //regex data string into actual array
+//			}
+//		}
+//	});
 }
 
 function get_qos_class(category, appid) {
@@ -1905,6 +1908,7 @@ function FlexQoS_reset_appdb() {
 function FlexQoS_reset_filter() {
 	document.getElementById('protfilter').value="";
 	document.getElementById('devicefilter').value="";
+	document.getElementById('lipfilter').value="";
 	document.getElementById('lportfilter').value="";
 	document.getElementById('ripfilter').value="";
 	document.getElementById('rportfilter').value="";
@@ -2192,6 +2196,29 @@ function version_check() {
 function version_update() {
 	document.form.action_script.value="start_flexqosupdateforce"
 	document.form.submit();
+}
+
+function setClientIP(ipaddr){
+	document.form.lipfilter_x.value = ipaddr;
+	hideClients_Block();
+	set_filter(1, document.form.lipfilter_x);
+}
+
+function hideClients_Block(){
+	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById('ClientList_Block_PC').style.display='none';
+}
+
+function pullLANIPList(obj) {
+	var element = document.getElementById('ClientList_Block_PC');
+	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;
+	if(isMenuopen == 0) {
+		obj.src = "/images/arrow-top.gif"
+		element.style.display = 'block';
+		document.form.lipfilter_x.focus();
+	}
+	else
+		hideClients_Block();
 }
 
 function autocomplete(inp, arr) {
@@ -2534,9 +2561,13 @@ function autocomplete(inp, arr) {
 			<option value="tcp">tcp</option>
 			<option value="udp">udp</option>
 		</select></td>
-		<td><select id="devicefilter" style="max-width: 168px" class="input_option" onchange="set_filter(1, this);">
+		<td style="text-align:left;">
+			<select id="devicefilter" style="max-width: 168px;display: none;" class="input_option" onchange="set_filter(1, this);">
 				<option value=""> </option>
 			</select>
+			<input id="lipfilter" type="text" class="input_18_table" style="width: 135px;" maxlength="40" name="lipfilter_x" onKeyPress="" oninput="set_filter(1, this);" onClick="hideClients_Block();" autocorrect="off" autocapitalize="off">
+			<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="Select the Local Client">
+			<div id="ClientList_Block_PC" class="clientlist_dropdown" style="margin-left:2px;width:200px;"></div>
 		</td>
 		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(2, this);"></input></td>
 		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="40" oninput="set_filter(3, this);"></input></td>
