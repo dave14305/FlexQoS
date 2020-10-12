@@ -1228,7 +1228,7 @@ Auto_ServiceEventEnd() {
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "start.*flexqos.*\{ sh ${SCRIPTPATH}"; then
-		cmdline="if [ \"\$1\" = \"start\" ] && $(echo "$2" | /bin/grep -q "flexqos"); then { sh ${SCRIPTPATH} \"\$2\" & } ; fi # FlexQoS Addition"
+		cmdline="if [ \"\$1\" = \"start\" ] && \$(echo \"\$2\" | /bin/grep -q \"flexqos\"); then { sh ${SCRIPTPATH} \"\$2\" & } ; fi # FlexQoS Addition"
 		sed -i '\~\"flexqos\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
