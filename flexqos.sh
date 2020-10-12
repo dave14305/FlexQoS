@@ -713,13 +713,21 @@ parse_iptablerule() {
 	fi
 
 	#match mark
-	if [ "${#6}" -eq "6" ]; then
-		if [ "${6:2:4}" = "****" ]; then
-			DOWN_mark="-m mark --mark 0x80${6//\*/0}/0xc03f0000"
-			UP_mark="-m mark --mark 0x40${6//\*/0}/0xc03f0000"
+	if [ "${#6}" -ge "6" ] && [ "${#6}" -le "7" ]; then
+		tmpMark="$6"
+		DOWN_mark="-m mark"
+		UP_mark="-m mark"
+		if [ "${6:0:1}" = "!" ]; then
+			DOWN_mark="${DOWN_mark} !"
+			UP_mark="${UP_mark} !"
+			tmpMark="${tmpMark//!/}"
+		fi
+		if [ "${tmpMark:2:4}" = "****" ]; then
+			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark//\*/0}/0xc03f0000"
+			UP_mark="${UP_mark} --mark 0x40${tmpMark//\*/0}/0xc03f0000"
 		else
-			DOWN_mark="-m mark --mark 0x80${6}/0xc03fffff"
-			UP_mark="-m mark --mark 0x40${6}/0xc03fffff"
+			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark}/0xc03f0000"
+			UP_mark="${UP_mark} --mark 0x40${tmpMark}/0xc03f0000"
 		fi
 	else
 		DOWN_mark=""

@@ -673,6 +673,7 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst, Desc){
 	//rule[17]=Mark (Specific Traffic Match)
 	//rule[18]=QoS Destination
 	//rule[19]=Rule Description
+	//rule[20]=Mark inverse match (!) bool
 
 	rule[0]=0;
 	if (Dst)	rule[18]=bwdpi_app_rulelist_row.indexOf(cat_id_array[Dst].toString());
@@ -762,9 +763,14 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst, Desc){
 		}
 	}
 
-	if ( Mark.length == 6 )
+	if ( Mark )
 	{
 		rule[0]+=64;
+		if(Mark.startsWith("!")) {
+			rule[20]=1;
+			Mark=Mark.replace("!", "");
+		}
+
 		rule[16]=parseInt(Mark.substr(0,2),16);
 
 		if (Mark.substr(-4) != "****")
@@ -844,17 +850,29 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 		}
 
 		// if rule has mark cat specified
-		if ( (iptables_rules[i][0] & 64) && (iptables_rules[i][16] != CCat) )
+		if (iptables_rules[i][0] & 64)
 		{
-			// console.log("category mismatch");
-			continue;
+			var match=false;
+			if (iptables_rules[i][16] == CCat)	match=true;
+			if (iptables_rules[i][20])			match=!(match);
+			if (match == false)
+			{
+				// console.log("category mismatch");
+				continue;
+			}
 		}
 
 		// if rule has mark id specified
-		if ( (iptables_rules[i][0] & 128) && (iptables_rules[i][17] != CId) )
+		if (iptables_rules[i][0] & 128)
 		{
-			// console.log("traffic ID mismatch");
-			continue;
+			var match=false;
+			if (iptables_rules[i][17] == CId)	match=true;
+			if (iptables_rules[i][20])			match=!(match);
+			if (match == false)
+			{
+				// console.log("traffic ID mismatch");
+				continue;
+			}
 		}
 
 		// if rule has local IP specified and is not IPv6
@@ -914,7 +932,9 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 			// console.log("traffic ID mismatch");
 			continue;
 		}
-		else
+
+		// if rule has id specified, append ~
+		if (appdb_rules[i][0] & 128)
 			CDesc = CDesc + ' ~';
 
 		// console.log("rule matches current connection");
@@ -1276,8 +1296,19 @@ tableValidator.qosMark = {
 					if (c == '*' && i < 2)
 						return false;
 				}
-				$obj.val(objValue.substr(0,2)+"****");
+				if(objValue.charAt(0)=='!')
+					$obj.val(objValue.substr(0,3)+"****");
+				else
+					$obj.val(objValue.substr(0,2)+"****");
 			}
+		}
+		else if (keyPressed == 33) { // exclamation !
+			if(objValue.length > 0 && objValue.length < $obj[0].attributes.maxlength.value && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
+				$obj.val('!' + objValue);
+			}
+			else if (objValue.length == 0)
+				return true;
+			return false;
 		}
 		return false;
 	},
@@ -1293,7 +1324,7 @@ tableValidator.qosMark = {
 				hintMsg = HINTPASS;
 		}
 		else {
-			var markre = new RegExp("^([0-9a-fA-F]{2})([0-9a-fA-F]{4}|[\*]{4})$", "gi");
+			var markre = new RegExp("^[!]?([0-9a-fA-F]{2})([0-9a-fA-F]{4}|[\*]{4})$", "gi");
 			if(markre.test(_value)) {
 				hintMsg = HINTPASS;
 			}
@@ -1574,9 +1605,9 @@ function show_iptables_rules(){
 				{
 					"editMode" : "text",
 					"title" : "Mark",
-					"maxlength" : "6",
+					"maxlength" : "7",
 					"valueMust" : false,
-					"placeholder": "XXYYYY XX=Category(hex) YYYY=ID(hex or ****)",
+					"placeholder": "XXYYYY !XXYYYY XX=Category(hex) YYYY=ID(hex or ****)",
 					"validator" : "qosMark"
 				},
 				{
@@ -1625,7 +1656,7 @@ function show_iptables_rules(){
 				},
 				{
 					"editMode" : "text",
-					"maxlength" : "6",
+					"maxlength" : "7",
 					"valueMust" : false,
 					"validator" : "qosMark"
 				},
