@@ -947,7 +947,7 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 		}
 
 		// if rule has id specified, append ~
-		if ((appdb_rules[i][0] & 128) && (CCat != "0") && (CId != "0") )
+		if ((appdb_rules[i][0] & 128) && ! (CCat == "0" && CId == "0") )
 			CDesc = CDesc + ' ~';
 
 		// console.log("rule matches current connection");
