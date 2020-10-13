@@ -2180,6 +2180,10 @@ function update_status(){
 					document.getElementById("ver_check").style.display = "none";
 					document.getElementById("ver_update").style.display = "";
 				}
+				else {
+					document.getElementById("versionStatus").innerHTML = " You have the latest version.";
+					document.getElementById("versionStatus").style.display = "";
+				}
 			}
   		}
   	});
