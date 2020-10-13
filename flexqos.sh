@@ -948,7 +948,7 @@ checkForUpdate() {
 
 silentUpdate() {
 	url="${GIT_URL}/${SCRIPTNAME}.sh"
-	#download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
+	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
 	exec sh "$SCRIPTPATH" -silentinstall
 	exit
 } # silentUpdate
