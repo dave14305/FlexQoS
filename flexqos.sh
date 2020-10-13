@@ -1217,6 +1217,8 @@ Auto_ServiceEventEnd() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "service-event-end"
+	# Cleanup earlier bug
+	sed -i '\~\"start\".* && ; then .* FlexQoS Addition~d' /jffs/scripts/service-event-end
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*\{ sh ${SCRIPTPATH}"; then
 		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
