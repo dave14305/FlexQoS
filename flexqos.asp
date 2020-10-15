@@ -375,11 +375,15 @@ function draw_conntrack_table() {
 			bwdpi_conntrack[i][5] =	rule_result.qosclass + '>' + rule_result.desc;
 		if (filter[5]) { // Application filter to be evaluated after rules applied
 			if (filter[5].charAt(0)=="!") {
-				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5].replace("!", "")) >= 0)
+				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5].replace("!", "")) >= 0) {
+					shownlen--;
 					continue;
+				}
 			} else {
-				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5]) < 0)
+				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5]) < 0) {
+					shownlen--;
 					continue;
+				}
 			}
 		}
 		tabledata.push(bwdpi_conntrack[i]);
