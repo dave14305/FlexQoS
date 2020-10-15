@@ -464,6 +464,7 @@ debug(){
 	write_appdb_rules
 	cat /tmp/${SCRIPTNAME}_tcrules
 	echo "[/CODE][/SPOILER]"
+	rm /tmp/${SCRIPTNAME}_iprules /tmp/${SCRIPTNAME}_tcrules
 } # debug
 
 convert_nvram(){
@@ -1599,14 +1600,18 @@ startup() {
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logmsg "Applying AppDB rules and TC rates"
-			${tc} -force -batch /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
+			if ! ${tc} -force -batch /tmp/${SCRIPTNAME}_tcrules >/tmp/${SCRIPTNAME}_tcrules.log 2>&1; then
+				logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
+			else
+				rm /tmp/${SCRIPTNAME}_tmp_tcfilterdown /tmp/${SCRIPTNAME}_tmp_tcfilterup /tmp/${SCRIPTNAME}_tcrules.log /tmp/${SCRIPTNAME}_checktcrules
+			fi
 		fi
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
 		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
-	else # Game Downloads filter already setup
+	else
 		logmsg "No TC modifications necessary"
-	fi # Game Downloads filter check
+	fi
 } # startup
 
 show_help() {
