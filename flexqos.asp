@@ -289,7 +289,10 @@ function cidr_end(addr) {
 
 function set_filter(field, o) {
 	if (o.value != "!") {
-		filter[field] = o.value.toLowerCase();
+		if (field == 5 && o.value.search(/^!?Class:[0-7]$/) >= 0)
+			filter[field] = o.value.replace(/Class:/,"") + '>';
+		else
+			filter[field] = o.value.toLowerCase();
 		draw_conntrack_table();
 	}
 }
@@ -626,7 +629,7 @@ function populate_class_dropdown() {
 } // populate_class_dropdown
 
 function setApplicationClass(val){
-	document.form.appfilter_x.value = val + '>';
+	document.form.appfilter_x.value = 'Class:' + val;
 	hideClasses_Block();
 	set_filter(5, document.form.appfilter_x);
 }
