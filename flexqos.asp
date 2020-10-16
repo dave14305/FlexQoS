@@ -148,6 +148,7 @@ background-color: #2F3A3E !important;
 </style>
 
 <script>
+<% login_state_hook(); %>
 var custom_settings = <% get_custom_settings(); %>;
 var device = {};		// devices database --> device["IP"] = { mac: "AA:BB:CC:DD:EE:FF" , name:"name" }
 var clientlist = <% get_clientlist_from_json_database(); %>;		// data from /jffs/nmp_cl_json.js (used to correlate mac addresses to corresponding device names  )
@@ -624,9 +625,10 @@ function initial() {
 	show_iptables_rules();
 	show_appdb_rules();
 	check_bandwidth();
+	well_known_rules();
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
 	if (qos_mode == 0){		//if QoS is invalid
-		document.getElementById('filter_device').style.display = "none";
+		document.getElementById('tracked_filters').style.display = "none";
 		document.getElementById('tracked_connections').style.display = "none";
 		document.getElementById('refresh_data').style.display = "none";
 	}
@@ -1497,15 +1499,17 @@ tableValidator.qosIPCIDR = { // only IP or IP plus netmask
 
 tableRuleDuplicateValidation = {
 	iptables_rule : function(_newRuleArray, _currentRuleArray) {
-		// Check that no 2 rules with the same values exist, ignoring the Class
+		// Check that no 2 rules with the same values exist, ignoring the Description and Class
 		if(_currentRuleArray.length == 0)
 			return true;
 		else {
 			var newRuleArrayTemp = _newRuleArray.slice();
-			newRuleArrayTemp.splice(-1, 1);
+			newRuleArrayTemp.splice(0, 1); // Remove Description
+			newRuleArrayTemp.splice(-1, 1); // Remove Class
 			for(var i = 0; i < _currentRuleArray.length; i += 1) {
 				var currentRuleArrayTemp = _currentRuleArray[i].slice();
-				currentRuleArrayTemp.splice(-1, 1);
+				currentRuleArrayTemp.splice(0, 1); // Remove Description
+				currentRuleArrayTemp.splice(-1, 1); // Remove Class
 				if(newRuleArrayTemp.toString() == currentRuleArrayTemp.toString())
 					return false;
 			}
@@ -2229,6 +2233,60 @@ function pullLANIPList(obj) {
 		hideClients_Block();
 }
 
+function well_known_rules(){
+//		[ "Rule Name", "Local IP", "Remote IP", "Proto", "Local Port", "Remote Port", "Mark", "Class"],
+	wItem = [
+		[ "Facetime", "", "", "udp", "16384:16415", "", "", "3"],
+		[ "Game Downloads", "", "", "tcp", "", "80,443", "08****", "7"],
+		[ "Gaming Rule", "", "", "both", "", "!80,443", "000000", "1"],
+		[ "Skype/Teams", "", "", "udp", "", "3478:3481", "000000", "3"],
+		[ "Usenet", "", "", "tcp", "", "119,563", "", "5"],
+		[ "WiFi Calling", "", "", "udp", "", "500,4500", "", "3"],
+		[ "Zoom", "", "", "udp", "", "8801:8810", "000000", "3"]
+	];
+	free_options(document.form.WellKnownRules);
+	add_option(document.form.WellKnownRules, "Please select", "User Defined", 1);
+	for (i = 0; i < wItem.length; i++){
+		add_option(document.form.WellKnownRules, wItem[i][0], wItem[i][0], 0);
+	}
+} // well_known_rules
+
+function change_wizard(o){
+	for(var i = 0; i < wItem.length; i++){
+		if(wItem[i][0] != null){
+			if(o.value == wItem[i][0]){
+				var wellKnownRule = new Array();
+				wellKnownRule.push(wItem[i][0]);
+				if (o.value == "Gaming Rule")
+					wellKnownRule.push(login_ip_str());
+				else
+					wellKnownRule.push(wItem[i][1]);
+				wellKnownRule.push(wItem[i][2]);
+				wellKnownRule.push(wItem[i][3]);
+				wellKnownRule.push(wItem[i][4]);
+				wellKnownRule.push(wItem[i][5]);
+				wellKnownRule.push(wItem[i][6]);
+				wellKnownRule.push(wItem[i][7]);
+				var validDuplicateFlag = true;
+				if(tableApi._attr.hasOwnProperty("ruleDuplicateValidation")) {
+					var currentEditRuleArray = wellKnownRule;
+					var filterCurrentEditRuleArray = iptables_temp_array;
+					validDuplicateFlag = tableRuleDuplicateValidation[tableApi._attr.ruleDuplicateValidation](currentEditRuleArray, filterCurrentEditRuleArray);
+					if(!validDuplicateFlag) {
+						document.form.WellKnownRules.selectedIndex = 0;
+						alert("This rule already exists.");
+						return false;
+					}
+					iptables_temp_array.push(currentEditRuleArray);
+					show_iptables_rules();
+				}
+				break;
+			}
+		}
+	}
+	document.form.WellKnownRules.selectedIndex = 0;
+} // change_wizard
+
 function autocomplete(inp, arr) {
 	/*the autocomplete function takes two arguments,
 	the text field element and an array of possible autocompleted values:*/
@@ -2368,6 +2426,16 @@ function autocomplete(inp, arr) {
 <div id="FlexQoS_mod" style="display:none;">
 <div style="display:inline-block; margin:0px 0px 10px 5px; font-size:14px; text-shadow: 1px 1px 0px black;"><b>QoS Customization</b></div>
 <div style="margin:0px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_apply();"><span style="padding:0 0 0 0" align="center">Apply</span></div>
+<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
+	<tr>
+		<th colspan="2">Add Well-Known Rules</th>
+		<td colspan="4">
+			<select name="WellKnownRules" class="input_option" onChange="change_wizard(this);">
+				<option value="User Defined">Please select</option>
+			</select>
+		</td>
+	</tr>
+</table>
 <div id="iptables_rules_block"></div>
 
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
