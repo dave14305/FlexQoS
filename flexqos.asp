@@ -611,13 +611,50 @@ function populate_devicefilter(){
 	document.getElementById('devicefilter').innerHTML=code;
 }
 
+function populate_class_dropdown() {
+	var code = "";
+	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
+		for (j=0;j<cat_id_array.length;j++) {
+			if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
+				var index = j;
+				break;
+			}
+		}
+		code += '<a><div onclick="setApplicationClass(' + i + ');">' + class_title[index] + '</div></a>';
+	}
+	document.getElementById('QoS_Class_List').innerHTML=code;
+} // populate_class_dropdown
+
+function setApplicationClass(val){
+	document.form.appfilter_x.value = val + '>';
+	hideClasses_Block();
+	set_filter(5, document.form.appfilter_x);
+}
+
+function hideClasses_Block(){
+	document.getElementById("class_pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById('QoS_Class_List').style.display='none';
+}
+
+function pullClassList(obj) {
+	var element = document.getElementById('QoS_Class_List');
+	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;
+	if(isMenuopen == 0) {
+		obj.src = "/images/arrow-top.gif"
+		element.style.display = 'block';
+		document.form.appfilter.focus();
+	}
+	else
+		hideClasses_Block();
+}
+
 function initial() {
 	SetCurrentPage();
 	show_menu();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
 //	populate_devicefilter();		//used to populate drop down filter
-	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'pull_arrow', 'all');", 1000);
+	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
 //	deviceFilter = document.getElementById('devicefilter').value;
@@ -626,6 +663,7 @@ function initial() {
 	show_appdb_rules();
 	check_bandwidth();
 	well_known_rules();
+	populate_class_dropdown();
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
 	if (qos_mode == 0){		//if QoS is invalid
 		document.getElementById('tracked_filters').style.display = "none";
@@ -1915,7 +1953,6 @@ function FlexQoS_reset_appdb() {
 
 function FlexQoS_reset_filter() {
 	document.getElementById('protfilter').value="";
-	document.getElementById('devicefilter').value="";
 	document.getElementById('lipfilter').value="";
 	document.getElementById('lportfilter').value="";
 	document.getElementById('ripfilter').value="";
@@ -2217,7 +2254,7 @@ function setClientIP(ipaddr){
 }
 
 function hideClients_Block(){
-	document.getElementById("pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById("lip_pull_arrow").src = "/images/arrow-down.gif";
 	document.getElementById('ClientList_Block_PC').style.display='none';
 }
 
@@ -2638,32 +2675,33 @@ function autocomplete(inp, arr) {
 			<option value="udp">udp</option>
 		</select></td>
 		<td style="text-align:left;">
-			<select id="devicefilter" style="max-width: 168px;display: none;" class="input_option" onchange="set_filter(1, this);">
-				<option value=""> </option>
-			</select>
-			<input id="lipfilter" type="text" class="input_18_table" style="width: 135px;" maxlength="40" name="lipfilter_x" onKeyPress="" oninput="set_filter(1, this);" onClick="hideClients_Block();" autocorrect="off" autocapitalize="off">
-			<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="Select the Local Client">
+			<input id="lipfilter" type="text" class="input_18_table" style="width:140px;" maxlength="40" name="lipfilter_x" oninput="set_filter(1, this);" onClick="hideClients_Block();"></input>
+			<img id="lip_pull_arrow" height="14px;" src="/images/arrow-down.gif" class="pull_arrow" style="position:absolute;" onclick="pullLANIPList(this);" title="Select the Local Client">
 			<div id="ClientList_Block_PC" class="clientlist_dropdown" style="margin-left:2px;width:200px;"></div>
 		</td>
 		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(2, this);"></input></td>
 		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="40" oninput="set_filter(3, this);"></input></td>
 		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(4, this);"></input></td>
-		<td><input id="appfilter" type="text" class="input_18_table" maxlength="49" oninput="set_filter(5, this);"></input></td>
+		<td style="text-align:left;">
+			<input id="appfilter" type="text" class="input_18_table" style="width:140px;" maxlength="49" name="appfilter_x" oninput="set_filter(5, this);" onClick="hideClasses_Block();"></input>
+			<img id="class_pull_arrow" height="14px;" src="/images/arrow-down.gif" class="pull_arrow" style="position:absolute;" onclick="pullClassList(this);" title="Select the QoS Class">
+			<div id="QoS_Class_List" class="clientlist_dropdown" style="margin-left:2px;width:165px;"></div>
+		</td>
 	</tr>
 </table>
 <table cellpadding="4" class="FormTable_table" id="tracked_connections">
 <thead>
-   <td id="tracked_connections_total" colspan="6">Tracked connections</td>
+	<td id="tracked_connections_total" colspan="6">Tracked connections</td>
 </thead>
 <tbody id="tableContainer">
-   <tr class="row_title">
-	  <th width="5%"  style="cursor: pointer;">Proto</th>
-	  <th width="28%" style="cursor: pointer;">Local IP</th>
-	  <th width="6%"  style="cursor: pointer;">Port</th>
-	  <th width="28%" style="cursor: pointer;">Remote IP</th>
-	  <th width="6%"  style="cursor: pointer;">Port</th>
-	  <th width="27%" style="cursor: pointer;">Application</th>
-   </tr>
+	<tr class="row_title">
+		<th width="5%"  style="cursor: pointer;">Proto</th>
+		<th width="28%" style="cursor: pointer;">Local IP</th>
+		<th width="6%"  style="cursor: pointer;">Port</th>
+		<th width="28%" style="cursor: pointer;">Remote IP</th>
+		<th width="6%"  style="cursor: pointer;">Port</th>
+		<th width="27%" style="cursor: pointer;">Application</th>
+	</tr>
 </tbody>
 </table>
 <!-- FlexQoS Connection Table End-->
