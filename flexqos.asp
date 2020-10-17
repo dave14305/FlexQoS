@@ -352,7 +352,6 @@ function draw_conntrack_table() {
 			if (filter[j]) {
 				switch (j) {
 					case 0:
-					case 1:
 						if (bwdpi_conntrack[i][j].toLowerCase() != filter[j].toLowerCase())
 							filtered = 1;
 						break;
