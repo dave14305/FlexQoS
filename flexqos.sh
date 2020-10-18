@@ -10,8 +10,8 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.0.3
-release=2020-10-05
+version=1.0.4
+release=2020-10-18
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
@@ -72,8 +72,6 @@ else
 fi
 
 # marks for iptable rules
-# Note these marks are same as filter match/mask combo but have a 1 at the end.
-# That trailing 1 prevents them from being caught by unidentified mask
 Net_mark_down="0x8009ffff"
 Work_mark_down="0x8006ffff"
 Gaming_mark_down="0x8008ffff"
@@ -463,9 +461,10 @@ debug(){
 	echo "***********"
 	echo "appdb rules: $(am_settings_get flexqos_appdb)"
 	true > /tmp/${SCRIPTNAME}_tcrules
-	write_appdb_custom_rules
+	write_appdb_rules
 	cat /tmp/${SCRIPTNAME}_tcrules
 	echo "[/CODE][/SPOILER]"
+	rm /tmp/${SCRIPTNAME}_iprules /tmp/${SCRIPTNAME}_tcrules
 } # debug
 
 convert_nvram(){
@@ -581,7 +580,7 @@ get_flowid() {
 	echo "$flowid"
 } # get_flowid
 
-parse_tcrule() {
+parse_appdb_rule() {
 	#requires global variables previously set by set_tc_variables
 	#----------input-----------
 	#$1 = mark
@@ -715,13 +714,21 @@ parse_iptablerule() {
 	fi
 
 	#match mark
-	if [ "${#6}" -eq "6" ]; then
-		if [ "${6:2:4}" = "****" ]; then
-			DOWN_mark="-m mark --mark 0x80${6//\*/0}/0xc03f0000"
-			UP_mark="-m mark --mark 0x40${6//\*/0}/0xc03f0000"
+	if [ "${#6}" -ge "6" ] && [ "${#6}" -le "7" ]; then
+		tmpMark="$6"
+		DOWN_mark="-m mark"
+		UP_mark="-m mark"
+		if [ "${6:0:1}" = "!" ]; then
+			DOWN_mark="${DOWN_mark} !"
+			UP_mark="${UP_mark} !"
+			tmpMark="${tmpMark//!/}"
+		fi
+		if [ "${tmpMark:2:4}" = "****" ]; then
+			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark//\*/0}/0xc03f0000"
+			UP_mark="${UP_mark} --mark 0x40${tmpMark//\*/0}/0xc03f0000"
 		else
-			DOWN_mark="-m mark --mark 0x80${6}/0xc03fffff"
-			UP_mark="-m mark --mark 0x40${6}/0xc03fffff"
+			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark}/0xc03f0000"
+			UP_mark="${UP_mark} --mark 0x40${tmpMark}/0xc03f0000"
 		fi
 	else
 		DOWN_mark=""
@@ -909,6 +916,64 @@ download_file() {
 		logmsg "File $(echo "$2" | awk -F / '{print $NF}') is already up-to-date"
 	fi
 } # download_file
+
+checkForUpdate() {
+	# Invoked by Check for Update button in WebUI
+	# Steps:
+	# 1. Write status to js
+	# 2. Get remote version for current channel
+	# 3. Write new version or md5 mismatches to js
+	# 4. Indicate completion to js file so webpage will write the new available update message
+	logmsg "Checking for updates..."
+	printf "var verUpdateStatus = \"%s\"\n" "InProgress" > /www/ext/${SCRIPTNAME}/detect_update.js
+	url="${GIT_URL}/${SCRIPTNAME}.sh"
+	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
+	localmd5="$(md5sum "$0" | awk '{print $1}')"
+	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${url}" | md5sum | awk '{print $1}')"
+	localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
+	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
+	if [ "${version//.}" -lt "${remotever//.}" ]; then		# remove dots from version numbers for numeric comparison
+		# Version upgrade
+		printf "var verUpdateStatus = \"v%s\"\n" "$remotever" > /www/ext/${SCRIPTNAME}/detect_update.js
+		logmsg "Version $remotever available!"
+	elif [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
+		# Hotfix
+		printf "var verUpdateStatus = \"%s\"\n" "Hotfix" > /www/ext/${SCRIPTNAME}/detect_update.js
+		logmsg "Hotfix available!"
+	else
+		# No updates
+		printf "var verUpdateStatus = \"%s\"\n" "NoUpdate" > /www/ext/${SCRIPTNAME}/detect_update.js
+		logmsg "No updates"
+	fi
+} # checkForUpdate
+
+silentUpdate() {
+	url="${GIT_URL}/${SCRIPTNAME}.sh"
+	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
+	exec sh "$SCRIPTPATH" -silentinstall
+	exit
+} # silentUpdate
+
+silentInstall() {
+	if ! [ -d "$ADDON_DIR" ]; then
+		mkdir -p "$ADDON_DIR"
+		chmod 755 "$ADDON_DIR"
+	fi
+	if ! [ -f "$SCRIPTPATH" ]; then
+		cp -p "$0" "$SCRIPTPATH"
+	fi
+	if ! [ -x "$SCRIPTPATH" ]; then
+		chmod +x "$SCRIPTPATH"
+	fi
+	install_webui
+	generate_bwdpi_arrays force
+	Auto_FirewallStart
+	Auto_ServiceEventEnd
+	Auto_Crontab
+	setup_aliases
+	sed -i "/^${SCRIPTNAME}_conntrack 1/d" /jffs/addons/custom_settings.txt
+	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart force
+} # silentInstall
 
 update() {
 	scriptinfo
@@ -1153,6 +1218,8 @@ Auto_ServiceEventEnd() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "service-event-end"
+	# Cleanup earlier bug
+	sed -i '\~\"start\".* && ; then .* FlexQoS Addition~d' /jffs/scripts/service-event-end
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*\{ sh ${SCRIPTPATH}"; then
 		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
@@ -1161,6 +1228,11 @@ Auto_ServiceEventEnd() {
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "start.*sig_check.*\{ sh ${SCRIPTPATH}"; then
 		cmdline="if [ \"\$1\" = \"start\" ] && [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"sig_check\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
+		echo "$cmdline" >> /jffs/scripts/service-event-end
+	fi
+	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "start.*flexqos.*\{ sh ${SCRIPTPATH}"; then
+		cmdline="if [ \"\$1\" = \"start\" ] && \$(echo \"\$2\" | /bin/grep -q \"flexqos\"); then { sh ${SCRIPTPATH} \"\$2\" & } ; fi # FlexQoS Addition"
+		sed -i '\~\"flexqos\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
 }
@@ -1404,18 +1476,21 @@ write_iptables_rules() {
 	IFS="$OLDIFS"
 } # write_iptables_rules
 
-write_appdb_custom_rules() {
+write_appdb_rules() {
+	${tc} filter show dev br0 parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
+	${tc} filter show dev ${tcwan} parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
+
 	# loop through appdb rules and write a tc command to a temporary script file
 	OLDIFS="$IFS"
 	IFS=">"
 	echo "$appdb_rules" | sed 's/</\n/g' | while read -r mark class
 	do
 		if [ -n "$mark" ]; then
-			parse_tcrule "$mark" "$class" >> /tmp/${SCRIPTNAME}_tcrules
+			parse_appdb_rule "$mark" "$class" >> /tmp/${SCRIPTNAME}_tcrules
 		fi
 	done
 	IFS="$OLDIFS"
-} # write_appdb_custom_rules
+} # write_appdb_rules
 
 check_qos_tc() {
 	dlclasscnt="$(${tc} class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
@@ -1505,7 +1580,7 @@ startup() {
 	done
 	[ "$sleepdelay" -gt "0" ] && logmsg "TC Modification delayed for $sleepdelay seconds"
 
-	set_tc_variables 	#needs to be set before parse_tcrule
+	set_tc_variables
 
 	# if TC modifcations have not been applied then run modification script
 	if ! validate_tc_rules; then
@@ -1514,11 +1589,8 @@ startup() {
 			logmsg "Scheduled Persistence Check -> Reapplying Changes"
 		fi # check
 
-		${tc} filter show dev br0 parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
-		${tc} filter show dev ${tcwan} parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
-
 		write_appdb_static_rules
-		write_appdb_custom_rules
+		write_appdb_rules
 
 		if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
 			write_custom_rates
@@ -1528,14 +1600,18 @@ startup() {
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logmsg "Applying AppDB rules and TC rates"
-			${tc} -force -batch /tmp/${SCRIPTNAME}_tcrules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
+			if ! ${tc} -force -batch /tmp/${SCRIPTNAME}_tcrules >/tmp/${SCRIPTNAME}_tcrules.log 2>&1; then
+				logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
+			else
+				rm /tmp/${SCRIPTNAME}_tmp_tcfilterdown /tmp/${SCRIPTNAME}_tmp_tcfilterup /tmp/${SCRIPTNAME}_tcrules.log /tmp/${SCRIPTNAME}_checktcrules
+			fi
 		fi
 
 		# Schedule check for 5 minutes after startup to ensure no qos tc resets
 		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
-	else # Game Downloads filter already setup
+	else
 		logmsg "No TC modifications necessary"
-	fi # Game Downloads filter check
+	fi
 } # startup
 
 show_help() {
@@ -1642,6 +1718,9 @@ case "$arg1" in
 	'install'|'enable')		# INSTALLS AND TURNS ON SCRIPT
 		install
 		;;
+	'silentinstall')		# Silent install triggered by WebUI Update button
+		silentInstall
+		;;
 	'uninstall')		# UNINSTALLS SCRIPT AND DELETES FILES
 		uninstall
 		;;
@@ -1699,6 +1778,12 @@ case "$arg1" in
 	'noflushct')
 		am_settings_set "${SCRIPTNAME}_conntrack" "0"
 		echo "Disabled conntrack flushing."
+		;;
+	'flexqosupdatecheck')
+		checkForUpdate
+		;;
+	'flexqosupdateforce')
+		silentUpdate
 		;;
 	*)
 		show_help

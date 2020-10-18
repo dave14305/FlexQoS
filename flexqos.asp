@@ -1,6 +1,6 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.0.3 released 2020-10-05
+FlexQoS v1.0.4 released 2020-10-18
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -17,6 +17,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
+<link rel="stylesheet" type="text/css" href="device-map/device-map.css">
 <link rel="stylesheet" type="text/css" href="/js/table/table.css">
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/js/chart.min.js"></script>
@@ -24,6 +25,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
+<script type="text/javascript" src="/client_function.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/js/table/table.js"></script>
 <script type="text/javascript" src="/ext/flexqos/flexqos_arrays.js"></script>
@@ -146,6 +148,7 @@ background-color: #2F3A3E !important;
 </style>
 
 <script>
+<% login_state_hook(); %>
 var custom_settings = <% get_custom_settings(); %>;
 var device = {};		// devices database --> device["IP"] = { mac: "AA:BB:CC:DD:EE:FF" , name:"name" }
 var clientlist = <% get_clientlist_from_json_database(); %>;		// data from /jffs/nmp_cl_json.js (used to correlate mac addresses to corresponding device names  )
@@ -285,8 +288,13 @@ function cidr_end(addr) {
 };
 
 function set_filter(field, o) {
-	filter[field] = o.value.toLowerCase();
-	draw_conntrack_table();
+	if (o.value != "!") {
+		if (field == 5 && o.value.search(/^!?Class:[0-7]$/) >= 0)
+			filter[field] = o.value.replace(/Class:/,"") + '>';
+		else
+			filter[field] = o.value.toLowerCase();
+		draw_conntrack_table();
+	}
 }
 
 function draw_conntrack_table() {
@@ -340,17 +348,21 @@ function draw_conntrack_table() {
 
 		// Filter in place?
 		var filtered = 0;
-		for (j = 0; j < 6; j++) {
+		for (j = 0; j < 5; j++) { // only check proto, IP and ports; defer application check until after rule eval
 			if (filter[j]) {
 				switch (j) {
 					case 0:
-					case 1:
 						if (bwdpi_conntrack[i][j].toLowerCase() != filter[j].toLowerCase())
 							filtered = 1;
 						break;
 					default:
-						if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
-							filtered = 1;
+						if (filter[j].charAt(0)=="!") {
+							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j].replace("!", "")) >= 0)
+								filtered = 1;
+						} else {
+							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
+								filtered = 1;
+						}
 				}
 				if (filtered) continue;
 			}
@@ -364,7 +376,19 @@ function draw_conntrack_table() {
 		// Prepend Class priority number for sorting, but only prepend it once
 		if ( ! bwdpi_conntrack[i][5].startsWith(rule_result.qosclass+'>') )
 			bwdpi_conntrack[i][5] =	rule_result.qosclass + '>' + rule_result.desc;
-
+		if (filter[5]) { // Application filter to be evaluated after rules applied
+			if (filter[5].charAt(0)=="!") {
+				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5].replace("!", "")) >= 0) {
+					shownlen--;
+					continue;
+				}
+			} else {
+				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5]) < 0) {
+					shownlen--;
+					continue;
+				}
+			}
+		}
 		tabledata.push(bwdpi_conntrack[i]);
 	}
 	//draw table
@@ -409,15 +433,13 @@ function table_sort(a, b){
 				return parseInt(a[sortfield]) - parseInt(b[sortfield]);
 			break;
 		case 5:		// Label
+			aa = a[sortfield].toLowerCase();
+			bb = b[sortfield].toLowerCase();
 			if (sortdir) {
-				aa = a[sortfield];
-				bb = b[sortfield];
 				if(aa == bb) return 0;
 				else if(aa > bb) return -1;
 				else return 1;
 			} else {
-				aa = a[sortfield];
-				bb = b[sortfield];
 				if(aa == bb) return 0;
 				else if(aa > bb) return 1;
 				else return -1;
@@ -461,8 +483,8 @@ function updateTable()
 		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
 		+ '<td>' + tabledata[i][4] + '</td>'
 		+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
-		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
-		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 27 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
+		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
+		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
 		+ '</td></tr>';
 	}
 	if (tabledata.length == maxshown)
@@ -591,34 +613,74 @@ function populate_devicefilter(){
 	document.getElementById('devicefilter').innerHTML=code;
 }
 
+function populate_class_dropdown() {
+	var code = "";
+	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
+		for (j=0;j<cat_id_array.length;j++) {
+			if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
+				var index = j;
+				break;
+			}
+		}
+		code += '<a><div onclick="setApplicationClass(' + i + ');">' + class_title[index] + '</div></a>';
+	}
+	document.getElementById('QoS_Class_List').innerHTML=code;
+} // populate_class_dropdown
+
+function setApplicationClass(val){
+	document.form.appfilter_x.value = 'Class:' + val;
+	hideClasses_Block();
+	set_filter(5, document.form.appfilter_x);
+}
+
+function hideClasses_Block(){
+	document.getElementById("class_pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById('QoS_Class_List').style.display='none';
+}
+
+function pullClassList(obj) {
+	var element = document.getElementById('QoS_Class_List');
+	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;
+	if(isMenuopen == 0) {
+		obj.src = "/images/arrow-top.gif"
+		element.style.display = 'block';
+		document.form.appfilter.focus();
+	}
+	else
+		hideClasses_Block();
+}
+
 function initial() {
 	SetCurrentPage();
 	show_menu();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
-	populate_devicefilter();		//used to populate drop down filter
+//	populate_devicefilter();		//used to populate drop down filter
+	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
-	deviceFilter = document.getElementById('devicefilter').value;
+//	deviceFilter = document.getElementById('devicefilter').value;
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
 	check_bandwidth();
+	well_known_rules();
+	populate_class_dropdown();
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
 	if (qos_mode == 0){		//if QoS is invalid
-		document.getElementById('filter_device').style.display = "none";
+		document.getElementById('tracked_filters').style.display = "none";
 		document.getElementById('tracked_connections').style.display = "none";
 		document.getElementById('refresh_data').style.display = "none";
 	}
-	$.ajax({
-		url: "Main_DHCPStatus_Content.asp",
-		success: function(result){
-			result = result.match(/leasearray=([\s\S]*?);/);
-			if (result[1]){
-				update_devicenames(eval(result[1])); //regex data string into actual array
-			}
-		}
-	});
+//	$.ajax({
+//		url: "Main_DHCPStatus_Content.asp",
+//		success: function(result){
+//			result = result.match(/leasearray=([\s\S]*?);/);
+//			if (result[1]){
+//				update_devicenames(eval(result[1])); //regex data string into actual array
+//			}
+//		}
+//	});
 }
 
 function get_qos_class(category, appid) {
@@ -670,6 +732,7 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst, Desc){
 	//rule[17]=Mark (Specific Traffic Match)
 	//rule[18]=QoS Destination
 	//rule[19]=Rule Description
+	//rule[20]=Mark inverse match (!) bool
 
 	rule[0]=0;
 	if (Dst)	rule[18]=bwdpi_app_rulelist_row.indexOf(cat_id_array[Dst].toString());
@@ -759,9 +822,14 @@ function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst, Desc){
 		}
 	}
 
-	if ( Mark.length == 6 )
+	if ( Mark )
 	{
 		rule[0]+=64;
+		if(Mark.startsWith("!")) {
+			rule[20]=1;
+			Mark=Mark.replace("!", "");
+		}
+
 		rule[16]=parseInt(Mark.substr(0,2),16);
 
 		if (Mark.substr(-4) != "****")
@@ -841,17 +909,29 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 		}
 
 		// if rule has mark cat specified
-		if ( (iptables_rules[i][0] & 64) && (iptables_rules[i][16] != CCat) )
+		if (iptables_rules[i][0] & 64)
 		{
-			// console.log("category mismatch");
-			continue;
+			var match=false;
+			if (iptables_rules[i][16] == CCat)	match=true;
+			if (iptables_rules[i][20])			match=!(match);
+			if (match == false)
+			{
+				// console.log("category mismatch");
+				continue;
+			}
 		}
 
 		// if rule has mark id specified
-		if ( (iptables_rules[i][0] & 128) && (iptables_rules[i][17] != CId) )
+		if (iptables_rules[i][0] & 128)
 		{
-			// console.log("traffic ID mismatch");
-			continue;
+			var match=false;
+			if (iptables_rules[i][17] == CId)	match=true;
+			if (iptables_rules[i][20])			match=!(match);
+			if (match == false)
+			{
+				// console.log("traffic ID mismatch");
+				continue;
+			}
 		}
 
 		// if rule has local IP specified and is not IPv6
@@ -911,6 +991,10 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 			// console.log("traffic ID mismatch");
 			continue;
 		}
+
+		// if rule has id specified, append ~
+		if ((appdb_rules[i][0] & 128) && ! (CCat == "0" && CId == "0") )
+			CDesc = CDesc + ' ~';
 
 		// console.log("rule matches current connection");
 		return { qosclass: appdb_rules[i][18], desc: CDesc };
@@ -1271,8 +1355,19 @@ tableValidator.qosMark = {
 					if (c == '*' && i < 2)
 						return false;
 				}
-				$obj.val(objValue.substr(0,2)+"****");
+				if(objValue.charAt(0)=='!')
+					$obj.val(objValue.substr(0,3)+"****");
+				else
+					$obj.val(objValue.substr(0,2)+"****");
 			}
+		}
+		else if (keyPressed == 33) { // exclamation !
+			if(objValue.length > 0 && objValue.length < $obj[0].attributes.maxlength.value && objValue.charAt(0) != '!') { // field already has value; only allow ! as first char
+				$obj.val('!' + objValue);
+			}
+			else if (objValue.length == 0)
+				return true;
+			return false;
 		}
 		return false;
 	},
@@ -1288,7 +1383,7 @@ tableValidator.qosMark = {
 				hintMsg = HINTPASS;
 		}
 		else {
-			var markre = new RegExp("^([0-9a-fA-F]{2})([0-9a-fA-F]{4}|[\*]{4})$", "gi");
+			var markre = new RegExp("^[!]?([0-9a-fA-F]{2})([0-9a-fA-F]{4}|[\*]{4})$", "gi");
 			if(markre.test(_value)) {
 				hintMsg = HINTPASS;
 			}
@@ -1444,15 +1539,17 @@ tableValidator.qosIPCIDR = { // only IP or IP plus netmask
 
 tableRuleDuplicateValidation = {
 	iptables_rule : function(_newRuleArray, _currentRuleArray) {
-		// Check that no 2 rules with the same values exist, ignoring the Class
+		// Check that no 2 rules with the same values exist, ignoring the Description and Class
 		if(_currentRuleArray.length == 0)
 			return true;
 		else {
 			var newRuleArrayTemp = _newRuleArray.slice();
-			newRuleArrayTemp.splice(-1, 1);
+			newRuleArrayTemp.splice(0, 1); // Remove Description
+			newRuleArrayTemp.splice(-1, 1); // Remove Class
 			for(var i = 0; i < _currentRuleArray.length; i += 1) {
 				var currentRuleArrayTemp = _currentRuleArray[i].slice();
-				currentRuleArrayTemp.splice(-1, 1);
+				currentRuleArrayTemp.splice(0, 1); // Remove Description
+				currentRuleArrayTemp.splice(-1, 1); // Remove Class
 				if(newRuleArrayTemp.toString() == currentRuleArrayTemp.toString())
 					return false;
 			}
@@ -1569,9 +1666,9 @@ function show_iptables_rules(){
 				{
 					"editMode" : "text",
 					"title" : "Mark",
-					"maxlength" : "6",
+					"maxlength" : "7",
 					"valueMust" : false,
-					"placeholder": "XXYYYY XX=Category(hex) YYYY=ID(hex or ****)",
+					"placeholder": "XXYYYY !XXYYYY XX=Category(hex) YYYY=ID(hex or ****)",
 					"validator" : "qosMark"
 				},
 				{
@@ -1620,7 +1717,7 @@ function show_iptables_rules(){
 				},
 				{
 					"editMode" : "text",
-					"maxlength" : "6",
+					"maxlength" : "7",
 					"valueMust" : false,
 					"validator" : "qosMark"
 				},
@@ -1858,7 +1955,7 @@ function FlexQoS_reset_appdb() {
 
 function FlexQoS_reset_filter() {
 	document.getElementById('protfilter').value="";
-	document.getElementById('devicefilter').value="";
+	document.getElementById('lipfilter').value="";
 	document.getElementById('lportfilter').value="";
 	document.getElementById('ripfilter').value="";
 	document.getElementById('rportfilter').value="";
@@ -2108,6 +2205,127 @@ function SetCurrentPage() {
 	document.form.current_page.value = window.location.pathname.substring(1);
 }
 
+function update_status(){
+	$.ajax({
+		url: '/ext/flexqos/detect_update.js',
+		dataType: 'script',
+		timeout: 3000,
+		error:	function(xhr){
+			setTimeout('update_status();', 1000);
+		},
+		success: function(){
+			if ( verUpdateStatus == "InProgress" )
+				setTimeout('update_status();', 1000);
+			else {
+				document.getElementById("ver_check").disabled = false;
+				document.getElementById("ver_update_scan").style.display = "none";
+				if ( verUpdateStatus != "NoUpdate") {
+					/* version update or hotfix available */
+					/* toggle update button */
+					document.getElementById("versionStatus").innerHTML = " " + verUpdateStatus + " available!";
+					document.getElementById("versionStatus").style.display = "";
+					document.getElementById("ver_check").style.display = "none";
+					document.getElementById("ver_update").style.display = "";
+				}
+				else {
+					document.getElementById("versionStatus").innerHTML = " You have the latest version.";
+					document.getElementById("versionStatus").style.display = "";
+				}
+			}
+		}
+	});
+}
+
+function version_check() {
+	document.getElementById("ver_check").disabled = true;
+	document.ver_check.action_script.value="start_flexqosupdatecheck"
+	document.ver_check.submit();
+	document.getElementById("ver_update_scan").style.display = "";
+	setTimeout("update_status();", 2000);
+}
+
+function version_update() {
+	document.form.action_script.value="start_flexqosupdateforce"
+	document.form.submit();
+}
+
+function setClientIP(ipaddr){
+	document.form.lipfilter_x.value = ipaddr;
+	hideClients_Block();
+	set_filter(1, document.form.lipfilter_x);
+}
+
+function hideClients_Block(){
+	document.getElementById("lip_pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById('ClientList_Block_PC').style.display='none';
+}
+
+function pullLANIPList(obj) {
+	var element = document.getElementById('ClientList_Block_PC');
+	var isMenuopen = element.offsetWidth > 0 || element.offsetHeight > 0;
+	if(isMenuopen == 0) {
+		obj.src = "/images/arrow-top.gif"
+		element.style.display = 'block';
+		document.form.lipfilter_x.focus();
+	}
+	else
+		hideClients_Block();
+}
+
+function well_known_rules(){
+//		[ "Rule Name", "Local IP", "Remote IP", "Proto", "Local Port", "Remote Port", "Mark", "Class"],
+	wItem = [
+		[ "Facetime", "", "", "udp", "16384:16415", "", "", "3"],
+		[ "Game Downloads", "", "", "tcp", "", "80,443", "08****", "7"],
+		[ "Gaming Rule", "", "", "both", "", "!80,443", "000000", "1"],
+		[ "Skype/Teams", "", "", "udp", "", "3478:3481", "000000", "3"],
+		[ "Usenet", "", "", "tcp", "", "119,563", "", "5"],
+		[ "WiFi Calling", "", "", "udp", "", "500,4500", "", "3"],
+		[ "Zoom", "", "", "udp", "", "8801:8810", "000000", "3"]
+	];
+	free_options(document.form.WellKnownRules);
+	add_option(document.form.WellKnownRules, "Please select", "User Defined", 1);
+	for (i = 0; i < wItem.length; i++){
+		add_option(document.form.WellKnownRules, wItem[i][0], wItem[i][0], 0);
+	}
+} // well_known_rules
+
+function change_wizard(o){
+	for(var i = 0; i < wItem.length; i++){
+		if(wItem[i][0] != null){
+			if(o.value == wItem[i][0]){
+				var wellKnownRule = new Array();
+				wellKnownRule.push(wItem[i][0]);
+				if (o.value == "Gaming Rule")
+					wellKnownRule.push(login_ip_str());
+				else
+					wellKnownRule.push(wItem[i][1]);
+				wellKnownRule.push(wItem[i][2]);
+				wellKnownRule.push(wItem[i][3]);
+				wellKnownRule.push(wItem[i][4]);
+				wellKnownRule.push(wItem[i][5]);
+				wellKnownRule.push(wItem[i][6]);
+				wellKnownRule.push(wItem[i][7]);
+				var validDuplicateFlag = true;
+				if(tableApi._attr.hasOwnProperty("ruleDuplicateValidation")) {
+					var currentEditRuleArray = wellKnownRule;
+					var filterCurrentEditRuleArray = iptables_temp_array;
+					validDuplicateFlag = tableRuleDuplicateValidation[tableApi._attr.ruleDuplicateValidation](currentEditRuleArray, filterCurrentEditRuleArray);
+					if(!validDuplicateFlag) {
+						document.form.WellKnownRules.selectedIndex = 0;
+						alert("This rule already exists.");
+						return false;
+					}
+					iptables_temp_array.push(currentEditRuleArray);
+					show_iptables_rules();
+				}
+				break;
+			}
+		}
+	}
+	document.form.WellKnownRules.selectedIndex = 0;
+} // change_wizard
+
 function autocomplete(inp, arr) {
 	/*the autocomplete function takes two arguments,
 	the text field element and an array of possible autocompleted values:*/
@@ -2237,14 +2455,26 @@ function autocomplete(inp, arr) {
 <tbody bgcolor="#4D595D">
 <tr>
 <td valign="top">
-<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span></div>
+<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span><img id="ver_update_scan" style="display:none;" src="images/InternetScan.gif"><span id="versionStatus" style="font-size:85%;color:#FC0;display:none;"></span></div>
 <div id="FlexQoS_mod_toggle" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_toggle();"><span style="padding:0 0 0" align="center">Customize</span></div>
+<div id="ver_check" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="version_check();"><span style="padding:0 0 0" align="center">Check for Update</span></div>
+<div id="ver_update" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold; display:none;" class="titlebtn" onclick="version_update();"><span style="padding:0 0 0" align="center">Update</span></div>
 <div style="margin-bottom:10px" class="splitLine"></div>
 
 <!-- FlexQoS UI Start-->
 <div id="FlexQoS_mod" style="display:none;">
 <div style="display:inline-block; margin:0px 0px 10px 5px; font-size:14px; text-shadow: 1px 1px 0px black;"><b>QoS Customization</b></div>
 <div style="margin:0px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_apply();"><span style="padding:0 0 0 0" align="center">Apply</span></div>
+<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
+	<tr>
+		<th colspan="2">Add Well-Known Rules</th>
+		<td colspan="4">
+			<select name="WellKnownRules" class="input_option" onChange="change_wizard(this);">
+				<option value="User Defined">Please select</option>
+			</select>
+		</td>
+	</tr>
+</table>
 <div id="iptables_rules_block"></div>
 
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
@@ -2446,29 +2676,34 @@ function autocomplete(inp, arr) {
 			<option value="tcp">tcp</option>
 			<option value="udp">udp</option>
 		</select></td>
-		<td><select id="devicefilter" style="max-width: 168px" class="input_option" onchange="set_filter(1, this);">
-				<option value=""> </option>
-			</select>
+		<td style="text-align:left;">
+			<input id="lipfilter" type="text" class="input_18_table" style="width:140px;" maxlength="40" name="lipfilter_x" oninput="set_filter(1, this);" onClick="hideClients_Block();"></input>
+			<img id="lip_pull_arrow" height="14px;" src="/images/arrow-down.gif" class="pull_arrow" style="position:absolute;" onclick="pullLANIPList(this);" title="Select the Local Client">
+			<div id="ClientList_Block_PC" class="clientlist_dropdown" style="margin-left:2px;width:200px;"></div>
 		</td>
-		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="5" oninput="set_filter(2, this);"></input></td>
-		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="39" oninput="set_filter(3, this);"></input></td>
-		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="5" oninput="set_filter(4, this);"></input></td>
-		<td><input id="appfilter" type="text" class="input_18_table" maxlength="48" oninput="set_filter(5, this);"></input></td>
+		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(2, this);"></input></td>
+		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="40" oninput="set_filter(3, this);"></input></td>
+		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(4, this);"></input></td>
+		<td style="text-align:left;">
+			<input id="appfilter" type="text" class="input_18_table" style="width:140px;" maxlength="49" name="appfilter_x" oninput="set_filter(5, this);" onClick="hideClasses_Block();"></input>
+			<img id="class_pull_arrow" height="14px;" src="/images/arrow-down.gif" class="pull_arrow" style="position:absolute;" onclick="pullClassList(this);" title="Select the QoS Class">
+			<div id="QoS_Class_List" class="clientlist_dropdown" style="margin-left:2px;width:165px;"></div>
+		</td>
 	</tr>
 </table>
 <table cellpadding="4" class="FormTable_table" id="tracked_connections">
 <thead>
-   <td id="tracked_connections_total" colspan="6">Tracked connections</td>
+	<td id="tracked_connections_total" colspan="6">Tracked connections</td>
 </thead>
 <tbody id="tableContainer">
-   <tr class="row_title">
-	  <th width="5%"  style="cursor: pointer;">Proto</th>
-	  <th width="28%" style="cursor: pointer;">Local IP</th>
-	  <th width="6%"  style="cursor: pointer;">Port</th>
-	  <th width="28%" style="cursor: pointer;">Remote IP</th>
-	  <th width="6%"  style="cursor: pointer;">Port</th>
-	  <th width="27%" style="cursor: pointer;">Application</th>
-   </tr>
+	<tr class="row_title">
+		<th width="5%"  style="cursor: pointer;">Proto</th>
+		<th width="28%" style="cursor: pointer;">Local IP</th>
+		<th width="6%"  style="cursor: pointer;">Port</th>
+		<th width="28%" style="cursor: pointer;">Remote IP</th>
+		<th width="6%"  style="cursor: pointer;">Port</th>
+		<th width="27%" style="cursor: pointer;">Application</th>
+	</tr>
 </tbody>
 </table>
 <!-- FlexQoS Connection Table End-->
@@ -2483,6 +2718,14 @@ function autocomplete(inp, arr) {
 <td width="10" align="center" valign="top">&nbsp;</td>
 </tr>
 </table>
+</form>
+<form method="post" name="ver_check" action="/start_apply.htm" target="hidden_frame">
+	<input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
+	<input type="hidden" name="current_page" value="">
+	<input type="hidden" name="next_page" value="">
+	<input type="hidden" name="action_mode" value="apply">
+	<input type="hidden" name="action_script" value="">
+	<input type="hidden" name="action_wait" value="">
 </form>
 <div id="footer"></div>
 </body>
