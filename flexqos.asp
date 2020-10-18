@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.0.4 released 2020-10-09
+FlexQoS v1.0.4 released 2020-10-18
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -2207,13 +2207,13 @@ function SetCurrentPage() {
 
 function update_status(){
 	$.ajax({
-    	url: '/ext/flexqos/detect_update.js',
-    	dataType: 'script',
+		url: '/ext/flexqos/detect_update.js',
+		dataType: 'script',
 		timeout: 3000,
-    	error:	function(xhr){
-    		setTimeout('update_status();', 1000);
-    	},
-    	success: function(){
+		error:	function(xhr){
+			setTimeout('update_status();', 1000);
+		},
+		success: function(){
 			if ( verUpdateStatus == "InProgress" )
 				setTimeout('update_status();', 1000);
 			else {
@@ -2232,8 +2232,8 @@ function update_status(){
 					document.getElementById("versionStatus").style.display = "";
 				}
 			}
-  		}
-  	});
+		}
+	});
 }
 
 function version_check() {
