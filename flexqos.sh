@@ -1477,6 +1477,9 @@ write_iptables_rules() {
 } # write_iptables_rules
 
 write_appdb_rules() {
+	${tc} filter show dev br0 parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
+	${tc} filter show dev ${tcwan} parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
+
 	# loop through appdb rules and write a tc command to a temporary script file
 	OLDIFS="$IFS"
 	IFS=">"
@@ -1585,9 +1588,6 @@ startup() {
 			# check action was called without a WAN interface passed
 			logmsg "Scheduled Persistence Check -> Reapplying Changes"
 		fi # check
-
-		${tc} filter show dev br0 parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
-		${tc} filter show dev ${tcwan} parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
 
 		write_appdb_static_rules
 		write_appdb_rules
