@@ -195,15 +195,16 @@ if (qos_mode == 2) {
 		bwdpi_app_rulelist = "9,20<8<4<0,5,6,15,17<4,13<13,24<1,3,14<7,10,11,21,23<";
 		bwdpi_app_rulelist_row = bwdpi_app_rulelist.split("<");
 	}
-	var category_title = ["Net Control Packets", "Work-From-Home", "Gaming", "Others", "Web Surfing", "Video and Audio Streaming", "Game Transferring", "File Transferring"];
-	var class_title = ["Net Control", "Work-From-Home", "Gaming", "Others", "Web Surfing", "Streaming", "Game Downloads", "File Downloads" ];
+	var category_title = ["Net Control Packets", "Gaming", "Video and Audio Streaming", "Work-From-Home", "Web Surfing", "File Transferring", "Others", "Game Transferring"];
+	var class_title = ["Net Control", "Gaming", "Streaming", "Work-From-Home", "Web Surfing", "File Downloads", "Others", "Game Downloads"];
 	var cat_id_array = [
 		[9, 20],
-		[0, 5, 6, 15, 17],
 		[8],
-		[7, 10, 11, 21, 23],
+		[4],
+		[0, 5, 6, 15, 17],
 		[13, 24],
-		[4]
+		[1, 3, 14],
+		[7, 10, 11, 21, 23]
 	];
 	if ( bwdpi_app_rulelist_row.indexOf("4,13") < 0 ) {
 		cat_id_array.push([]);
@@ -212,8 +213,6 @@ if (qos_mode == 2) {
 		cat_id_array.push([4, 13]);
 		var qos_default=bwdpi_app_rulelist_row.indexOf("0,5,6,15,17");
 	}
-	cat_id_array.push([1, 3, 14]);
-
 } else {
 	var category_title = ["", "Highest", "High", "Medium", "Low", "Lowest"];
 }
@@ -629,6 +628,8 @@ function populate_class_dropdown() {
 } // populate_class_dropdown
 
 function populate_bandwidth_table() {
+	// kludge until I can harmonize custom bandwidth field numbering with menu order
+	var bw_class_map = [ "Net Control", "Work-From-Home", "Gaming", "Others", "Web Surfing", "Streaming", "Game Downloads", "File Downloads" ];
 	var code = "";
 	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
 		for (j=0;j<cat_id_array.length;j++) {
@@ -637,14 +638,15 @@ function populate_bandwidth_table() {
 				break;
 			}
 		}
+		var bw_field = bw_class_map.indexOf(class_title[index]);
 		code += '<tr>' +
 		'<td>' + class_title[index] + '</td>' +
-		'<td><input id="drp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
-		'<td><input id="dcp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
-		'<td align="center"><div id="dp' + index + '_desc"></div></td>' +
-		'<td><input id="urp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
-		'<td><input id="ucp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
-		'<td align="center"><div id="up' + index + '_desc"></div></td>' +
+		'<td><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="dcp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
+		'<td><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="ucp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="up' + bw_field + '_desc"></div></td>' +
 		'</tr>';
 	}
 	code += '<tr id="qos_rates_warn" style="display:none;"><td>' +
