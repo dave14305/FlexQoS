@@ -213,6 +213,7 @@ if (qos_mode == 2) {
 		var qos_default=bwdpi_app_rulelist_row.indexOf("0,5,6,15,17");
 	}
 	cat_id_array.push([1, 3, 14]);
+
 } else {
 	var category_title = ["", "Highest", "High", "Medium", "Low", "Lowest"];
 }
@@ -627,6 +628,32 @@ function populate_class_dropdown() {
 	document.getElementById('QoS_Class_List').innerHTML=code;
 } // populate_class_dropdown
 
+function populate_bandwidth_table() {
+	var code = "";
+	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
+		for (j=0;j<cat_id_array.length;j++) {
+			if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
+				var index = j;
+				break;
+			}
+		}
+		code += '<tr>' +
+		'<td>' + class_title[index] + '</td>' +
+		'<td><input id="drp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="dcp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="dp' + index + '_desc"></div></td>' +
+		'<td><input id="urp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="ucp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="up' + index + '_desc"></div></td>' +
+		'</tr>';
+	}
+	code += '<tr id="qos_rates_warn" style="display:none;"><td>' +
+	'<td colspan="3"><div id="qos_drates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>' +
+	'<td colspan="3"><div id="qos_urates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>' +
+	'</tr>';
+	document.getElementById('bandwidth_block').innerHTML=code;
+} // populate_bandwidth_table
+
 function setApplicationClass(val){
 	document.form.appfilter_x.value = 'Class:' + val;
 	hideClasses_Block();
@@ -653,6 +680,7 @@ function pullClassList(obj) {
 function initial() {
 	SetCurrentPage();
 	show_menu();
+	populate_bandwidth_table();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
 //	populate_devicefilter();		//used to populate drop down filter
@@ -2497,7 +2525,7 @@ function autocomplete(inp, arr) {
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 	<thead>
 		<tr>
-			<td colspan="4">AppDB Redirection Rules&nbsp;(Max Limit : 32)<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_reset_appdb()'>Reset</small></td>
+			<td colspan="4">AppDB Redirection Rules&nbsp;(Max Limit : 32)<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_reset_appdb()">Reset</small></td>
 		</tr>
 	</thead>
 	<tbody>
@@ -2532,8 +2560,8 @@ function autocomplete(inp, arr) {
 	<thead>
 	<tr>
 		<td colspan="1">Bandwidth</td>
-		<td colspan="3" style="text-align:center;">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_mod_reset_down()'>Reset</small></td>
-		<td colspan="3" style="text-align:center;">Upload<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_mod_reset_up()'>Reset</small></td>
+		<td colspan="3" style="text-align:center;">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down()">Reset</small></td>
+		<td colspan="3" style="text-align:center;">Upload<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_up()">Reset</small></td>
 	</tr>
 	</thead>
 	<tr>
@@ -2545,85 +2573,7 @@ function autocomplete(inp, arr) {
 		<th>Maximum</th>
 		<th>Current Settings</th>
 	</tr>
-	<tbody>
-		<tr>
-			<td>Net Control</td>
-			<td><input id="drp0" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="dcp0" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="dp0_desc"></div></td>
-			<td><input id="urp0" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="ucp0" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="up0_desc"></div></td>
-		</tr>
-		<tr>
-			<td>Work-From-Home</td>
-			<td><input id="drp1" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="20"> % </td>
-			<td><input id="dcp1" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="dp1_desc"></div></td>
-			<td><input id="urp1" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="20"> % </td>
-			<td><input id="ucp1" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="up1_desc"></div></td>
-		</tr>
-		<tr>
-			<td>Gaming</td>
-			<td><input id="drp2" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="15"> % </td>
-			<td><input id="dcp2" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="dp2_desc"></div></td>
-			<td><input id="urp2" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="15"> % </td>
-			<td><input id="ucp2" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="up2_desc"></div></td>
-		</tr>
-		<tr>
-			<td>Others</td>
-			<td><input id="drp3" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="dcp3" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="dp3_desc"></div></td>
-			<td><input id="urp3" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="ucp3" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="up3_desc"></div></td>
-		</tr>
-		<tr>
-			<td>Web Surfing</td>
-			<td><input id="drp4" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="dcp4" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="dp4_desc"></div></td>
-			<td><input id="urp4" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="ucp4" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="up4_desc"></div></td>
-		</tr>
-		<tr>
-			<td>Streaming</td>
-			<td><input id="drp5" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="30"> % </td>
-			<td><input id="dcp5" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="dp5_desc"></div></td>
-			<td><input id="urp5" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="ucp5" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="up5_desc"></div></td>
-		</tr>
-		<tr>
-			<td>Game Downloads</td>
-			<td><input id="drp6" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="dcp6" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="dp6_desc"></div></td>
-			<td><input id="urp6" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="ucp6" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="up6_desc"></div></td>
-		</tr>
-		<tr>
-			<td>File Downloads</td>
-			<td><input id="drp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="dcp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="dp7_desc"></div></td>
-			<td><input id="urp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="ucp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-			<td align="center"><div id="up7_desc"></div></td>
-		</tr>
-		<tr id="qos_rates_warn" style="display:none;">
-			<td>
-			<td colspan="3"><div id="qos_drates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>
-			<td colspan="3"><div id="qos_urates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>
-		</tr>
-	</tbody>
+	<tbody id="bandwidth_block">
 </table>
 <p style="clear:left;clear:right;"></p>
 </div>
@@ -2668,7 +2618,7 @@ function autocomplete(inp, arr) {
 <br>
 <!-- FlexQoS Connection Table Start-->
 
-<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_reset_filter()'>Reset</small></td></tr></thead>
+<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_reset_filter()">Reset</small></td></tr></thead>
 	<tr>
 		<th width="5%">Proto</th>
 		<th width="28%">Local IP</th>
