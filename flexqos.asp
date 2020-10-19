@@ -2205,9 +2205,14 @@ function check_bandwidth() {
 
 function validate_percent(input)
 {
-	if (!(input)) 						return false;	//cannot be blank
-	if ( /[^0-9]/.test(input) )			return false;	//console.log("fail character");
-	if ( input < 1 || input > 100) 		return false;	//console.log("fail range");
+	var valid = true;
+	if (!(input.value)) valid=false;	//cannot be blank
+	if ( /[^0-9]/.test(input.value) ) valid=false;	//console.log("fail character");
+	if ( input.value < 1 || input.value > 100) valid=false;	//console.log("fail range");
+	if (valid)
+		input.style.removeProperty("background-color");
+	else
+		input.style.backgroundColor="#A86262";
 	check_bandwidth();
 	return 1
 }
