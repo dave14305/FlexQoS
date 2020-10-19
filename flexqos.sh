@@ -174,12 +174,11 @@ write_custom_rates() {
 } # write_custom_rates
 
 set_tc_variables(){
-
+	if [ -z "$tcwan" ]; then
+		tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')"
+	fi
 	if [ -s "/tmp/bwdpi/dev_wan" ]; then
 		tcwan="$(/bin/grep -oE "eth[0-9]|usb[0-9]" /tmp/bwdpi/dev_wan)"
-	fi
-	if [ -z "$tcwan" ]; then
-		tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \(eth[0-9]\\|usb[0-9]\) root.*/\1/p')"
 	fi
 	if [ -z "$tcwan" ]; then
 		tcwan="eth0"
