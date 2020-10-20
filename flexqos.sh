@@ -174,10 +174,8 @@ write_custom_rates() {
 } # write_custom_rates
 
 set_tc_variables(){
-	if [ -z "$tcwan" ]; then
-		tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')"
-	fi
-	if [ -s "/tmp/bwdpi/dev_wan" ]; then
+	tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')"
+	if [ -z "$tcwan" ] && [ -s "/tmp/bwdpi/dev_wan" ]; then
 		tcwan="$(/bin/grep -oE "eth[0-9]|usb[0-9]" /tmp/bwdpi/dev_wan)"
 	fi
 	if [ -z "$tcwan" ]; then
@@ -1494,7 +1492,7 @@ write_appdb_rules() {
 check_qos_tc() {
 	dlclasscnt="$(${tc} class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
 	dlfiltercnt="$(${tc} filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
-	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ]; then
+	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
 		return 0
 	fi
 	return 1
