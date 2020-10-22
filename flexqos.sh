@@ -1529,6 +1529,11 @@ EOF
 	fi
 } # validate_tc_rules
 
+schedule_check_job() {
+	# Schedule check for 5 minutes after startup to ensure no qos tc resets
+	cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
+} # schedule_check_job
+
 startup() {
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
 		logmsg "Adaptive QoS is not enabled. Skipping $SCRIPTNAME_DISPLAY startup."
@@ -1569,7 +1574,8 @@ startup() {
 		[ "$sleepdelay" = "0" ] && logmsg "TC Modification Delayed Start"
 		sleep 10s
 		if [ "$sleepdelay" -ge "300" ]; then
-			logmsg "TC Modification Delay reached maximum 300 seconds"
+			logmsg "TC Modification Delay reached maximum 300 seconds. Aborting startup!"
+			schedule_check_job
 			break
 		else
 			sleepdelay=$((sleepdelay+10))
@@ -1604,8 +1610,7 @@ startup() {
 			fi
 		fi
 
-		# Schedule check for 5 minutes after startup to ensure no qos tc resets
-		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
+		schedule_check_job
 	else
 		logmsg "No TC modifications necessary"
 	fi
