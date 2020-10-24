@@ -146,28 +146,28 @@ background-color: #2F3A3E !important;
   transition: all 0.5s ease-in-out;
 }
 td.cat0{
-box-shadow: #B3645B 0px -3px 0px 0px inset;
+box-shadow: #B3645B 3px 0px 0px 0px inset;
 }
 td.cat1{
-box-shadow: #B98F53 0px -3px 0px 0px inset;
+box-shadow: #B98F53 3px 0px 0px 0px inset;
 }
 td.cat2{
-box-shadow: #C6B36A 0px -3px 0px 0px inset;
+box-shadow: #C6B36A 3px 0px 0px 0px inset;
 }
 td.cat3{
-box-shadow: #849E75 0px -3px 0px 0px inset;
+box-shadow: #849E75 3px 0px 0px 0px inset;
 }
 td.cat4{
-box-shadow: #4C8FC0 0px -3px 0px 0px inset;
+box-shadow: #4C8FC0 3px 0px 0px 0px inset;
 }
 td.cat5{
-box-shadow: #7C637A 0px -3px 0px 0px inset;
+box-shadow: #7C637A 3px 0px 0px 0px inset;
 }
 td.cat6{
-box-shadow: #2B6692 0px -3px 0px 0px inset;
+box-shadow: #2B6692 3px 0px 0px 0px inset;
 }
 td.cat7{
-box-shadow: #6C604F 0px -3px 0px 0px inset;
+box-shadow: #6C604F 3px 0px 0px 0px inset;
 }
 </style>
 
@@ -664,13 +664,13 @@ function populate_bandwidth_table() {
 		}
 		var bw_field = bw_class_map.indexOf(class_title[index]);
 		code += '<tr>' +
-		'<td class="cat' + i + '">' + class_title[index] + '</td>' +
+		'<th>' + class_title[index] + '</th>' +
 		'<td class="cat' + i + '"><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
-		'<td class="cat' + i + '"><input id="dcp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
-		'<td class="cat' + i + '" align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
+		'<td><input id="dcp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
 		'<td class="cat' + i + '"><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
-		'<td class="cat' + i + '"><input id="ucp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
-		'<td class="cat' + i + '" align="center"><div id="up' + bw_field + '_desc"></div></td>' +
+		'<td><input id="ucp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="up' + bw_field + '_desc"></div></td>' +
 		'</tr>';
 	}
 	code += '<tr id="qos_rates_warn" style="display:none;"><td>' +
