@@ -1604,9 +1604,10 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logmsg "Applying AppDB rules and TC rates"
 			if ! ${tc} -force -batch /tmp/${SCRIPTNAME}_tcrules >/tmp/${SCRIPTNAME}_tcrules.log 2>&1; then
+				cp -f /tmp/${SCRIPTNAME}_tcrules /tmp/${SCRIPTNAME}_tcrules.err
 				logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
 			else
-				rm /tmp/${SCRIPTNAME}_tmp_tcfilterdown /tmp/${SCRIPTNAME}_tmp_tcfilterup /tmp/${SCRIPTNAME}_tcrules.log /tmp/${SCRIPTNAME}_checktcrules
+				rm /tmp/${SCRIPTNAME}_tmp_tcfilterdown /tmp/${SCRIPTNAME}_tmp_tcfilterup /tmp/${SCRIPTNAME}_tcrules.log /tmp/${SCRIPTNAME}_checktcrules /tmp/${SCRIPTNAME}_tcrules.err
 			fi
 		fi
 
