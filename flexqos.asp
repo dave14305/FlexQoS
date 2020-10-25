@@ -146,28 +146,28 @@ background-color: #2F3A3E !important;
   transition: all 0.5s ease-in-out;
 }
 td.cat0{
-box-shadow: #B3645B 3px 0px 0px 0px inset;
+box-shadow: #B3645B -0px -3px 0px 0px inset;
 }
 td.cat1{
-box-shadow: #B98F53 3px 0px 0px 0px inset;
+box-shadow: #B98F53 -0px -3px 0px 0px inset;
 }
 td.cat2{
-box-shadow: #C6B36A 3px 0px 0px 0px inset;
+box-shadow: #C6B36A 0px -3px 0px 0px inset;
 }
 td.cat3{
-box-shadow: #849E75 3px 0px 0px 0px inset;
+box-shadow: #849E75 0px -3px 0px 0px inset;
 }
 td.cat4{
-box-shadow: #4C8FC0 3px 0px 0px 0px inset;
+box-shadow: #4C8FC0 0px -3px 0px 0px inset;
 }
 td.cat5{
-box-shadow: #7C637A 3px 0px 0px 0px inset;
+box-shadow: #7C637A 0px -3px 0px 0px inset;
 }
 td.cat6{
-box-shadow: #2B6692 3px 0px 0px 0px inset;
+box-shadow: #2B6692 0px -3px 0px 0px inset;
 }
 td.cat7{
-box-shadow: #6C604F 3px 0px 0px 0px inset;
+box-shadow: #6C604F 0px -3px 0px 0px inset;
 }
 </style>
 
@@ -332,6 +332,7 @@ function draw_conntrack_table() {
 	//bwdpi_conntrack[i][7] = Traffic Category
 	tabledata = [];
 	var tracklen, shownlen = 0;
+
 	tracklen = bwdpi_conntrack.length;
 	if (tracklen == 0 ) {
 		showhide("tracked_filters", 0);
@@ -413,6 +414,7 @@ function draw_conntrack_table() {
 				}
 			}
 		}
+
 		tabledata.push(bwdpi_conntrack[i]);
 	}
 	//draw table
@@ -474,6 +476,31 @@ function table_sort(a, b){
 
 function updateTable()
 {
+	// tabledata[i][0] = protocol
+	// tabledata[i][1] = Source IP
+	// tabledata[i][2] = Source Port
+	// tabledata[i][3] = Destination IP
+	// tabledata[i][4] = Destination Port
+	// tabledata[i][5] = Pre-formatted Title
+	// tabledata[i][6] = Traffic ID
+	// tabledata[i][7] = Traffic Category
+
+	var PrevProtocol = "STARTUP";	// set to STARTUP - to flag if this is the first row and not output it when the first real
+	var PrevSourceIP = "";		// row shows up not a duplicate of this one!
+	var PrevSourceHost = "";	// Variables Prev* are used to store the values from the previous loop.  This way we
+	var PrevSourcePort = "";	// identify duplicates by looking at all values except the Local Port.  If they all match,
+	var PrevDestIP = "";		// then we have a duplicate - in which case we increment the SamePortCount counter and look
+	var PrevDestPort = "";		// at the next item.  If the next item is not a duplicate, then we need to save out the 
+	var PrevTitle = "";		// previous item as a row in the table.
+	var PrevTrafficID = "";		//
+	var PrevCategory = "";		// If Filtering by Local Port is done, then we won't have duplicates, as a single IP
+	var PrevQOSClass = "";		// will only have a single instance of a local port active.
+	var PrevLabel = "";		
+	var PrevMark = "";
+	var PortValue = "";
+	var PortTitle = "";
+	var SamePortCount = 0;
+
 	//sort table data
 	if (sortfield < 5)
 		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
@@ -484,11 +511,11 @@ function updateTable()
 	//generate table
 	var code = '<tr class="row_title">' +
 		'<th width="5%" id="track_header_0" style="cursor: pointer;" onclick="setsort(0); updateTable()">Proto</th>' +
-		'<th width="28%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Local IP</th>' +
-		'<th width="6%" id="track_header_2" style="cursor: pointer;" onclick="setsort(2); updateTable()">Port</th>' +
-		'<th width="28%" id="track_header_3" style="cursor: pointer;" onclick="setsort(3); updateTable()">Remote IP</th>' +
+		'<th width="27%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Local IP</th>' 
+		'<th width="9%" id="track_header_2" style="cursor: pointer;" onclick="setsort(2); updateTable()">Port</th>' +
+		'<th width="27%" id="track_header_3" style="cursor: pointer;" onclick="setsort(3); updateTable()">Remote IP</th>' +
 		'<th width="6%" id="track_header_4" style="cursor: pointer;" onclick="setsort(4); updateTable()">Port</th>' +
-		'<th width="27%" id="track_header_5" style="cursor: pointer;" onclick="setsort(5); updateTable()">Application</th></tr>';
+		'<th width="26%" id="track_header_5" style="cursor: pointer;" onclick="setsort(5); updateTable()">Application</th></tr>';
 
 	for(var i = 0; i < tabledata.length; i++){
 		var qos_class = tabledata[i][5].split(">")[0];
@@ -500,17 +527,87 @@ function updateTable()
 			srchost = tabledata[i][1];
 		}
 
+		// Compare the Previous values against the current values.  If all match except the Local Port, we have a Duplicate.
+		if ((PrevProtocol == tabledata[i][0])  && (PrevSourceIP == tabledata[i][1]) && (PrevDestIP == tabledata[i][3]) && (PrevDestPort == tabledata[i][4]) && (PrevTitle == tabledata[i][5]) && ( PrevTrafficID == tabledata[i][6]) && ( PrevCategory == tabledata[i][7] ) ) {
+			// Found a duplicate, so increment the counter and save the local port for the tool tip.
+			SamePortCount += 1;
+			PrevSourcePort = PrevSourcePort + ', ' + tabledata[i][2];
+		} else {
+			// found a new, unique row.
+
+			// First save the previous row with the saved duplicate info, then save the values of 
+			// the current row in the Prev* variables for future duplicate detectiond.
+			if ( SamePortCount > 1 ) {
+				PortValue = SamePortCount + " DUPs";
+				PortTitle = SamePortCount + " Ports: " + PrevSourcePort + ".";
+			} else {
+				PortValue = PrevSourcePort;
+				PortTitle = "No Duplicates."
+			}
+
+			// if First Row (PrevProtocol = "STARTUP") - then don't output the previous entrie - as this current row is the
+			//  first real row of data.  The STARTUP row is skipped from being output.  
+			if (PrevProtocol == "STARTUP") {
+				// startup previous values, so no duplicate - do nothing, no output.
+			} else {
+				// Save the previous values to the table.
+				// When duplicates are found, the tool-tip is the list of local ports that were duplicate.
+				code += '<tr>'
+				+ '<td>' + PrevProtocol + '</td>' 
+				+ '<td title="' + PrevSourceIP + '"' + (PrevSourceHost .length > 32 ? ' style="font-size: 80%;"' : '') + '>' + PrevSourceHost + '</td>'
+				+ '<td title="' + PortTitle + '">' + PortValue  + '</td>'
+				+ '<td' + (PrevDestIP.length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + PrevDestIP +'</td>'
+				+ '<td>' + PrevDestPort  + '</td>'
+				+ '<td class="t_item"' + 'title="' + labels_array[PrevQOSClass] + '">'
+				+ '<span class="t_label catrow cat' + PrevQOSClass + '"' + (PrevLabel.length > 29 ? 'style="font-size: 75%;"' : '') + '>' + PrevLabel + '</span>'
+				+ '<span class="t_mark  catrow cat' + PrevQOSClass + '"' + (PrevLabel.length > 29 ? 'style="font-size: 75%;"' : '') + '>MARK:' + PrevMark + '</span>'
+				+ '</td></tr>';
+			}
+
+			// Since current data is unique, save the values until we found a Non-Duplicate.
+			PrevProtocol =   tabledata[i][0];
+			PrevSourceIP =   tabledata[i][1];
+			PrevSourceHost = srchost;
+			PrevSourcePort = tabledata[i][2];
+			PrevDestIP =     tabledata[i][3];
+			PrevDestPort =   tabledata[i][4];
+			PrevTitle =      tabledata[i][5];
+			PrevQOSClass =   qos_class;
+			PrevLabel    =   label;
+			PrevMark     =   mark;
+			PrevTrafficID =  tabledata[i][6];
+			PrevCategory =   tabledata[i][7];
+			SamePortCount = 1; // reset the SamePortCount to 1 as we found a unique row.
+		}
+
+	}  // end of FOR/NEXT
+
+	// Ensure we capture the final row - as it wouldn't be output in the FOR Loop as there is never a following, non-duplicate row.  
+	// Also ensure we had some rows and are not just dealing with an empty table - so check the STARTUP contition as well.
+	if (PrevProtocol == "STARTUP") {
+		// startup previous values, so no duplicate - do nothing, no output.
+	} else {
+		if ( SamePortCount > 1 ) {
+			PortValue = SamePortCount + " DUPs";
+			PortTitle = SamePortCount + " Ports: " + PrevSourcePort + ".";
+		} else {
+			PortValue = PrevSourcePort;
+			PortTitle = "No Duplicates."
+		}
+
 		code += '<tr>'
-		+ '<td>' + tabledata[i][0] + '</td>'
-		+ '<td title="' + tabledata[i][1]  + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
-		+ '<td>' + tabledata[i][2] + '</td>'
-		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
-		+ '<td>' + tabledata[i][4] + '</td>'
-		+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
-		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
-		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
+		+ '<td>' + PrevProtocol + '</td>' 
+		+ '<td title="' + PrevSourceIP + '"' + (PrevSourceHost .length > 32 ? ' style="font-size: 80%;"' : '') + '>' + PrevSourceHost + '</td>'
+		+ '<td title="' + PortTitle + '">' + PortValue  + '</td>'
+		+ '<td' + (PrevDestIP.length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + PrevDestIP +'</td>'
+		+ '<td>' + PrevDestPort  + '</td>'
+		+ '<td class="t_item"' + 'title="' + labels_array[PrevQOSClass] + '">'
+		+ '<span class="t_label catrow cat' + PrevQOSClass + '"' + (PrevLabel.length > 29 ? 'style="font-size: 75%;"' : '') + '>' + PrevLabel + '</span>'
+		+ '<span class="t_mark  catrow cat' + PrevQOSClass + '"' + (PrevLabel.length > 29 ? 'style="font-size: 75%;"' : '') + '>MARK:' + PrevMark + '</span>'
 		+ '</td></tr>';
 	}
+
+
 	if (tabledata.length == maxshown)
 	{
 		code += '<tr><td colspan="6"><span style="text-align: center;">List truncated to ' + maxshown + ' elements - use a filter</td></tr>';
@@ -663,18 +760,21 @@ function populate_bandwidth_table() {
 			}
 		}
 		var bw_field = bw_class_map.indexOf(class_title[index]);
+
+ 		// Update to include standard colored boxes for the classes.
 		code += '<tr>' +
-		'<th>' + class_title[index] + '</th>' +
-		'<td class="cat' + i + '"><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td style="border-right-width:thick;"><span class="t_label catrow cat' + index + '"><div style="width:100px; display:inline-block">' + class_title[index] + '</div></span></td>' +
+		'<td><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
 		'<td><input id="dcp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
-		'<td align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
-		'<td class="cat' + i + '"><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td style="border-right-width:thick;" align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
+		'<td><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
 		'<td><input id="ucp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
 		'<td align="center"><div id="up' + bw_field + '_desc"></div></td>' +
 		'</tr>';
+
 	}
-	code += '<tr id="qos_rates_warn" style="display:none;"><td>' +
-	'<td colspan="3"><div id="qos_drates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>' +
+	code += '<tr id="qos_rates_warn" style="display:none;"><td style="border-right-width:thick"></td>' +
+	'<td colspan="3" style="border-right-width:thick;"><div id="qos_drates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>' +
 	'<td colspan="3"><div id="qos_urates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>' +
 	'</tr>';
 	document.getElementById('bandwidth_block').innerHTML=code;
@@ -2585,16 +2685,16 @@ function autocomplete(inp, arr) {
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 	<thead>
 	<tr>
-		<td colspan="1">Bandwidth</td>
-		<td colspan="3" style="text-align:center;">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down()">Reset</small></td>
+		<td colspan="1" style="text-align:center;border-right-width:thick;">Bandwidth</td>
+		<td colspan="3" style="text-align:center;border-right-width:thick;">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down()">Reset</small></td>
 		<td colspan="3" style="text-align:center;">Upload<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_up()">Reset</small></td>
 	</tr>
 	</thead>
 	<tr>
-		<th>Class</th>
+		<th style="border-right-width:thick;">Class</th>
 		<th>Minimum</th>
 		<th>Maximum</th>
-		<th>Current Settings</th>
+		<th style="border-right-width:thick;">Current Settings</th>
 		<th>Minimum</th>
 		<th>Maximum</th>
 		<th>Current Settings</th>
