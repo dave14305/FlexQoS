@@ -146,28 +146,28 @@ background-color: #2F3A3E !important;
   transition: all 0.5s ease-in-out;
 }
 td.cat0{
-box-shadow: #B3645B 3px 0px 0px 0px inset;
+box-shadow: #B3645B 5px 0px 0px 0px inset;
 }
 td.cat1{
-box-shadow: #B98F53 3px 0px 0px 0px inset;
+box-shadow: #B98F53 5px 0px 0px 0px inset;
 }
 td.cat2{
-box-shadow: #C6B36A 3px 0px 0px 0px inset;
+box-shadow: #C6B36A 5px 0px 0px 0px inset;
 }
 td.cat3{
-box-shadow: #849E75 3px 0px 0px 0px inset;
+box-shadow: #849E75 5px 0px 0px 0px inset;
 }
 td.cat4{
-box-shadow: #4C8FC0 3px 0px 0px 0px inset;
+box-shadow: #4C8FC0 5px 0px 0px 0px inset;
 }
 td.cat5{
-box-shadow: #7C637A 3px 0px 0px 0px inset;
+box-shadow: #7C637A 5px 0px 0px 0px inset;
 }
 td.cat6{
-box-shadow: #2B6692 3px 0px 0px 0px inset;
+box-shadow: #2B6692 5px 0px 0px 0px inset;
 }
 td.cat7{
-box-shadow: #6C604F 3px 0px 0px 0px inset;
+box-shadow: #6C604F 5px 0px 0px 0px inset;
 }
 </style>
 
@@ -646,7 +646,7 @@ function populate_class_dropdown() {
 				break;
 			}
 		}
-		code += '<a><div onclick="setApplicationClass(' + i + ');">' + class_title[index] + '</div></a></a>';
+		code += '<a><div onclick="setApplicationClass(' + i + ');">' + class_title[index] + '</div></a>';
 	}
 	document.getElementById('QoS_Class_List').innerHTML=code;
 } // populate_class_dropdown
@@ -664,11 +664,11 @@ function populate_bandwidth_table() {
 		}
 		var bw_field = bw_class_map.indexOf(class_title[index]);
 		code += '<tr>' +
-		'<th>' + class_title[index] + '</th>' +
-		'<td class="cat' + i + '"><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td class="cat' + i + '">' + class_title[index] + '</td>' +
+		'<td><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
 		'<td><input id="dcp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
 		'<td align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
-		'<td class="cat' + i + '"><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
 		'<td><input id="ucp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
 		'<td align="center"><div id="up' + bw_field + '_desc"></div></td>' +
 		'</tr>';
@@ -2585,13 +2585,14 @@ function autocomplete(inp, arr) {
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 	<thead>
 	<tr>
-		<td colspan="1">Bandwidth</td>
-		<td colspan="3" style="text-align:center;">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down()">Reset</small></td>
-		<td colspan="3" style="text-align:center;">Upload<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_up()">Reset</small></td>
+		<td colspan="7">Bandwidth<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down();FlexQoS_mod_reset_up();">Reset</small></td>
 	</tr>
 	</thead>
 	<tr>
-		<th>Class</th>
+		<th rowspan="2">Class</th>
+		<th colspan="3">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down()">Reset</small></th>
+		<th colspan="3">Upload<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_up()">Reset</small></th>
+	<tr>
 		<th>Minimum</th>
 		<th>Maximum</th>
 		<th>Current Settings</th>
