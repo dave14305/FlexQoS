@@ -330,6 +330,8 @@ function draw_conntrack_table() {
 	//bwdpi_conntrack[i][5] = Pre-formatted Title
 	//bwdpi_conntrack[i][6] = Traffic ID
 	//bwdpi_conntrack[i][7] = Traffic Category
+var deduptable;
+deduptable = [];
 	tabledata = [];
 	var tracklen, shownlen = 0;
 
@@ -415,11 +417,43 @@ function draw_conntrack_table() {
 			}
 		}
 
-		tabledata.push(bwdpi_conntrack[i]);
+		// find the index of a duplicate in the tabledata, if one is present.
+		var dupindex;
+	 	dupindex = find_tabledata_duplicate(bwdpi_conntrack[i]);
+               if (dupindex == -1 ) {
+ 		 // dup not found - so add this item to tabledata
+		 tabledata.push(bwdpi_conntrack[i]);
+               } else {
+                 // dup found.  Update port list.
+                 tabledata[dupindex][2] += ", " + bwdpi_conntrack[i][2];
+                 shownlen--; // decrement counter so we gather more to the max limit.
+               }
 	}
+
 	//draw table
 	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
 	updateTable();
+}
+
+function find_tabledata_duplicate(conntrack_element) {
+  // pass in This as the comparison array row
+//  window.console.log("Looking for Duplicates:");
+
+  // step through the tabledata array looking for duplicates
+  for (var i = 0; i < tabledata.length; i++) {
+    if ((tabledata[i][0] == conntrack_element[0]) && 
+      (tabledata[i][1] == conntrack_element[1]) && 
+      (tabledata[i][3] == conntrack_element[3]) && 
+      (tabledata[i][4] == conntrack_element[4]) && 
+      (tabledata[i][5] == conntrack_element[5]) && 
+      (tabledata[i][6] == conntrack_element[6]) && 
+      (tabledata[i][7] == conntrack_element[7]) 
+    ) {
+//      window.console.log("--- Found Duplicate");
+      return i;
+    }
+  } // NEXT
+return -1;
 }
 
 function setsort(newfield) {
@@ -511,7 +545,7 @@ function updateTable()
 	//generate table
 	var code = '<tr class="row_title">' +
 		'<th width="5%" id="track_header_0" style="cursor: pointer;" onclick="setsort(0); updateTable()">Proto</th>' +
-		'<th width="27%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Local IP</th>' 
+		'<th width="27%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Local IP</th>' +
 		'<th width="9%" id="track_header_2" style="cursor: pointer;" onclick="setsort(2); updateTable()">Port</th>' +
 		'<th width="27%" id="track_header_3" style="cursor: pointer;" onclick="setsort(3); updateTable()">Remote IP</th>' +
 		'<th width="6%" id="track_header_4" style="cursor: pointer;" onclick="setsort(4); updateTable()">Port</th>' +
@@ -544,6 +578,11 @@ function updateTable()
 				PortValue = PrevSourcePort;
 				PortTitle = "No Duplicates."
 			}
+
+if (PortValue.includes(",") ) {
+ PortValue = "DUPs";
+ PortTitle = PrevSourcePort;
+}
 
 			// if First Row (PrevProtocol = "STARTUP") - then don't output the previous entrie - as this current row is the
 			//  first real row of data.  The STARTUP row is skipped from being output.  
