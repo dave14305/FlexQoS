@@ -624,19 +624,6 @@ function populate_classmenu(){
 	document.getElementById('appdb_class_x').innerHTML=code;
 }
 
-function populate_devicefilter(){
-	var code = '<option value=""> </option>';
-
-	//Presort clients before adding clients into devicefilter to make it easier to read
-	keysSorted = Object.keys(device).sort(function(a,b){ return ip2dec(a)-ip2dec(b) })									// sort by IP
-	//keysSorted = Object.keys(device).sort(function(a,b){ return device[a].name.localeCompare(device[b].name) })		// sort by device name
-	for (i = 0; i < keysSorted.length; i++) {
-		key = keysSorted[i];
-		code += '<option id="' + key + '" value="' + key + '">' + key.replace(ipv6prefix,"").padEnd(21," ").replace(/ /g,"&nbsp;") + device[key].name + "</option>\n";
-	}
-	document.getElementById('devicefilter').innerHTML=code;
-}
-
 function populate_class_dropdown() {
 	var code = "";
 	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
@@ -709,11 +696,9 @@ function initial() {
 	populate_bandwidth_table();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
-//	populate_devicefilter();		//used to populate drop down filter
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
-//	deviceFilter = document.getElementById('devicefilter').value;
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
