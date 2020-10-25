@@ -10,8 +10,8 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.0.4
-release=2020-10-18
+version=1.0.5
+release=2020-11-01
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
@@ -174,12 +174,9 @@ write_custom_rates() {
 } # write_custom_rates
 
 set_tc_variables(){
-
-	if [ -s "/tmp/bwdpi/dev_wan" ]; then
-		tcwan="$(/bin/grep -oE "eth[0-9]" /tmp/bwdpi/dev_wan)"
-	fi
-	if [ -z "$tcwan" ]; then
-		tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \(eth[0-9]\) root.*/\1/p')"
+	tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')"
+	if [ -z "$tcwan" ] && [ -s "/tmp/bwdpi/dev_wan" ]; then
+		tcwan="$(/bin/grep -oE "eth[0-9]|usb[0-9]" /tmp/bwdpi/dev_wan)"
 	fi
 	if [ -z "$tcwan" ]; then
 		tcwan="eth0"
@@ -1495,7 +1492,7 @@ write_appdb_rules() {
 check_qos_tc() {
 	dlclasscnt="$(${tc} class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
 	dlfiltercnt="$(${tc} filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
-	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ]; then
+	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
 		return 0
 	fi
 	return 1
@@ -1531,6 +1528,11 @@ EOF
 		return 0
 	fi
 } # validate_tc_rules
+
+schedule_check_job() {
+	# Schedule check for 5 minutes after startup to ensure no qos tc resets
+	cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
+} # schedule_check_job
 
 startup() {
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
@@ -1572,7 +1574,8 @@ startup() {
 		[ "$sleepdelay" = "0" ] && logmsg "TC Modification Delayed Start"
 		sleep 10s
 		if [ "$sleepdelay" -ge "300" ]; then
-			logmsg "TC Modification Delay reached maximum 300 seconds"
+			logmsg "TC Modification Delay reached maximum 300 seconds. Aborting startup!"
+			schedule_check_job
 			break
 		else
 			sleepdelay=$((sleepdelay+10))
@@ -1601,14 +1604,14 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logmsg "Applying AppDB rules and TC rates"
 			if ! ${tc} -force -batch /tmp/${SCRIPTNAME}_tcrules >/tmp/${SCRIPTNAME}_tcrules.log 2>&1; then
+				cp -f /tmp/${SCRIPTNAME}_tcrules /tmp/${SCRIPTNAME}_tcrules.err
 				logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
 			else
-				rm /tmp/${SCRIPTNAME}_tmp_tcfilterdown /tmp/${SCRIPTNAME}_tmp_tcfilterup /tmp/${SCRIPTNAME}_tcrules.log /tmp/${SCRIPTNAME}_checktcrules
+				rm /tmp/${SCRIPTNAME}_tmp_tcfilterdown /tmp/${SCRIPTNAME}_tmp_tcfilterup /tmp/${SCRIPTNAME}_tcrules.log /tmp/${SCRIPTNAME}_checktcrules /tmp/${SCRIPTNAME}_tcrules.err
 			fi
 		fi
 
-		# Schedule check for 5 minutes after startup to ensure no qos tc resets
-		cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
+		schedule_check_job
 	else
 		logmsg "No TC modifications necessary"
 	fi

@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.0.4 released 2020-10-18
+FlexQoS v1.0.5 released 2020-11-01
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -145,6 +145,30 @@ background-color: #2F3A3E !important;
   -o-transition: all 0.5s ease-in-out;
   transition: all 0.5s ease-in-out;
 }
+td.cat0{
+box-shadow: #B3645B 5px 0px 0px 0px inset;
+}
+td.cat1{
+box-shadow: #B98F53 5px 0px 0px 0px inset;
+}
+td.cat2{
+box-shadow: #C6B36A 5px 0px 0px 0px inset;
+}
+td.cat3{
+box-shadow: #849E75 5px 0px 0px 0px inset;
+}
+td.cat4{
+box-shadow: #4C8FC0 5px 0px 0px 0px inset;
+}
+td.cat5{
+box-shadow: #7C637A 5px 0px 0px 0px inset;
+}
+td.cat6{
+box-shadow: #2B6692 5px 0px 0px 0px inset;
+}
+td.cat7{
+box-shadow: #6C604F 5px 0px 0px 0px inset;
+}
 </style>
 
 <script>
@@ -174,6 +198,11 @@ var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
 var qos_dlbw = "<% nvram_get("qos_ibw"); %>";		// download bandwidth set in QoS settings
 var qos_ulbw = "<% nvram_get("qos_obw"); %>";		// upload bandwidth set in QoS settings
+
+if (qos_dlbw > 0 && qos_ulbw > 0)
+	var qos_bwmode = 1;	// Manual
+else
+	var qos_bwmode = 0;	// Auto
 
 var qos_type = "<% nvram_get("qos_type"); %>";
 if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
@@ -600,19 +629,6 @@ function populate_classmenu(){
 	document.getElementById('appdb_class_x').innerHTML=code;
 }
 
-function populate_devicefilter(){
-	var code = '<option value=""> </option>';
-
-	//Presort clients before adding clients into devicefilter to make it easier to read
-	keysSorted = Object.keys(device).sort(function(a,b){ return ip2dec(a)-ip2dec(b) })									// sort by IP
-	//keysSorted = Object.keys(device).sort(function(a,b){ return device[a].name.localeCompare(device[b].name) })		// sort by device name
-	for (i = 0; i < keysSorted.length; i++) {
-		key = keysSorted[i];
-		code += '<option id="' + key + '" value="' + key + '">' + key.replace(ipv6prefix,"").padEnd(21," ").replace(/ /g,"&nbsp;") + device[key].name + "</option>\n";
-	}
-	document.getElementById('devicefilter').innerHTML=code;
-}
-
 function populate_class_dropdown() {
 	var code = "";
 	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
@@ -626,6 +642,35 @@ function populate_class_dropdown() {
 	}
 	document.getElementById('QoS_Class_List').innerHTML=code;
 } // populate_class_dropdown
+
+function populate_bandwidth_table() {
+	// kludge until I can harmonize custom bandwidth field numbering with menu order
+	var bw_class_map = [ "Net Control", "Work-From-Home", "Gaming", "Others", "Web Surfing", "Streaming", "Game Downloads", "File Downloads" ];
+	var code = "";
+	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
+		for (j=0;j<cat_id_array.length;j++) {
+			if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
+				var index = j;
+				break;
+			}
+		}
+		var bw_field = bw_class_map.indexOf(class_title[index]);
+		code += '<tr>' +
+		'<td class="cat' + i + '">' + class_title[index] + '</td>' +
+		'<td><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="dcp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
+		'<td><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="ucp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="up' + bw_field + '_desc"></div></td>' +
+		'</tr>';
+	}
+	code += '<tr id="qos_rates_warn" style="display:none;"><td>' +
+	'<td colspan="3"><div id="qos_drates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>' +
+	'<td colspan="3"><div id="qos_urates_warn" style="display:none;color:#FFCC00;text-align: center;">The total Minimum Bandwidth exceeds 100%!</div></td>' +
+	'</tr>';
+	document.getElementById('bandwidth_block').innerHTML=code;
+} // populate_bandwidth_table
 
 function setApplicationClass(val){
 	document.form.appfilter_x.value = 'Class:' + val;
@@ -653,13 +698,12 @@ function pullClassList(obj) {
 function initial() {
 	SetCurrentPage();
 	show_menu();
+	populate_bandwidth_table();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
-//	populate_devicefilter();		//used to populate drop down filter
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
-//	deviceFilter = document.getElementById('devicefilter').value;
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
@@ -1061,7 +1105,11 @@ function get_data() {
 }
 
 function draw_chart(data_array, ctx, pie) {
-	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">Bandwidth Util</th></tr></thead>';
+	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">';
+	if (qos_bwmode == 1)
+		code += 'Bandwidth Util</th></tr></thead>';
+	else
+		code += 'Packet Rate</th></tr></thead>';
 	var values_array = [];
 	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
@@ -1104,14 +1152,19 @@ function draw_chart(data_array, ctx, pie) {
 			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td>';
 			rate = rate2kbs(data_array[i][2]);
 			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + rate + ' kb</td>';
-			//rate = comma(data_array[i][3]);
-			//code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
-			if (pie == "dl")
-				var rate_max = qos_dlbw;
-			else
-				var rate_max = qos_ulbw;
-			var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
-			code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max + ' kb/s"><div><div id="rx_bar" class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
+			if ( qos_bwmode == 0 ) {
+				// Auto doesn't support the rate graphs
+				rate = comma(data_array[i][3]);
+				code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
+			}
+			else {
+				if (pie == "dl")
+					var rate_max = qos_dlbw;
+				else
+					var rate_max = qos_ulbw;
+				var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
+				code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max + ' kb/s"><div><div id="rx_bar" class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
+			}
 		}
 	}
 	code += '</table>';
@@ -1781,7 +1834,7 @@ function set_FlexQoS_mod_vars()
 	if ( custom_settings.flexqos_ver != undefined )
 		document.getElementById("flexqos_version").innerHTML = " - v" + custom_settings.flexqos_ver;
 	if ( custom_settings.flexqos_branch != undefined )
-		document.getElementById("flexqos_version").innerHTML += " <small>Dev</small>";
+		document.getElementById("flexqos_version").innerHTML += " Dev";
 
 	if (qos_mode != 2) {
 		var element = document.getElementById('FlexQoS_mod_toggle')
@@ -2178,8 +2231,21 @@ function check_bandwidth() {
 	for (var i=0;i<8;i++) {
 		var drp=eval("document.form.drp"+i);
 		var urp=eval("document.form.urp"+i);
+		var dcp=eval("document.form.dcp"+i);
+		var ucp=eval("document.form.ucp"+i);
+		var dp_desc=eval('document.getElementById("dp'+i+'_desc")');
+		var up_desc=eval('document.getElementById("up'+i+'_desc")');
 		drptot += parseInt(drp.value);
 		urptot += parseInt(urp.value);
+		if ( qos_bwmode == 1 ) {
+			// Manual
+			dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
+			up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+		} else {
+			// Auto
+			dp_desc.innerHTML="Automatic BW mode";
+			up_desc.innerHTML="Automatic BW mode";
+		}
 	}
 	if ( drptot > 100 )
 		document.getElementById('qos_drates_warn').style.display = "";
@@ -2189,13 +2255,24 @@ function check_bandwidth() {
 		document.getElementById('qos_urates_warn').style.display = "";
 	else
 		document.getElementById('qos_urates_warn').style.display = "none";
+	if ( drptot > 100 || urptot > 100 )
+		document.getElementById('qos_rates_warn').style.display = "";
+	else
+		document.getElementById('qos_rates_warn').style.display = "none";
+	for (var i=0;i<8;i++) {
+	}
 } // check_bandwidth
 
 function validate_percent(input)
 {
-	if (!(input)) 						return false;	//cannot be blank
-	if ( /[^0-9]/.test(input) )			return false;	//console.log("fail character");
-	if ( input < 1 || input > 100) 		return false;	//console.log("fail range");
+	var valid = true;
+	if (!(input.value)) valid=false;	//cannot be blank
+	if ( /[^0-9]/.test(input.value) ) valid=false;	//console.log("fail character");
+	if ( input.value < 1 || input.value > 100) valid=false;	//console.log("fail range");
+	if (valid)
+		input.style.removeProperty("background-color");
+	else
+		input.style.backgroundColor="#A86262";
 	check_bandwidth();
 	return 1
 }
@@ -2455,7 +2532,7 @@ function autocomplete(inp, arr) {
 <tbody bgcolor="#4D595D">
 <tr>
 <td valign="top">
-<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span><img id="ver_update_scan" style="display:none;" src="images/InternetScan.gif"><span id="versionStatus" style="font-size:85%;color:#FC0;display:none;"></span></div>
+<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span><img id="ver_update_scan" style="display:none;max-height:16px;" src="images/InternetScan.gif"><span id="versionStatus" style="font-size:85%;color:#FC0;display:none;"></span></div>
 <div id="FlexQoS_mod_toggle" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_toggle();"><span style="padding:0 0 0" align="center">Customize</span></div>
 <div id="ver_check" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="version_check();"><span style="padding:0 0 0" align="center">Check for Update</span></div>
 <div id="ver_update" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold; display:none;" class="titlebtn" onclick="version_update();"><span style="padding:0 0 0" align="center">Update</span></div>
@@ -2480,14 +2557,14 @@ function autocomplete(inp, arr) {
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 	<thead>
 		<tr>
-			<td colspan="4">AppDB Redirection Rules&nbsp;(Max Limit : 32)<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_reset_appdb()'>Reset</small></td>
+			<td colspan="4">AppDB Redirection Rules&nbsp;(Max Limit : 32)<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_reset_appdb()">Reset</small></td>
 		</tr>
 	</thead>
 	<tbody>
 	<tr>
-		<th width="auto"><div class="table_text">Application</div></a></th>
-		<th width="10%"><div class="table_text">Mark</div></a></th>
-		<th width="20%"><div class="table_text">Class</div></a></th>
+		<th width="auto"><div class="table_text">Application</div></th>
+		<th width="10%"><div class="table_text">Mark</div></th>
+		<th width="20%"><div class="table_text">Class</div></th>
 		<th width="15%">Edit</th>
 	</tr>
 	<tr>
@@ -2511,112 +2588,25 @@ function autocomplete(inp, arr) {
 </table>
 <div id="appdb_rules_block"></div>
 
-<table border="0" cellpadding="0" cellspacing="0" class="FormTable" style="float:left; width:350px; display:inline-table; margin: 10px auto 10px auto">
-<thead><td colspan="3">Download Bandwidth<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_mod_reset_down()'>Reset</small></td></thead>
-	<tbody>
-		<tr>
-			<th style="min-width:125px;">Class</th>
-			<th style="min-width:90px;">Minimum</th>
-			<th style="min-width:90px;">Maximum</th>
-		</tr>
-		<tr>
-			<td>Net Control</td>
-			<td><input id="drp0" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="dcp0" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Work-From-Home</td>
-			<td><input id="drp1" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="20"> % </td>
-			<td><input id="dcp1" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Gaming</td>
-			<td><input id="drp2" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="15"> % </td>
-			<td><input id="dcp2" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Others</td>
-			<td><input id="drp3" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="dcp3" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Web Surfing</td>
-			<td><input id="drp4" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="dcp4" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Streaming</td>
-			<td><input id="drp5" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="30"> % </td>
-			<td><input id="dcp5" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Game Downloads</td>
-			<td><input id="drp6" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="dcp6" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>File Downloads</td>
-			<td><input id="drp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="dcp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr id="qos_drates_warn" style="display:none;">
-			<td colspan="3"><div style="color:#FFCC00;text-align: center;">The total Minimum Reserved Bandwidth exceeds 100%!</div></td>
-		</tr>
-	</tbody>
-</table>
-
-<table border="0" cellpadding="0" cellspacing="0" class="FormTable" style="float:right; width:350px; display:inline-table; margin-top:10px; margin: 10px auto 10px auto">
-<thead><td colspan="3">Upload Bandwidth<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_mod_reset_up()'>Reset</small></td></thead>
-	<tbody>
-		<tr>
-			<th style="min-width:125px;">Class</th>
-			<th style="min-width:90px;">Minimum</th>
-			<th style="min-width:90px;">Maximum</th>
-		</tr>
-		<tr>
-			<td>Net Control</td>
-			<td><input id="urp0" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="ucp0" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Work-From-Home</td>
-			<td><input id="urp1" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="20"> % </td>
-			<td><input id="ucp1" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Gaming</td>
-			<td><input id="urp2" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="15"> % </td>
-			<td><input id="ucp2" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Others</td>
-			<td><input id="urp3" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="30"> % </td>
-			<td><input id="ucp3" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Web Surfing</td>
-			<td><input id="urp4" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="ucp4" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Streaming</td>
-			<td><input id="urp5" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="10"> % </td>
-			<td><input id="ucp5" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>Game Downloads</td>
-			<td><input id="urp6" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="ucp6" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr>
-			<td>File Downloads</td>
-			<td><input id="urp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>
-			<td><input id="ucp7" onfocusout='validate_percent(this.value)?this.style.removeProperty("background-color"):this.style.backgroundColor="#A86262"' type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>
-		</tr>
-		<tr id="qos_urates_warn" style="display:none;">
-			<td colspan="3"><div style="color:#FFCC00;text-align: center;">The total Minimum Reserved Bandwidth exceeds 100%!</div></td>
-		</tr>
-	</tbody>
+<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
+	<thead>
+	<tr>
+		<td colspan="7">Bandwidth<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down();FlexQoS_mod_reset_up();">Reset</small></td>
+	</tr>
+	</thead>
+	<tr>
+		<th rowspan="2">Class</th>
+		<th colspan="3">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down()">Reset</small></th>
+		<th colspan="3">Upload<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_up()">Reset</small></th>
+	<tr>
+		<th>Minimum</th>
+		<th>Maximum</th>
+		<th>Current Settings</th>
+		<th>Minimum</th>
+		<th>Maximum</th>
+		<th>Current Settings</th>
+	</tr>
+	<tbody id="bandwidth_block">
 </table>
 <p style="clear:left;clear:right;"></p>
 </div>
@@ -2661,7 +2651,7 @@ function autocomplete(inp, arr) {
 <br>
 <!-- FlexQoS Connection Table Start-->
 
-<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick='FlexQoS_reset_filter()'>Reset</small></td></tr></thead>
+<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_reset_filter()">Reset</small></td></tr></thead>
 	<tr>
 		<th width="5%">Proto</th>
 		<th width="28%">Local IP</th>
@@ -2677,15 +2667,15 @@ function autocomplete(inp, arr) {
 			<option value="udp">udp</option>
 		</select></td>
 		<td style="text-align:left;">
-			<input id="lipfilter" type="text" class="input_18_table" style="width:140px;" maxlength="40" name="lipfilter_x" oninput="set_filter(1, this);" onClick="hideClients_Block();"></input>
+			<input id="lipfilter" type="text" class="input_18_table" style="width:140px;" maxlength="40" name="lipfilter_x" oninput="set_filter(1, this);" onClick="hideClients_Block();">
 			<img id="lip_pull_arrow" height="14px;" src="/images/arrow-down.gif" class="pull_arrow" style="position:absolute;" onclick="pullLANIPList(this);" title="Select the Local Client">
 			<div id="ClientList_Block_PC" class="clientlist_dropdown" style="margin-left:2px;width:200px;"></div>
 		</td>
-		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(2, this);"></input></td>
-		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="40" oninput="set_filter(3, this);"></input></td>
-		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(4, this);"></input></td>
+		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(2, this);"></td>
+		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="40" oninput="set_filter(3, this);"></td>
+		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(4, this);"></td>
 		<td style="text-align:left;">
-			<input id="appfilter" type="text" class="input_18_table" style="width:140px;" maxlength="49" name="appfilter_x" oninput="set_filter(5, this);" onClick="hideClasses_Block();"></input>
+			<input id="appfilter" type="text" class="input_18_table" style="width:140px;" maxlength="49" name="appfilter_x" oninput="set_filter(5, this);" onClick="hideClasses_Block();">
 			<img id="class_pull_arrow" height="14px;" src="/images/arrow-down.gif" class="pull_arrow" style="position:absolute;" onclick="pullClassList(this);" title="Select the QoS Class">
 			<div id="QoS_Class_List" class="clientlist_dropdown" style="margin-left:2px;width:165px;"></div>
 		</td>
@@ -2693,7 +2683,7 @@ function autocomplete(inp, arr) {
 </table>
 <table cellpadding="4" class="FormTable_table" id="tracked_connections">
 <thead>
-	<td id="tracked_connections_total" colspan="6">Tracked connections</td>
+	<tr><td id="tracked_connections_total" colspan="6">Tracked connections</td></tr>
 </thead>
 <tbody id="tableContainer">
 	<tr class="row_title">
