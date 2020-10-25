@@ -199,6 +199,11 @@ var appdb_rules = [];	// array for appdb rules
 var qos_dlbw = "<% nvram_get("qos_ibw"); %>";		// download bandwidth set in QoS settings
 var qos_ulbw = "<% nvram_get("qos_obw"); %>";		// upload bandwidth set in QoS settings
 
+if (qos_dlbw > 0 && qos_ulbw > 0)
+	var qos_bwmode = 1;	// Manual
+else
+	var qos_bwmode = 0;	// Auto
+
 var qos_type = "<% nvram_get("qos_type"); %>";
 if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
 	var qos_mode = 0;
@@ -1100,7 +1105,11 @@ function get_data() {
 }
 
 function draw_chart(data_array, ctx, pie) {
-	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">Bandwidth Util</th></tr></thead>';
+	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">';
+	if (qos_bwmode == 1)
+		code += 'Bandwidth Util</th></tr></thead>';
+	else
+		code += 'Packet Rate</th></tr></thead>';
 	var values_array = [];
 	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
@@ -1143,14 +1152,19 @@ function draw_chart(data_array, ctx, pie) {
 			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td>';
 			rate = rate2kbs(data_array[i][2]);
 			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + rate + ' kb</td>';
-			//rate = comma(data_array[i][3]);
-			//code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
-			if (pie == "dl")
-				var rate_max = qos_dlbw;
-			else
-				var rate_max = qos_ulbw;
-			var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
-			code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max + ' kb/s"><div><div id="rx_bar" class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
+			if ( qos_bwmode == 0 ) {
+				// Auto doesn't support the rate graphs
+				rate = comma(data_array[i][3]);
+				code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
+			}
+			else {
+				if (pie == "dl")
+					var rate_max = qos_dlbw;
+				else
+					var rate_max = qos_ulbw;
+				var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
+				code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max + ' kb/s"><div><div id="rx_bar" class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
+			}
 		}
 	}
 	code += '</table>';
@@ -2223,8 +2237,15 @@ function check_bandwidth() {
 		var up_desc=eval('document.getElementById("up'+i+'_desc")');
 		drptot += parseInt(drp.value);
 		urptot += parseInt(urp.value);
-		dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
-		up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+		if ( qos_bwmode == 1 ) {
+			// Manual
+			dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
+			up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+		} else {
+			// Auto
+			dp_desc.innerHTML="Automatic BW mode";
+			up_desc.innerHTML="Automatic BW mode";
+		}
 	}
 	if ( drptot > 100 )
 		document.getElementById('qos_drates_warn').style.display = "";
