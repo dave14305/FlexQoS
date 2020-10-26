@@ -359,6 +359,9 @@ function draw_conntrack_table() {
 
 	for (var i = 0; (i < tracklen && shownlen < maxshown); i++)
 	{
+//DEBUG
+//		if (i > 20) {console.log("i > 20 - break!"); break;}
+
 		if (bwdpi_conntrack[i][1].indexOf(":") >= 0) {
 			bwdpi_conntrack[i][1] = compIPV6(bwdpi_conntrack[i][1]);
 		}
@@ -422,7 +425,6 @@ function draw_conntrack_table() {
 			}
 		}
 
-
 // To test timing:  Revert to populating tabledata in this routine and stop populating temptabledata and comment out the call to dedup.
 // start time is at the top of this routine; end time and logging is at end of updateTable();
 // 1) Uncomment the line tabledata.push(....);
@@ -431,17 +433,52 @@ function draw_conntrack_table() {
 //    temptabledata[newelementindex][1]=...
 //    dedupTable();
 
+		// Append all parts and pieces of the bwdpi_conntrack[i] item, except for Source Port as ":" delimited.
+		// Include SourcePort as an empty element so when we split in de-dup, the index numbers match.
+		// Add to temptabledata as column 0; add Source Port as column 1.
+var newelementindex = 0;
+//var newelement = bwdpi_conntrack[i][0] + ":" + // protocol
+//			bwdpi_conntrack[i][1] + ":" + // Source IP
+//			""                    + ":" + // Source Port
+//			bwdpi_conntrack[i][3] + ":" + // Destination IP
+//			bwdpi_conntrack[i][4] + ":" + // Destination Port
+//			bwdpi_conntrack[i][5] + ":" + // Pre-formatted Title
+//			bwdpi_conntrack[i][6] + ":" + // Traffic ID
+//			bwdpi_conntrack[i][7] ; // Traffic Category
+//console.log(i + "A) NewElement: [" + newelement + "] Port: [" + bwdpi_conntrack[i][2] + "]");
+//var xxxx = [newelement,bwdpi_conntrack[i][2] ]
+//console.log(i + "XXX [" + xxxx[0] + "] [" + xxxx[1] + "]");
+//newelementindex =	temptabledata.push(xxxx ) // Source Port added as column 1
+
+
+var newelement = [bwdpi_conntrack[i][0] + ":" + // protocol
+			bwdpi_conntrack[i][1] + ":" + // Source IP
+			""                    + ":" + // Source Port
+			bwdpi_conntrack[i][3] + ":" + // Destination IP
+			bwdpi_conntrack[i][4] + ":" + // Destination Port
+			bwdpi_conntrack[i][5] + ":" + // Pre-formatted Title
+			bwdpi_conntrack[i][6] + ":" + // Traffic ID
+			bwdpi_conntrack[i][7] ,  // Traffic Category
+			bwdpi_conntrack[i][2] ]  // Source Port - as a second array item.
+//console.log(i + "A) NewElement: [" + newelement[0] + "] Port: [" + newelement[1] + "]");
+newelementindex =	temptabledata.push(newelement); 
+
+newelementindex -=1; // subtract 1 to get from count to 0-based index.
+//console.log(i + "B) [" + temptabledata[newelementindex][0] + "] [" + temptabledata[newelementindex][1] + "]");
+
 		// Append the Protocol, Dest IP and Dest Port to the Source IP so we can sort by all 4 levels to facilitate de-duplication.
-// test time	 	tabledata.push(bwdpi_conntrack[i]) 
-	 	newelementindex = temptabledata.push(bwdpi_conntrack[i]) - 1; // base 0 from count.
-		temptabledata[newelementindex][1] += ":" + temptabledata[newelementindex][0] + ":" + temptabledata[newelementindex][3] + ":" + temptabledata[newelementindex][4];
+	 	//tabledata.push(bwdpi_conntrack[i]) 
 	}
 
 	// deduplicate the temptabledata into tabledata. This may eliminate rows that are duplicates.
-	dedupTable();
+//console.log("Skip dedupTable");
+ 	dedupTable();
 
 	//draw table
 	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
+
+//console.log("skip updateTable");
+// DEBUG: Don't Update Table!
 	updateTable();
 }
 
@@ -455,7 +492,7 @@ function dedupTable() {
 	//bwdpi_conntrack[i][6] = Traffic ID
 	//bwdpi_conntrack[i][7] = Traffic Category
   tabledata = [];  // clear the table
-  var prevelement = ['PROTOCOL','SOURCEIP','SOURCEPORT','DESTIP','DESTPORT','TITLE','TRAFFICID','TRAFFICCATEGORY'];
+  var prevelement = ['STARTINGVALUE','STARTINGVALUE'];
   var dupcount = 0;
   var SamePortCount = 0;
 
@@ -464,7 +501,7 @@ function dedupTable() {
         var SaveSortDir = sortdir;
 	var SaveSortField = sortfield;
 	sortdir = 0;  // ascending
-	sortfield = 1; // Source IP
+	sortfield = 0; // Combined Value
        	temptabledata.sort(table_sort);
 	sortdir = SaveSortDir;
 	sortfield = SaveSortField;
@@ -475,56 +512,73 @@ function dedupTable() {
 	// step through the tempdatatable looking for and eliminating duplicates.  Non-Duplicates are added to datatable.
 	for(var i = 0; i < temptabledata.length; i++){
 
-		// Compare SOURCEIP - which is really SourceIP:Protocol:DestIP:DestPort
-		if ( prevelement[1] == temptabledata[i][1] ) {
+		// Compare the first element, which is the combined: Protocol:SourceIP::DestIP:DestPort:Title:TrafficID:TrafficCat
+		// Local Port is empty in the first element and stored in the second element.
+		if ( prevelement[0] == temptabledata[i][0] ) {
 			// Found a duplicate, so increment the counter and save the local port to prevelement[localport] as a comma separated list.
 			SamePortCount +=1;
-			prevelement[2] += ", " + temptabledata[i][2];
+			prevelement[1] += ", " + temptabledata[i][1];
+//console.log("0-DUP! [" + prevelement[0] + "] [" + prevelement[1] + "]");
 						 
 		} else {
 			// found a new, unique row.
-
-			// if First Row (PrevProtocol = "PROTOCOL") - then don't output the previous entrie - as this current index row is the
-			//  first real row of data.  The PROTOCOL row is skipped from being output.  
-			if (prevelement[0] == "PROTOCOL") {
+//console.log("1-PrevElement:      [" + prevelement[0] + "] Local Port: [" + prevelement[1] + "]");
+//console.log("2-TempTableData:    [" + temptabledata[i][0] + "] Local Port: [" + temptabledata[i][1] + "]");
+			// if PrevElement[0] = "STARTINGVALUE", then don't output the PrevElement entry.  The TempTableData current index row is the
+			//  first real row of data.  The PrevElement is dummy data to ensure the first good row is identified.
+			if (prevelement[0] == "STARTINGVALUE") {
 				// startup previous values, so no duplicate - do nothing, no output.
+//console.log("3-STARTINGVALUE - Skipping output");
 			} else {
-				// Save the previous values to datatable after stripping out the extra characters from the Source IP.
-				// Strip ":Protocol:DestIP:DestPort" from SOURCE IP.
-				prevelement[1] = prevelement[1].substr(0,(prevelement[1].indexOf(":") )) // don't subtract 1, as string is 0 based; index counts from 1.
+				// Save the previous values to datatable by parsing PrevElement[0] into its component pieces
+				// of Protocol:SourceIP::DestIP:DestPort:Title:TrafficID:TrafficCat and adding PrevElement[1] as Local Port.
+				var prevelement_array = prevelement[0].split(':');
 				
 				// If there are duplicates, Prepend the dup count to local port, else just leave the port alone.
   				if (SamePortCount > 1) {
-					prevelement[2] = SamePortCount + " Ports: " + prevelement[2];
+					prevelement[1] = SamePortCount + " Ports: " + prevelement[1];
 				}
 
 				// add element to tabledata.
-				tabledata.push(prevelement);
+				tabledata.push([prevelement_array[0],prevelement_array[1],prevelement[1],prevelement_array[3],prevelement_array[4],
+						prevelement_array[5],prevelement_array[6],prevelement_array[7] ]);
+//console.log("3-Push: [" + prevelement_array[0] + "] [" + prevelement_array[1] + "] [" + prevelement[1] + "] [" + prevelement_array[3] + "] [" + prevelement_array[4] + "] [" +
+//			prevelement_array[5] + "] [" + prevelement_array[6] + "] [" + prevelement_array[7] + "]");
+
 			}
 
 			// save the current element to the previous element
 			SamePortCount = 1;  // reset the SamePortCount to 1 as we found a unique element.
-			prevelement = temptabledata[i];
+			prevelement[0] = temptabledata[i][0];
+			prevelement[1] = temptabledata[i][1];
+//console.log("4-NewPrev: [" + prevelement[0] + "] [" + prevelement[1] + "]");
 		}
 	}  // end of FOR/NEXT
 
 	// Ensure we capture the final row - as it wouldn't be output in the FOR Loop as there is never a following, non-duplicate row.  
-	// Also ensure we had some rows and are not just dealing with an empty table - so check the STARTUP contition as well.
-	if (prevelement[0] == "PROTOCOL") {
+	// if PrevElement[0] = "STARTINGVALUE", then don't output the PrevElement entry.  The TempTableData current index row is the
+	//  first real row of data.  The PrevElement is dummy data to ensure the first good row is identified.
+	if (prevelement[0] == "STARTINGVALUE") {
 		// startup previous values, so no duplicate - do nothing, no output.
+//console.log("3-STARTINGVALUE - Skipping output");
 	} else {
-		// Save the previous values to datatable after stripping out the extra characters from the Source IP.
-		// Strip ":Protocol:DestIP:DestPort" from SOURCE IP.
-		prevelement[1] = prevelement[1].substr(0,(prevelement[1].indexOf(":") )) // don't subtract 1, as string is 0 based; index counts from 1.
+		// Save the previous values to datatable by parsing PrevElement[0] into its component pieces
+		// of Protocol:SourceIP::DestIP:DestPort:Title:TrafficID:TrafficCat and adding PrevElement[1] as Local Port.
+		var prevelement_array = prevelement[0].split(':');
 				
 		// If there are duplicates, Prepend the dup count to local port, else just leave the port alone.
-  		if (SamePortCount > 1) {
-			prevelement[2] = SamePortCount + " Ports: " + prevelement[2];
+		if (SamePortCount > 1) {
+			prevelement[1] = SamePortCount + " Ports: " + prevelement[1];
 		}
 
 		// add element to tabledata.
-		tabledata.push(prevelement);
+		tabledata.push([prevelement_array[0],prevelement_array[1],prevelement[1],prevelement_array[3],prevelement_array[4],
+				prevelement_array[5],prevelement_array[6],prevelement_array[7]  ]);
+//console.log("3-Push: [" + prevelement_array[0] + "] [" + prevelement_array[1] + "] [" + prevelement[1] + "] [" + prevelement_array[3] + "] [" + prevelement_array[4] + "] [" +
+//			prevelement_array[5] + "] [" + prevelement_array[6] + "] [" + prevelement_array[7] + "]");
+
 	}
+
 
 }
 
