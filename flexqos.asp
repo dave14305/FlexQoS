@@ -176,7 +176,9 @@ box-shadow: #6C604F 3px 0px 0px 0px inset;
 var custom_settings = <% get_custom_settings(); %>;
 var device = {};		// devices database --> device["IP"] = { mac: "AA:BB:CC:DD:EE:FF" , name:"name" }
 var clientlist = <% get_clientlist_from_json_database(); %>;		// data from /jffs/nmp_cl_json.js (used to correlate mac addresses to corresponding device names  )
-var tabledata;		//tabled of tracked connections after device-filtered
+var tabledata;		// table of tracked connections after device-filtered
+var temptabledata;      // table of tracked connections after device-filtering and before de-duplication.
+var conntablestart;	// start time of building the connection table
 var filter = Array(6);
 var sortdir = 0;
 var sortfield = 5;
@@ -330,9 +332,14 @@ function draw_conntrack_table() {
 	//bwdpi_conntrack[i][5] = Pre-formatted Title
 	//bwdpi_conntrack[i][6] = Traffic ID
 	//bwdpi_conntrack[i][7] = Traffic Category
+
+	// Save start time.
+	conntablestart = new Date();
+
+	var newelement;  // used when adding an element to temptabledata before de-dup.
 	tabledata = [];
+	temptabledata = [];
 	var tracklen, shownlen = 0;
-	var dupindex; // Index to the previously stored item that is a duplicate of the current item.
 	tracklen = bwdpi_conntrack.length;
 	if (tracklen == 0 ) {
 		showhide("tracked_filters", 0);
@@ -415,42 +422,110 @@ function draw_conntrack_table() {
 			}
 		}
 
-		// find the index of a duplicate that already exists in tabledata, If a previously stored item matches the
-		// current item, the current item is a duplicate.  If not a duplicate, add the current item to tabledata.
-		// If a duplicate, then update the previously stored local port entry to include a comma + the current item's local port
-		// to generate a string used in the Local Port Tool Tip.
-	 	dupindex = find_tabledata_duplicate(bwdpi_conntrack[i]);
-        if (dupindex == -1 ) {
- 			// dup not found - so add this item to tabledata
-		 	tabledata.push(bwdpi_conntrack[i]);
-        } else {
-        	// dup found.  Update port list.
-            tabledata[dupindex][2] += ", " + bwdpi_conntrack[i][2];
-            shownlen--; // decrement counter because it was previously incremented to "add" the row we just did not add because we found it was a duplicate.
-        }
+
+// To test timing:  Revert to populating tabledata in this routine and stop populating temptabledata and comment out the call to dedup.
+// start time is at the top of this routine; end time and logging is at end of updateTable();
+// 1) Uncomment the line tabledata.push(....);
+// 2) Comment out the three  lines:
+//    newelementindex = ...
+//    temptabledata[newelementindex][1]=...
+//    dedupTable();
+
+		// Append the Protocol, Dest IP and Dest Port to the Source IP so we can sort by all 4 levels to facilitate de-duplication.
+// test time	 	tabledata.push(bwdpi_conntrack[i]) 
+	 	newelementindex = temptabledata.push(bwdpi_conntrack[i]) - 1; // base 0 from count.
+		temptabledata[newelementindex][1] += ":" + temptabledata[newelementindex][0] + ":" + temptabledata[newelementindex][3] + ":" + temptabledata[newelementindex][4];
 	}
+
+	// deduplicate the temptabledata into tabledata. This may eliminate rows that are duplicates.
+	dedupTable();
 
 	//draw table
 	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
 	updateTable();
 }
 
-function find_tabledata_duplicate(conntrack_element) {
+function dedupTable() {
+	//bwdpi_conntrack[i][0] = protocol
+	//bwdpi_conntrack[i][1] = Source IP
+	//bwdpi_conntrack[i][2] = Source Port
+	//bwdpi_conntrack[i][3] = Destination IP
+	//bwdpi_conntrack[i][4] = Destination Port
+	//bwdpi_conntrack[i][5] = Pre-formatted Title
+	//bwdpi_conntrack[i][6] = Traffic ID
+	//bwdpi_conntrack[i][7] = Traffic Category
+  tabledata = [];  // clear the table
+  var prevelement = ['PROTOCOL','SOURCEIP','SOURCEPORT','DESTIP','DESTPORT','TITLE','TRAFFICID','TRAFFICCATEGORY'];
+  var dupcount = 0;
+  var SamePortCount = 0;
 
-  // step through the tabledata array looking to see if the passed-in contrack_element already exists in tabledata
-  // with everything matching but the local port.  Return the index into tabledata if the item already exists, else -1.
-  for (var i = 0; i < tabledata.length; i++) {
-    if ( (tabledata[i][0] == conntrack_element[0]) && 
-         (tabledata[i][1] == conntrack_element[1]) && 
-         (tabledata[i][3] == conntrack_element[3]) && 
-         (tabledata[i][4] == conntrack_element[4]) && 
-         (tabledata[i][5] == conntrack_element[5]) && 
-         (tabledata[i][6] == conntrack_element[6]) && 
-         (tabledata[i][7] == conntrack_element[7]) ) {
-    	return i;
-    }
-  } // NEXT
-return -1;
+	// Sort TempTableData by SourceIP - which has additional infomration in it:  SourceIP:Protocol:DestIP:DestPort
+	// save and restore the original sort order for later.
+        var SaveSortDir = sortdir;
+	var SaveSortField = sortfield;
+	sortdir = 0;  // ascending
+	sortfield = 1; // Source IP
+       	temptabledata.sort(table_sort);
+	sortdir = SaveSortDir;
+	sortfield = SaveSortField;
+
+//TODO: Sort by SourceIP - should we not use this function table_sort - as if someone clicks to re-sort, we could be in the middle
+//		of a sort and it could muck us up if the sort changes
+
+	// step through the tempdatatable looking for and eliminating duplicates.  Non-Duplicates are added to datatable.
+	for(var i = 0; i < temptabledata.length; i++){
+
+		// Compare SOURCEIP - which is really SourceIP:Protocol:DestIP:DestPort
+		if ( prevelement[1] == temptabledata[i][1] ) {
+			// Found a duplicate, so increment the counter and save the local port to prevelement[localport] as a comma separated list.
+			SamePortCount +=1;
+			prevelement[2] += ", " + temptabledata[i][2];
+						 
+		} else {
+			// found a new, unique row.
+
+			// if First Row (PrevProtocol = "PROTOCOL") - then don't output the previous entrie - as this current index row is the
+			//  first real row of data.  The PROTOCOL row is skipped from being output.  
+			if (prevelement[0] == "PROTOCOL") {
+				// startup previous values, so no duplicate - do nothing, no output.
+			} else {
+				// Save the previous values to datatable after stripping out the extra characters from the Source IP.
+				// Strip ":Protocol:DestIP:DestPort" from SOURCE IP.
+				prevelement[1] = prevelement[1].substr(0,(prevelement[1].indexOf(":") )) // don't subtract 1, as string is 0 based; index counts from 1.
+				
+				// If there are duplicates, Prepend the dup count to local port, else just leave the port alone.
+  				if (SamePortCount > 1) {
+					prevelement[2] = SamePortCount + " Ports: " + prevelement[2];
+				}
+
+				// add element to tabledata.
+				tabledata.push(prevelement);
+			}
+
+			// save the current element to the previous element
+			SamePortCount = 1;  // reset the SamePortCount to 1 as we found a unique element.
+			prevelement = temptabledata[i];
+		}
+	}  // end of FOR/NEXT
+
+	// Ensure we capture the final row - as it wouldn't be output in the FOR Loop as there is never a following, non-duplicate row.  
+	// Also ensure we had some rows and are not just dealing with an empty table - so check the STARTUP contition as well.
+	if (prevelement[0] == "PROTOCOL") {
+		// startup previous values, so no duplicate - do nothing, no output.
+	} else {
+		// Save the previous values to datatable after stripping out the extra characters from the Source IP.
+		// Strip ":Protocol:DestIP:DestPort" from SOURCE IP.
+		prevelement[1] = prevelement[1].substr(0,(prevelement[1].indexOf(":") )) // don't subtract 1, as string is 0 based; index counts from 1.
+				
+		// If there are duplicates, Prepend the dup count to local port, else just leave the port alone.
+  		if (SamePortCount > 1) {
+			prevelement[2] = SamePortCount + " Ports: " + prevelement[2];
+		}
+
+		// add element to tabledata.
+		tabledata.push(prevelement);
+	}
+
 }
 
 function setsort(newfield) {
@@ -558,6 +633,21 @@ function updateTable()
 	}
 	document.getElementById('tableContainer').innerHTML = code;
 	document.getElementById('track_header_' + sortfield).style.boxShadow = "rgb(255, 204, 0) 0px " + (sortdir == 1 ? "1" : "-1") + "px 0px 0px inset";
+
+        var conntableend = new Date();
+        var contableelapsed = conntableend - conntablestart // conntimediff(conntablestart, conntableend);
+	console.log("Start: " + conntablestart + " End: " + conntableend + " Elapsed: " + contableelapsed + " milliseconds.")
+
+}
+
+function conntimediff(start, end){
+	var timediff = end - start;
+	// strip the ms
+	timeDiff /= 1000;
+
+	// get seconds (Original had 'round' which incorrectly counts 0:28, 0:29, 1:30 ... 1:59, 1:0)
+	var seconds = Math.round(timeDiff % 60);
+	return seconds
 }
 
 function comma(n) {
