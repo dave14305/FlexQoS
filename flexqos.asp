@@ -360,7 +360,7 @@ function draw_conntrack_table() {
 	for (var i = 0; (i < tracklen && shownlen < maxshown); i++)
 	{
 //DEBUG
-//		if (i > 20) {console.log("i > 20 - break!"); break;}
+//		if (i > 50) {console.log("i > 50 - break!"); break;}
 
 		if (bwdpi_conntrack[i][1].indexOf(":") >= 0) {
 			bwdpi_conntrack[i][1] = compIPV6(bwdpi_conntrack[i][1]);
@@ -425,33 +425,19 @@ function draw_conntrack_table() {
 			}
 		}
 
-// To test timing:  Revert to populating tabledata in this routine and stop populating temptabledata and comment out the call to dedup.
+// To test timing:  Revert to the original populating of tabledata in this routine; stop populating temptabledata and don't call dedupeTable.
 // start time is at the top of this routine; end time and logging is at end of updateTable();
-// 1) Uncomment the line tabledata.push(....);
-// 2) Comment out the three  lines:
-//    newelementindex = ...
-//    temptabledata[newelementindex][1]=...
-//    dedupTable();
-
+// To initiate Timing Testing do the following:
+// 1) Comment out all lines from this section down to "// Original insert into tabledata."
+// 2) Comment out the line below "dedupTable();
+// 3) Uncomment the line "tabledata.push(bwdpi_conntrack[i]);"
+// 4) In routine updateTable - uncomment the last line "console.log("Start: " + conntablestart + " End: " + conntableend + " Elapsed: " + contableelapsed + " milliseconds.")" to print the timing."
+// Undo these three steps to restore to the de-duplication processing.
 		// Append all parts and pieces of the bwdpi_conntrack[i] item, except for Source Port as ":" delimited.
 		// Include SourcePort as an empty element so when we split in de-dup, the index numbers match.
 		// Add to temptabledata as column 0; add Source Port as column 1.
-var newelementindex = 0;
-//var newelement = bwdpi_conntrack[i][0] + ":" + // protocol
-//			bwdpi_conntrack[i][1] + ":" + // Source IP
-//			""                    + ":" + // Source Port
-//			bwdpi_conntrack[i][3] + ":" + // Destination IP
-//			bwdpi_conntrack[i][4] + ":" + // Destination Port
-//			bwdpi_conntrack[i][5] + ":" + // Pre-formatted Title
-//			bwdpi_conntrack[i][6] + ":" + // Traffic ID
-//			bwdpi_conntrack[i][7] ; // Traffic Category
-//console.log(i + "A) NewElement: [" + newelement + "] Port: [" + bwdpi_conntrack[i][2] + "]");
-//var xxxx = [newelement,bwdpi_conntrack[i][2] ]
-//console.log(i + "XXX [" + xxxx[0] + "] [" + xxxx[1] + "]");
-//newelementindex =	temptabledata.push(xxxx ) // Source Port added as column 1
-
-
-var newelement = [bwdpi_conntrack[i][0] + ":" + // protocol
+		var newelementindex = 0;
+		newelementindex = temptabledata.push([bwdpi_conntrack[i][0] + ":" + // protocol
 			bwdpi_conntrack[i][1] + ":" + // Source IP
 			""                    + ":" + // Source Port
 			bwdpi_conntrack[i][3] + ":" + // Destination IP
@@ -459,26 +445,22 @@ var newelement = [bwdpi_conntrack[i][0] + ":" + // protocol
 			bwdpi_conntrack[i][5] + ":" + // Pre-formatted Title
 			bwdpi_conntrack[i][6] + ":" + // Traffic ID
 			bwdpi_conntrack[i][7] ,  // Traffic Category
-			bwdpi_conntrack[i][2] ]  // Source Port - as a second array item.
-//console.log(i + "A) NewElement: [" + newelement[0] + "] Port: [" + newelement[1] + "]");
-newelementindex =	temptabledata.push(newelement); 
+			bwdpi_conntrack[i][2] ] ); // Source Port - as a second array item.
 
-newelementindex -=1; // subtract 1 to get from count to 0-based index.
-//console.log(i + "B) [" + temptabledata[newelementindex][0] + "] [" + temptabledata[newelementindex][1] + "]");
+		newelementindex -=1; // subtract 1 to get from count to 0-based index.
+		// console.log(i + ") temptabledata[" + newelementindex + "]: [" + temptabledata[newelementindex][0] + "] [" + temptabledata[newelementindex][1] + "]");
 
-		// Append the Protocol, Dest IP and Dest Port to the Source IP so we can sort by all 4 levels to facilitate de-duplication.
-	 	//tabledata.push(bwdpi_conntrack[i]) 
+		// Original insert into tabledata.  THIS SHOULD BE COMMENTED OUT unless testing timing.  
+	 	// tabledata.push(bwdpi_conntrack[i]);
 	}
 
 	// deduplicate the temptabledata into tabledata. This may eliminate rows that are duplicates.
-//console.log("Skip dedupTable");
  	dedupTable();
 
 	//draw table
 	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
 
 //console.log("skip updateTable");
-// DEBUG: Don't Update Table!
 	updateTable();
 }
 
@@ -518,17 +500,18 @@ function dedupTable() {
 			// Found a duplicate, so increment the counter and save the local port to prevelement[localport] as a comma separated list.
 			SamePortCount +=1;
 			prevelement[1] += ", " + temptabledata[i][1];
-//console.log("0-DUP! [" + prevelement[0] + "] [" + prevelement[1] + "]");
+			//console.log("0-DUP! [" + prevelement[0] + "] [" + prevelement[1] + "]");
 						 
 		} else {
 			// found a new, unique row.
-//console.log("1-PrevElement:      [" + prevelement[0] + "] Local Port: [" + prevelement[1] + "]");
-//console.log("2-TempTableData:    [" + temptabledata[i][0] + "] Local Port: [" + temptabledata[i][1] + "]");
-			// if PrevElement[0] = "STARTINGVALUE", then don't output the PrevElement entry.  The TempTableData current index row is the
+			//console.log("1-PrevElement:      [" + prevelement[0] + "] Local Port: [" + prevelement[1] + "]");
+			//console.log("2-TempTableData:    [" + temptabledata[i][0] + "] Local Port: [" + temptabledata[i][1] + "]");
+			
+			// If the PrevElement[0] = "STARTINGVALUE", then don't output the PrevElement entry.  The TempTableData current index row is the
 			//  first real row of data.  The PrevElement is dummy data to ensure the first good row is identified.
 			if (prevelement[0] == "STARTINGVALUE") {
 				// startup previous values, so no duplicate - do nothing, no output.
-//console.log("3-STARTINGVALUE - Skipping output");
+				//console.log("3-STARTINGVALUE - Skipping output");
 			} else {
 				// Save the previous values to datatable by parsing PrevElement[0] into its component pieces
 				// of Protocol:SourceIP::DestIP:DestPort:Title:TrafficID:TrafficCat and adding PrevElement[1] as Local Port.
@@ -542,8 +525,7 @@ function dedupTable() {
 				// add element to tabledata.
 				tabledata.push([prevelement_array[0],prevelement_array[1],prevelement[1],prevelement_array[3],prevelement_array[4],
 						prevelement_array[5],prevelement_array[6],prevelement_array[7] ]);
-//console.log("3-Push: [" + prevelement_array[0] + "] [" + prevelement_array[1] + "] [" + prevelement[1] + "] [" + prevelement_array[3] + "] [" + prevelement_array[4] + "] [" +
-//			prevelement_array[5] + "] [" + prevelement_array[6] + "] [" + prevelement_array[7] + "]");
+				//console.log("3-Push: [" + prevelement_array[0] + "] [" + prevelement_array[1] + "] [" + prevelement[1] + "] [" + prevelement_array[3] + "] [" + prevelement_array[4] + "] [" + prevelement_array[5] + "] [" + prevelement_array[6] + "] [" + prevelement_array[7] + "]");
 
 			}
 
@@ -551,7 +533,7 @@ function dedupTable() {
 			SamePortCount = 1;  // reset the SamePortCount to 1 as we found a unique element.
 			prevelement[0] = temptabledata[i][0];
 			prevelement[1] = temptabledata[i][1];
-//console.log("4-NewPrev: [" + prevelement[0] + "] [" + prevelement[1] + "]");
+			//console.log("4-NewPrev: [" + prevelement[0] + "] [" + prevelement[1] + "]");
 		}
 	}  // end of FOR/NEXT
 
@@ -560,7 +542,7 @@ function dedupTable() {
 	//  first real row of data.  The PrevElement is dummy data to ensure the first good row is identified.
 	if (prevelement[0] == "STARTINGVALUE") {
 		// startup previous values, so no duplicate - do nothing, no output.
-//console.log("3-STARTINGVALUE - Skipping output");
+		//console.log("3-STARTINGVALUE - Skipping output");
 	} else {
 		// Save the previous values to datatable by parsing PrevElement[0] into its component pieces
 		// of Protocol:SourceIP::DestIP:DestPort:Title:TrafficID:TrafficCat and adding PrevElement[1] as Local Port.
@@ -574,12 +556,12 @@ function dedupTable() {
 		// add element to tabledata.
 		tabledata.push([prevelement_array[0],prevelement_array[1],prevelement[1],prevelement_array[3],prevelement_array[4],
 				prevelement_array[5],prevelement_array[6],prevelement_array[7]  ]);
-//console.log("3-Push: [" + prevelement_array[0] + "] [" + prevelement_array[1] + "] [" + prevelement[1] + "] [" + prevelement_array[3] + "] [" + prevelement_array[4] + "] [" +
-//			prevelement_array[5] + "] [" + prevelement_array[6] + "] [" + prevelement_array[7] + "]");
+		//console.log("3-Push: [" + prevelement_array[0] + "] [" + prevelement_array[1] + "] [" + prevelement[1] + "] [" + prevelement_array[3] + "] [" + prevelement_array[4] + "] [" + prevelement_array[5] + "] [" + prevelement_array[6] + "] [" + prevelement_array[7] + "]");
 
 	}
 
-
+	// clear the temptabledata
+	temptabledata = [];
 }
 
 function setsort(newfield) {
@@ -688,9 +670,9 @@ function updateTable()
 	document.getElementById('tableContainer').innerHTML = code;
 	document.getElementById('track_header_' + sortfield).style.boxShadow = "rgb(255, 204, 0) 0px " + (sortdir == 1 ? "1" : "-1") + "px 0px 0px inset";
 
+	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
         var conntableend = new Date();
-        var contableelapsed = conntableend - conntablestart // conntimediff(conntablestart, conntableend);
-	console.log("Start: " + conntablestart + " End: " + conntableend + " Elapsed: " + contableelapsed + " milliseconds.")
+	//console.log("Start: " + conntablestart + " End: " + conntableend + " Elapsed: " + (conntableend - conntablestart) + " milliseconds.")
 
 }
 
