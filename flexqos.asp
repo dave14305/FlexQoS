@@ -337,6 +337,7 @@ function draw_conntrack_table() {
 	//bwdpi_conntrack[i][7] = Traffic Category
 	tabledata = [];
 	var tracklen, shownlen = 0;
+	var dupindex; // Index to the previously stored item that is a duplicate of the current item.
 	tracklen = bwdpi_conntrack.length;
 	if (tracklen == 0 ) {
 		showhide("tracked_filters", 0);
@@ -418,11 +419,43 @@ function draw_conntrack_table() {
 				}
 			}
 		}
-		tabledata.push(bwdpi_conntrack[i]);
+
+		// find the index of a duplicate that already exists in tabledata, If a previously stored item matches the
+		// current item, the current item is a duplicate.  If not a duplicate, add the current item to tabledata.
+		// If a duplicate, then update the previously stored local port entry to include a comma + the current item's local port
+		// to generate a string used in the Local Port Tool Tip.
+	 	dupindex = find_tabledata_duplicate(bwdpi_conntrack[i]);
+        if (dupindex == -1 ) {
+ 			// dup not found - so add this item to tabledata
+		 	tabledata.push(bwdpi_conntrack[i]);
+        } else {
+        	// dup found.  Update port list.
+            tabledata[dupindex][2] += ", " + bwdpi_conntrack[i][2];
+            shownlen--; // decrement counter because it was previously incremented to "add" the row we just did not add because we found it was a duplicate.
+        }
 	}
+
 	//draw table
 	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
 	updateTable();
+}
+
+function find_tabledata_duplicate(conntrack_element) {
+
+  // step through the tabledata array looking to see if the passed-in contrack_element already exists in tabledata
+  // with everything matching but the local port.  Return the index into tabledata if the item already exists, else -1.
+  for (var i = 0; i < tabledata.length; i++) {
+    if ( (tabledata[i][0] == conntrack_element[0]) && 
+         (tabledata[i][1] == conntrack_element[1]) && 
+         (tabledata[i][3] == conntrack_element[3]) && 
+         (tabledata[i][4] == conntrack_element[4]) && 
+         (tabledata[i][5] == conntrack_element[5]) && 
+         (tabledata[i][6] == conntrack_element[6]) && 
+         (tabledata[i][7] == conntrack_element[7]) ) {
+    	return i;
+    }
+  } // NEXT
+return -1;
 }
 
 function setsort(newfield) {
@@ -505,17 +538,25 @@ function updateTable()
 			srchost = tabledata[i][1];
 		}
 
+		// Determine if there were duplicates or not, If duplicates, then the text of the LocalPort value becomes "DUPs",
+		// else just list the port number per normal.  Add a Tool Tip of the provide port (single or duplicatg elist).
+		if (tabledata[i][2].includes(",") ) {
+			PortValue = "DUPs";
+		} else {
+			PortValue = tabledata[i][2];
+		}
+
 		code += '<tr>'
 		+ '<td>' + tabledata[i][0] + '</td>'
 		+ '<td title="' + tabledata[i][1]  + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
-		+ '<td>' + tabledata[i][2] + '</td>'
+		+ '<td title="' + tabledata[i][2] + '">' + PortValue + '</td>'
 		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
 		+ '<td>' + tabledata[i][4] + '</td>'
 		+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
 		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
 		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
 		+ '</td></tr>';
-	}
+	}  // end of FOR/NEXT
 	if (tabledata.length == maxshown)
 	{
 		code += '<tr><td colspan="6"><span style="text-align: center;">List truncated to ' + maxshown + ' elements - use a filter</td></tr>';
