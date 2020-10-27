@@ -614,9 +614,6 @@ function update_devicenames(leasearray)
 					device[ip].name = clientlist[mac].name;
 				}
 			}
-
-			//update device filter drop down formated values
-			document.getElementById(ip).innerHTML = ip.padEnd(21," ").replace(/ /g,"&nbsp;") + device[ip].name;
 		}
 	});
 }
@@ -716,15 +713,15 @@ function initial() {
 		document.getElementById('tracked_connections').style.display = "none";
 		document.getElementById('refresh_data').style.display = "none";
 	}
-//	$.ajax({
-//		url: "Main_DHCPStatus_Content.asp",
-//		success: function(result){
-//			result = result.match(/leasearray=([\s\S]*?);/);
-//			if (result[1]){
-//				update_devicenames(eval(result[1])); //regex data string into actual array
-//			}
-//		}
-//	});
+	$.ajax({
+		url: "Main_DHCPStatus_Content.asp",
+		success: function(result){
+			result = result.match(/leasearray=([\s\S]*?);/);
+			if (result[1]){
+				update_devicenames(eval(result[1])); //regex data string into actual array
+			}
+		}
+	});
 }
 
 function get_qos_class(category, appid) {
