@@ -4,10 +4,10 @@ This script has been tested on ASUS RT-AC68U, running ASUSWRT-Merlin 384.18, usi
 
 ## Quick Overview:
 
--- Script allows reclassifying Untracked traffic (mark 000000) from current default class to any class
--- Script Changes Minimum Guaranteed Bandwidth per QoS category to user defined percentages for upload and download.
--- Script allows for multiple custom QoS rules using iptables rules
--- Script allows for redirection of existing identified traffic using AppDB rules
+- Script allows reclassifying Untracked traffic (mark 000000) from current default class to any class
+- Script Changes Minimum Guaranteed Bandwidth per QoS category to user defined percentages for upload and download.
+- Script allows for multiple custom QoS rules using iptables rules
+- Script allows for redirection of existing identified traffic using AppDB rules
 
 ## Adaptive QoS Setup
 
@@ -360,7 +360,7 @@ When you are running the develop branch, the FlexQoS CLI menu headings will indi
 
 ``` flexqos noflushct ```
 
-To force all existing connections to be re-evaluated by new iptables rules when applying FlexQoS changes, enable the experimental, advanced setting to reset the conntrack table after restarting FlexQoS. The flushct command enables the reset, and noflushct disables the reset.
+By default, FlexQoS will force all existing connections to be re-evaluated by new iptables rules when applying FlexQoS changes. To disable this feature, use the noflushct command. To re-enable it, use the flushct command.
 
 This may be useful for users with IOT devices or cameras that establish connections before QoS and the firewall starts up during boot or any other restart activity.
 
