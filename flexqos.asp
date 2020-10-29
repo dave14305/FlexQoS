@@ -1160,7 +1160,7 @@ function draw_chart(data_array, ctx, pie) {
 				else
 					var rate_max = qos_ulbw;
 				var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
-				code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max + ' kb/s"><div><div id="rx_bar" class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
+				code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max/1024 + ' Mb/s"><div><div class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
 			}
 		}
 	}
