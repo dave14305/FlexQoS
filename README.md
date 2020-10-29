@@ -14,12 +14,11 @@ This script has been tested on ASUS RT-AC68U, running ASUSWRT-Merlin 384.18, usi
 1. Enable Adaptive QoS in the router's GUI.
 2. Set QoS Type to Adaptive QoS
 3. Set Bandwidth Setting to Manual Setting
-4. Set Queue Discipline to fq_codel
-5. Set WAN packet overhead to match your WAN connection type
-6. Set your Upload Bandwidth in Mb/s to 85-95% of your worst speedtest results without QoS enabled
-7. Set your Download Bandwidth in Mb/s to 85-95% of your worst speedtest results without QoS enabled
-8. Set your QoS priority mode to one of the predefined modes or choose Customize and set your own. Recommend that Learn-From-Home be lower priority than Streaming for proper script functionality.
-9. Hit Apply.
+4. Set WAN packet overhead to match your WAN connection type
+5. Set your Upload Bandwidth in Mb/s to 85-95% of your worst speedtest results without QoS enabled
+6. Set your Download Bandwidth in Mb/s to 85-95% of your worst speedtest results without QoS enabled
+7. Set your QoS priority mode to one of the predefined modes or choose Customize and set your own.
+8. Hit Apply.
 
 ## Installation:
 
@@ -95,7 +94,7 @@ In the Create New Policy pop-up window, you will enter the data you gathered in 
 * Protocol: TCP, UDP or BOTH (only relevant when Local or Remote ports are specified).  
 * Local Port: Enter a single port, a port range separated by a colon (:), or multiple ports separated by commas (,). Ports may also be negated with an exclamation point (!). You may not combine ranges with single or multiple ports. Valid ports are between 1-65535.  
 * Remote Port: Enter a single port, a port range separated by a colon (:), or multiple ports separated by commas (,). Ports may also be negated with an exclamation point (!). You may not combine ranges with single or multiple ports. Valid ports are between 1-65535.  
-* Mark: Enter the hexadecimal value assigned to an Application name, identified by clicking the Application name in the Tracked connections list, or by using the flexqos appdb search function. You may enter a mark for a specific application, or a wildcard Mark for all applications within a category by using '\*\*\*\*' as the last 4 characters.  
+* Mark: Enter the hexadecimal value assigned to an Application name, identified by clicking the Application name in the Tracked connections list, or by using the flexqos appdb search function. You may enter a mark for a specific application, or a wildcard Mark for all applications within a category by using '\*\*\*\*' as the last 4 characters. Mark may also be negated with an exclamation point (!).
 * Class: Enter the Class you would like this traffic to be assigned. The resulting QoS priority of this Class is dependent upon your QoS priority customizations done in the standard QoS screens.  
 
 Click OK to add your rule. Rules are not saved and do not take effect until after you click the Apply button in the main FlexQoS page.
