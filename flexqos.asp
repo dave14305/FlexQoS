@@ -1,8 +1,7 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
 
-Updates VBoth
-
+FlexQoS v1.0.x released TBD
 FlexQoS v1.0.5 released 2020-11-01
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
@@ -149,28 +148,28 @@ background-color: #2F3A3E !important;
   transition: all 0.5s ease-in-out;
 }
 td.cat0{
-box-shadow: #B3645B 3px 0px 0px 0px inset;
+box-shadow: #B3645B 5px 0px 0px 0px inset;
 }
 td.cat1{
-box-shadow: #B98F53 3px 0px 0px 0px inset;
+box-shadow: #B98F53 5px 0px 0px 0px inset;
 }
 td.cat2{
-box-shadow: #C6B36A 3px 0px 0px 0px inset;
+box-shadow: #C6B36A 5px 0px 0px 0px inset;
 }
 td.cat3{
-box-shadow: #849E75 3px 0px 0px 0px inset;
+box-shadow: #849E75 5px 0px 0px 0px inset;
 }
 td.cat4{
-box-shadow: #4C8FC0 3px 0px 0px 0px inset;
+box-shadow: #4C8FC0 5px 0px 0px 0px inset;
 }
 td.cat5{
-box-shadow: #7C637A 3px 0px 0px 0px inset;
+box-shadow: #7C637A 5px 0px 0px 0px inset;
 }
 td.cat6{
-box-shadow: #2B6692 3px 0px 0px 0px inset;
+box-shadow: #2B6692 5px 0px 0px 0px inset;
 }
 td.cat7{
-box-shadow: #6C604F 3px 0px 0px 0px inset;
+box-shadow: #6C604F 5px 0px 0px 0px inset;
 }
 </style>
 
@@ -180,8 +179,7 @@ var custom_settings = <% get_custom_settings(); %>;
 var device = {};		// devices database --> device["IP"] = { mac: "AA:BB:CC:DD:EE:FF" , name:"name" }
 var clientlist = <% get_clientlist_from_json_database(); %>;		// data from /jffs/nmp_cl_json.js (used to correlate mac addresses to corresponding device names  )
 var tabledata;		//tabled of tracked connections after device-filtered
-var conntablestart;	// start time of building the connection table
-var DEBUG_CombinedCode;  // used to pass CODE across multiple table build itterations.
+var draw_conntrack_table_start;  // Save date/tiem for elapsed time processing (Start of draw_conntrack_table through end of updateTable.
 var filter = Array(6);
 var sortdir = 0;
 var sortfield = 5;
@@ -203,6 +201,11 @@ var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
 var qos_dlbw = "<% nvram_get("qos_ibw"); %>";		// download bandwidth set in QoS settings
 var qos_ulbw = "<% nvram_get("qos_obw"); %>";		// upload bandwidth set in QoS settings
+
+if (qos_dlbw > 0 && qos_ulbw > 0)
+	var qos_bwmode = 1;	// Manual
+else
+	var qos_bwmode = 0;	// Auto
 
 var qos_type = "<% nvram_get("qos_type"); %>";
 if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
@@ -250,8 +253,8 @@ var pie_obj_ul, pie_obj_dl;
 var refreshRate;
 var timedEvent = 0;
 var filter = Array(6);
-const maxshown = 1500;  // DEBUG: Raise from 500
-const maxrendered = 1750;  // DEBUG: Raise from 750 to 1750
+const maxshown = 500;
+const maxrendered = 750;
 var color = ["#B3645B", "#B98F53", "#C6B36A", "#849E75", "#4C8FC0",  "#7C637A", "#2B6692",  "#6C604F"];
 var labels_array = [];
 var pieOptions = {
@@ -327,230 +330,22 @@ function set_filter(field, o) {
 }
 
 function draw_conntrack_table() {
+	//bwdpi_conntrack[i][0] = protocol
+	//bwdpi_conntrack[i][1] = Source IP
+	//bwdpi_conntrack[i][2] = Source Port
+	//bwdpi_conntrack[i][3] = Destination IP
+	//bwdpi_conntrack[i][4] = Destination Port
+	//bwdpi_conntrack[i][5] = Pre-formatted Title
+	//bwdpi_conntrack[i][6] = Traffic ID
+	//bwdpi_conntrack[i][7] = Traffic Category
+
 	// console.log("START: draw_conntrack_table"); // DEBUG Logging
-	DEBUG_CombinedCode = "";  // clear it so we get the full list.
-	V0_draw_conntrack_table();
-	V1_draw_conntrack_table();
-	V2_draw_conntrack_table();
-	document.getElementById('tableContainer').innerHTML = DEBUG_CombinedCode;  // set combined code.
-        console.log("---- End of Refresh ------------------------------------------------------------");
-	// console.log("END: draw_conntrack_table"); // DEBUG Logging
-}
-
-
-// Start V0
-// Start V0
-// Start V0
-// Start V0
-function V0_draw_conntrack_table() {
-	console.log("START: V0_draw_conntrack_table"); // DEBUG Logging
-
-	//bwdpi_conntrack[i][0] = protocol
-	//bwdpi_conntrack[i][1] = Source IP
-	//bwdpi_conntrack[i][2] = Source Port
-	//bwdpi_conntrack[i][3] = Destination IP
-	//bwdpi_conntrack[i][4] = Destination Port
-	//bwdpi_conntrack[i][5] = Pre-formatted Title
-	//bwdpi_conntrack[i][6] = Traffic ID
-	//bwdpi_conntrack[i][7] = Traffic Category
-
-	// Save start time.
-	conntablestart = new Date();
-	var draw_conntrack_table_start = new Date();
-
+	var ProcessedCount = 0; // Incremented with each tracked connection processed as unique or duplicatate tabledata so we know theh total amountt processed.
+    var DuplicateCount = 0; // Counter of the number of duplicates found.
+	draw_conntrack_table_start = new Date();  // Capture start of the draw_conntrack_table routine for elapsed time calculation.
 	tabledata = [];
 	var tracklen, shownlen = 0;
-	tracklen = bwdpi_conntrack.length;
-	if (tracklen == 0 ) {
-		showhide("tracked_filters", 0);
-		document.getElementById('tracked_connections').innerHTML = "";
-		return;
-	}
-	showhide("tracked_filters", 1);
-
-	if (tracklen > maxrendered && sessionStorage.warntoomanyconns != 1) {
-		sessionStorage.warntoomanyconns = 1;
-		document.getElementById('refreshrate').value = "0";
-		refreshRate = 0;
-		document.getElementById('toomanyconns').style.display = "";
-	} else {
-		document.getElementById('toomanyconns').style.display = "none";
-	}
-
-	for (var i = 0; (i < tracklen && shownlen < maxshown); i++)
-	{
-		if (bwdpi_conntrack[i][1].indexOf(":") >= 0) {
-			bwdpi_conntrack[i][1] = compIPV6(bwdpi_conntrack[i][1]);
-		}
-		if (bwdpi_conntrack[i][3].indexOf(":") >= 0) {
-			bwdpi_conntrack[i][3] = compIPV6(bwdpi_conntrack[i][3]);
-		}
-
-		//SHOW LOCAL DEVICES AT LEFT SIDE OF TABLE (FLIP POSITION IF REQUIRED)
-		if (bwdpi_conntrack[i][3].startsWith(dhcp_start))
-		{
-			var temp = bwdpi_conntrack[i][3];
-			bwdpi_conntrack[i][3] = bwdpi_conntrack[i][1];
-			bwdpi_conntrack[i][1] = temp;
-
-			temp = bwdpi_conntrack[i][4];
-			bwdpi_conntrack[i][4] = bwdpi_conntrack[i][2];
-			bwdpi_conntrack[i][2] = temp;
-		}
-
-		// Filter in place?
-		var filtered = 0;
-		for (j = 0; j < 5; j++) { // only check proto, IP and ports; defer application check until after rule eval
-			if (filter[j]) {
-				switch (j) {
-					case 0:
-						if (bwdpi_conntrack[i][j].toLowerCase() != filter[j].toLowerCase())
-							filtered = 1;
-						break;
-					default:
-						if (filter[j].charAt(0)=="!") {
-							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j].replace("!", "")) >= 0)
-								filtered = 1;
-						} else {
-							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
-								filtered = 1;
-						}
-				}
-				if (filtered) continue;
-			}
-		}
-		if (filtered) continue;
-		shownlen++;
-
-		var rule_result = eval_rule(bwdpi_conntrack[i][1], bwdpi_conntrack[i][3], bwdpi_conntrack[i][0], bwdpi_conntrack[i][2], bwdpi_conntrack[i][4], bwdpi_conntrack[i][7], bwdpi_conntrack[i][6], bwdpi_conntrack[i][5]);
-		if (rule_result.qosclass == 99)		// 99 means no rule match so use default class for connection category
-			rule_result.qosclass = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
-		// Prepend Class priority number for sorting, but only prepend it once
-		if ( ! bwdpi_conntrack[i][5].startsWith(rule_result.qosclass+'>') )
-			bwdpi_conntrack[i][5] =	rule_result.qosclass + '>' + rule_result.desc;
-		if (filter[5]) { // Application filter to be evaluated after rules applied
-			if (filter[5].charAt(0)=="!") {
-				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5].replace("!", "")) >= 0) {
-					shownlen--;
-					continue;
-				}
-			} else {
-				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5]) < 0) {
-					shownlen--;
-					continue;
-				}
-			}
-		}
-		tabledata.push(bwdpi_conntrack[i]);
-	}
-	//draw table
-	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
-
-	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V0:draw_conntrack_table: " + draw_conntrack_table_start+ " End: " + enddate + " Elapsed: " + (enddate - draw_conntrack_table_start) + " milliseconds. ConnnectionCount: [" + tracklen + "]");
-
-	V0_updateTable();
-}
-
-function V0_updateTable()
-{
-	var updateTable_start = new Date();
-
-	//sort table data
-//	if (sortfield < 5)
-//		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-//	else
-//		tabledata.sort(function(a,b) {return a[1].localeCompare(b[1])} );
-//	tabledata.sort(table_sort);
-
-	//generate table
-	var code = '<tr class="row_title">' +
-		'<th width="5%" id="track_header_0" style="cursor: pointer;" onclick="setsort(0); updateTable()">Proto</th>' +
-		'<th width="28%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Local IP</th>' +
-		'<th width="6%" id="track_header_2" style="cursor: pointer;" onclick="setsort(2); updateTable()">Port</th>' +
-		'<th width="28%" id="track_header_3" style="cursor: pointer;" onclick="setsort(3); updateTable()">Remote IP</th>' +
-		'<th width="6%" id="track_header_4" style="cursor: pointer;" onclick="setsort(4); updateTable()">Port</th>' +
-		'<th width="27%" id="track_header_5" style="cursor: pointer;" onclick="setsort(5); updateTable()">Application</th></tr>';
-
-	for(var i = 0; i < tabledata.length; i++){
-		var qos_class = tabledata[i][5].split(">")[0];
-		var label = tabledata[i][5].split(">")[1];
-		var mark = (parseInt(tabledata[i][7]).toString(16).padStart(2,'0') + parseInt(tabledata[i][6]).toString(16).padStart(4,'0')).toUpperCase();
-		if (device[tabledata[i][1]]) {
-			srchost = (device[tabledata[i][1]].name == "") ? tabledata[i][1] : device[tabledata[i][1]].name;
-		} else {
-			srchost = tabledata[i][1];
-		}
-
-// DEBUG - Added in the i counter to the Protocol column!
-		code += '<tr>'
-		+ '<td>' + + (i+1) + ':V0</td>'
-		+ '<td>' + tabledata[i][0] + '</td>'
-		+ '<td>' + tabledata[i][1] + '</td>'
-		+ '<td title="' + tabledata[i][1]  + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
-		+ '<td>' + tabledata[i][2] + '</td>'
-		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
-		+ '<td>' + tabledata[i][4] + '</td>'
-		+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
-		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
-		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
-		+ '</td></tr>';
-	}
-	if (tabledata.length == maxshown)
-	{
-		code += '<tr><td colspan="6"><span style="text-align: center;">List truncated to ' + maxshown + ' elements - use a filter</td></tr>';
-	}
-	document.getElementById('tableContainer').innerHTML = code;
-	document.getElementById('track_header_' + sortfield).style.boxShadow = "rgb(255, 204, 0) 0px " + (sortdir == 1 ? "1" : "-1") + "px 0px 0px inset";
-
-	// capture code
-	DEBUG_CombinedCode += code;
-
-	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V0:updateTable: " + updateTable_start + " End: " + enddate + " Elapsed: " + (enddate - updateTable_start ) + " milliseconds.");
-
-	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V0:WHOLE: Start: " + conntablestart + " End: " + enddate + " Elapsed: " + (enddate - conntablestart) + " milliseconds.  Rows: [" + tabledata.length + "]");
-
-}
-
-// END V0
-// END V0
-// END V0
-// END V0
-
-
-// Start V1
-// Start V1
-// Start V1
-// Start V1
-
-function V1_draw_conntrack_table() {
-	console.log("START: V1_draw_conntrack_table"); // DEBUG Logging
-	var draw_conntrack_table_start = new Date();
-
-// DEBUG: figure out how many rows we processed as we are processing more in V1 because
-//        we remove the duplicates during the review of the bwdpi_conntrack table.
-//        use this counter to figure out how many we actually process!
-var DEBUG_ProcessedCount = 0
-	//bwdpi_conntrack[i][0] = protocol
-	//bwdpi_conntrack[i][1] = Source IP
-	//bwdpi_conntrack[i][2] = Source Port
-	//bwdpi_conntrack[i][3] = Destination IP
-	//bwdpi_conntrack[i][4] = Destination Port
-	//bwdpi_conntrack[i][5] = Pre-formatted Title
-	//bwdpi_conntrack[i][6] = Traffic ID
-	//bwdpi_conntrack[i][7] = Traffic Category
-
-	// Save start time.
-	conntablestart = new Date();
-
-	tabledata = [];
-	var tracklen, shownlen = 0;
-	var dupindex; // Index to the previously stored item that is a duplicate of the current item.
+	var dupindex; // Index to the previously stored item that the current connection is a duplicate.
 	tracklen = bwdpi_conntrack.length;
 	if (tracklen == 0 ) {
 		showhide("tracked_filters", 0);
@@ -571,9 +366,9 @@ var DEBUG_ProcessedCount = 0
 	for (var i = 0; (i < tracklen && shownlen < maxshown); i++)
 	{
 
-//DEBUG
-//		if (i > 50) {console.log("i > 50 - break!"); break;}
-		DEBUG_ProcessedCount += 1;
+// DEBUG - Uncomment the following line to only process 50 lines - used for debugging.
+// if (i > 50) {console.log("i > 50 - break!"); break;}
+//		ProcessedCount += 1;
 
 		if (bwdpi_conntrack[i][1].indexOf(":") >= 0) {
 			bwdpi_conntrack[i][1] = compIPV6(bwdpi_conntrack[i][1]);
@@ -638,57 +433,42 @@ var DEBUG_ProcessedCount = 0
 			}
 		}
 
-		// find the index of a duplicate that already exists in tabledata, If a previously stored item matches the
-		// current item, the current item is a duplicate.  If not a duplicate, add the current item to tabledata.
-		// If a duplicate, then update the previously stored local port entry to include a comma + the current item's local port
-		// to generate a string used in the Local Port Tool Tip.
+		// At this point, all records that don't match a filter (if applied) have been skipped.  The remainder must be de-duplicated.
+		// Find the index of a row that already exists in tabledata, if all fields except Source Port match.
+		// If a record is found in tabledata, then append the Source Port of the current connection to the previously 
+		// saved tabledata row.  If a record is not found in tabledata, then add the row to tabledata.
+		// The list of Source Ports for duplicate records is kept and applied to the output table as a Tool Tip
+		// for the Source Port column.
 	 	dupindex = find_tabledata_duplicate(bwdpi_conntrack[i]);
        		if (dupindex == -1 ) {
  			// dup not found - so add this item to tabledata
 		 	tabledata.push(bwdpi_conntrack[i]);
 	        } else {
-        		// dup found.  Update port list.
+        		// Existing tabledata row found.  Update port list of the tabledata row with the Source Port from the current connection.
         		tabledata[dupindex][2] += ", " + bwdpi_conntrack[i][2];
 	        	shownlen--; // decrement counter because it was previously incremented to "add" the row we just did not add because we found it was a duplicate.
+				DuplicateCount++; // increment duplicate counter.
         	}
 	}
 
 	//draw table
-	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
-
+	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ", duplicates eliminated:" + DuplicateCount + ")";
 
 	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V1:draw_conntrack_table: " + draw_conntrack_table_start + " End: " + enddate + " Elapsed: " + (enddate - draw_conntrack_table_start) + " milliseconds. Rows Processed: [" + DEBUG_ProcessedCount + "] ConnnectionCount: [" + tracklen + "]");
+        // var enddate = new Date();
+	// console.log("V1:draw_conntrack_table: " + draw_conntrack_table_start + " End: " + enddate + " Elapsed: " + (enddate - draw_conntrack_table_start) + " milliseconds. Rows Processed: [" + ProcessedCount + "] ConnnectionCount: [" + tracklen + "]");
 
-	V1_updateTable();
+	updateTable();
 
-	// console.log("END: V1_draw_conntrack_table"); // DEBUG Logging
+	// console.log("END: draw_conntrack_table"); // DEBUG Logging
 }
 
 function find_tabledata_duplicate(conntrack_element) {
 
-// DEBUG:  ORiginal search - searches from top - item 1 through end.
   // step through the tabledata array looking to see if the passed-in contrack_element already exists in tabledata
   // with everything matching but the local port.  Return the index into tabledata if the item already exists, else -1.
-//  for (var i = 0; i < tabledata.length; i++) {
-//    if ( (tabledata[i][0] == conntrack_element[0]) && 
-//         (tabledata[i][1] == conntrack_element[1]) && 
-//         (tabledata[i][3] == conntrack_element[3]) && 
-//         (tabledata[i][4] == conntrack_element[4]) && 
-//         (tabledata[i][5] == conntrack_element[5]) && 
-//         (tabledata[i][6] == conntrack_element[6]) && 
-//         (tabledata[i][7] == conntrack_element[7]) ) {
-//    	return i;
-//    }
-//  } // NEXT
-
-
-//TODO   Investigating - should we work from end of table backwards?  
-
-  // step through the tabledata array looking to see if the passed-in contrack_element already exists in tabledata
-  // with everything matching but the local port.  Return the index into tabledata if the item already exists, else -1.
-  for (var i = 0; i < tabledata.length; i++) {
+  var tabledatacount = tabledata.length; // number of items in tabledata.
+  for (var i = 0; i < tabledatacount ; i++) {
     if ( (tabledata[i][0] == conntrack_element[0]) && 
          (tabledata[i][1] == conntrack_element[1]) && 
          (tabledata[i][3] == conntrack_element[3]) && 
@@ -696,11 +476,11 @@ function find_tabledata_duplicate(conntrack_element) {
          (tabledata[i][5] == conntrack_element[5]) && 
          (tabledata[i][6] == conntrack_element[6]) && 
          (tabledata[i][7] == conntrack_element[7]) ) {
-    	return i;
+    	return i; // match found, immediately return the current row in tabledata.
     }
   } // NEXT
 
-return -1;
+return -1; // no match found.
 }
 
 function setsort(newfield) {
@@ -755,20 +535,11 @@ function table_sort(a, b){
 	}
 }
 
-function updateTable() {
-	console.log("START: updateTable"); // DEBUG Logging
-	V0_updateTable();
-	V1_updateTable();
-	V2_updateTable();
 
-	console.log("END: updatetable"); // DEBUG Logging
-
-}
-
-function V1_updateTable()
+function updateTable()
 {
-	// console.log("START: V1_updateTable"); // DEBUG Logging
-	var updateTable_start = new Date();
+	// console.log("START: updateTable"); // DEBUG Logging
+	//var updateTable_start = new Date();
 
 	//sort table data
 	if (sortfield < 5)
@@ -804,11 +575,8 @@ function V1_updateTable()
 			PortValue = tabledata[i][2];
 		}
 
-// DEBUG - Added in the i counter to the Protocol column!
 		code += '<tr>'
-		+ '<td>' + + (i+1) + ':V1</td>'
 		+ '<td>' + tabledata[i][0] + '</td>'
-		+ '<td>' + tabledata[i][1] + '</td>'
 		+ '<td title="' + tabledata[i][1]  + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
 		+ '<td title="' + tabledata[i][2] + '">' + PortValue + '</td>'
 		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
@@ -825,369 +593,17 @@ function V1_updateTable()
 	document.getElementById('tableContainer').innerHTML = code;
 	document.getElementById('track_header_' + sortfield).style.boxShadow = "rgb(255, 204, 0) 0px " + (sortdir == 1 ? "1" : "-1") + "px 0px 0px inset";
 
-
-	// capture code
-	DEBUG_CombinedCode += code;
+	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
+        //var enddate = new Date();
+	//console.log("updateTable: " + updateTable_start + " End: " + enddate + " Elapsed: " + (enddate - updateTable_start ) + " milliseconds.");
 
 	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V1:updateTable: " + updateTable_start + " End: " + enddate + " Elapsed: " + (enddate - updateTable_start ) + " milliseconds.");
+        //var enddate = new Date();
+	//console.log("TOTALs: Start: " + draw_conntrack_table_start + " End: " + enddate + " Elapsed: " + (enddate - draw_conntrack_table_start) + " milliseconds.  Rows: [" + tabledata.length + "]");
 
-	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V1:WHOLE: Start: " + conntablestart + " End: " + enddate + " Elapsed: " + (enddate - conntablestart) + " milliseconds.  Rows: [" + tabledata.length + "]");
-
-	// console.log("END: V1_updatetable"); // DEBUG Logging
+	// console.log("END: updatetable"); // DEBUG Logging
 }
 
-// End V1
-// End V1
-// End V1
-// End V1
-
-
-// Start V2
-// Start V2
-// Start V2
-// Start V2
-
-function V2_draw_conntrack_table() {
-	console.log("START: V2_draw_conntrack_table"); // DEBUG Logging
-	var draw_conntrack_table_start = new Date();
-
-	//bwdpi_conntrack[i][0] = protocol
-	//bwdpi_conntrack[i][1] = Source IP
-	//bwdpi_conntrack[i][2] = Source Port
-	//bwdpi_conntrack[i][3] = Destination IP
-	//bwdpi_conntrack[i][4] = Destination Port
-	//bwdpi_conntrack[i][5] = Pre-formatted Title
-	//bwdpi_conntrack[i][6] = Traffic ID
-	//bwdpi_conntrack[i][7] = Traffic Category
-
-	// Save start time.
-	conntablestart = new Date();
-
-	var newelement;  // used when adding an element to temptabledata before de-dup.
-	tabledata = [];
-	temptabledata = [];
-	var tracklen, shownlen = 0;
-	tracklen = bwdpi_conntrack.length;
-	if (tracklen == 0 ) {
-		showhide("tracked_filters", 0);
-		document.getElementById('tracked_connections').innerHTML = "";
-		return;
-	}
-	showhide("tracked_filters", 1);
-
-	if (tracklen > maxrendered && sessionStorage.warntoomanyconns != 1) {
-		sessionStorage.warntoomanyconns = 1;
-		document.getElementById('refreshrate').value = "0";
-		refreshRate = 0;
-		document.getElementById('toomanyconns').style.display = "";
-	} else {
-		document.getElementById('toomanyconns').style.display = "none";
-	}
-
-	for (var i = 0; (i < tracklen && shownlen < maxshown); i++)
-	{
-//DEBUG
-//		if (i > 50) {console.log("i > 50 - break!"); break;}
-
-		if (bwdpi_conntrack[i][1].indexOf(":") >= 0) {
-			bwdpi_conntrack[i][1] = compIPV6(bwdpi_conntrack[i][1]);
-		}
-		if (bwdpi_conntrack[i][3].indexOf(":") >= 0) {
-			bwdpi_conntrack[i][3] = compIPV6(bwdpi_conntrack[i][3]);
-		}
-
-		//SHOW LOCAL DEVICES AT LEFT SIDE OF TABLE (FLIP POSITION IF REQUIRED)
-		if (bwdpi_conntrack[i][3].startsWith(dhcp_start))
-		{
-			var temp = bwdpi_conntrack[i][3];
-			bwdpi_conntrack[i][3] = bwdpi_conntrack[i][1];
-			bwdpi_conntrack[i][1] = temp;
-
-			temp = bwdpi_conntrack[i][4];
-			bwdpi_conntrack[i][4] = bwdpi_conntrack[i][2];
-			bwdpi_conntrack[i][2] = temp;
-		}
-
-		// Filter in place?
-		var filtered = 0;
-		for (j = 0; j < 5; j++) { // only check proto, IP and ports; defer application check until after rule eval
-			if (filter[j]) {
-				switch (j) {
-					case 0:
-						if (bwdpi_conntrack[i][j].toLowerCase() != filter[j].toLowerCase())
-							filtered = 1;
-						break;
-					default:
-						if (filter[j].charAt(0)=="!") {
-							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j].replace("!", "")) >= 0)
-								filtered = 1;
-						} else {
-							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
-								filtered = 1;
-						}
-				}
-				if (filtered) continue;
-			}
-		}
-		if (filtered) continue;
-		shownlen++;
-
-		var rule_result = eval_rule(bwdpi_conntrack[i][1], bwdpi_conntrack[i][3], bwdpi_conntrack[i][0], bwdpi_conntrack[i][2], bwdpi_conntrack[i][4], bwdpi_conntrack[i][7], bwdpi_conntrack[i][6], bwdpi_conntrack[i][5]);
-		if (rule_result.qosclass == 99)		// 99 means no rule match so use default class for connection category
-			rule_result.qosclass = get_qos_class(bwdpi_conntrack[i][7], bwdpi_conntrack[i][6]);
-		// Prepend Class priority number for sorting, but only prepend it once
-		if ( ! bwdpi_conntrack[i][5].startsWith(rule_result.qosclass+'>') )
-			bwdpi_conntrack[i][5] =	rule_result.qosclass + '>' + rule_result.desc;
-		if (filter[5]) { // Application filter to be evaluated after rules applied
-			if (filter[5].charAt(0)=="!") {
-				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5].replace("!", "")) >= 0) {
-					shownlen--;
-					continue;
-				}
-			} else {
-				if (bwdpi_conntrack[i][5].toLowerCase().indexOf(filter[5]) < 0) {
-					shownlen--;
-					continue;
-				}
-			}
-		}
-
-// To test timing:  Revert to the original populating of tabledata in this routine; stop populating temptabledata and don't call dedupeTable.
-// start time is at the top of this routine; end time and logging is at end of updateTable();
-// To initiate Timing Testing do the following:
-// 1) Comment out all lines from this section down to "// Original insert into tabledata."
-// 2) Comment out the line below "dedupTable();
-// 3) Uncomment the line "tabledata.push(bwdpi_conntrack[i]);"
-// 4) In routine updateTable - uncomment the last line "console.log("Start: " + conntablestart + " End: " + conntableend + " Elapsed: " + contableelapsed + " milliseconds.")" to print the timing."
-// Undo these three steps to restore to the de-duplication processing.
-		// Append all parts and pieces of the bwdpi_conntrack[i] item, except for Source Port as ":" delimited.
-		// Include SourcePort as an empty element so when we split in de-dup, the index numbers match.
-		// Add to temptabledata as column 0; add Source Port as column 1.
-		var newelementindex = 0;
-		newelementindex = temptabledata.push([bwdpi_conntrack[i][0] + ":" + // protocol
-			bwdpi_conntrack[i][1] + ":" + // Source IP
-			""                    + ":" + // Source Port
-			bwdpi_conntrack[i][3] + ":" + // Destination IP
-			bwdpi_conntrack[i][4] + ":" + // Destination Port
-			bwdpi_conntrack[i][5] + ":" + // Pre-formatted Title
-			bwdpi_conntrack[i][6] + ":" + // Traffic ID
-			bwdpi_conntrack[i][7] ,  // Traffic Category
-			bwdpi_conntrack[i][2] ] ); // Source Port - as a second array item.
-
-		newelementindex -=1; // subtract 1 to get from count to 0-based index.
-		// console.log(i + ") temptabledata[" + newelementindex + "]: [" + temptabledata[newelementindex][0] + "] [" + temptabledata[newelementindex][1] + "]");
-
-		// Original insert into tabledata.  THIS SHOULD BE COMMENTED OUT unless testing timing.  
-	 	// tabledata.push(bwdpi_conntrack[i]);
-	}
-
-	// deduplicate the temptabledata into tabledata. This may eliminate rows that are duplicates.
- 	dedupeTable();
-
-	//draw table
-	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
-
-	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V2:draw_conntrack_table: " + draw_conntrack_table_start + " End: " + enddate + " Elapsed: " + (enddate - draw_conntrack_table_start) + " milliseconds. ConnnectionCount: [" + tracklen + "]");
-
-	V2_updateTable();
-
-	// console.log("END: V2_draw_conntrack_table"); // DEBUG Logging
-}
-
-function dedupeTable() {
-	// console.log("START: dedupeTable"); //DEBUG Logging
-	var dedupeTable_start = new Date();
-
-	//bwdpi_conntrack[i][0] = protocol
-	//bwdpi_conntrack[i][1] = Source IP
-	//bwdpi_conntrack[i][2] = Source Port
-	//bwdpi_conntrack[i][3] = Destination IP
-	//bwdpi_conntrack[i][4] = Destination Port
-	//bwdpi_conntrack[i][5] = Pre-formatted Title
-	//bwdpi_conntrack[i][6] = Traffic ID
-	//bwdpi_conntrack[i][7] = Traffic Category
-  tabledata = [];  // clear the table
-  var prevelement = ['STARTINGVALUE','STARTINGVALUE'];
-  var dupcount = 0;
-  var SamePortCount = 0;
-
-	// Sort TempTableData by SourceIP - which has additional infomration in it:  SourceIP:Protocol:DestIP:DestPort
-	// save and restore the original sort order for later.
-        var SaveSortDir = sortdir;
-	var SaveSortField = sortfield;
-	sortdir = 0;  // ascending
-	sortfield = 0; // Combined Value
-       	temptabledata.sort(table_sort);
-	sortdir = SaveSortDir;
-	sortfield = SaveSortField;
-
-//TODO: Sort by SourceIP - should we not use this function table_sort - as if someone clicks to re-sort, we could be in the middle
-//		of a sort and it could muck us up if the sort changes
-
-	// step through the tempdatatable looking for and eliminating duplicates.  Non-Duplicates are added to datatable.
-	for(var i = 0; i < temptabledata.length; i++){
-
-		// Compare the first element, which is the combined: Protocol:SourceIP::DestIP:DestPort:Title:TrafficID:TrafficCat
-		// Local Port is empty in the first element and stored in the second element.
-		if ( prevelement[0] == temptabledata[i][0] ) {
-			// Found a duplicate, so increment the counter and save the local port to prevelement[localport] as a comma separated list.
-			SamePortCount +=1;
-			prevelement[1] += ", " + temptabledata[i][1];
-//			console.log("0-DUP! [" + prevelement[0] + "] [" + prevelement[1] + "]");
-						 
-		} else {
-			// found a new, unique row.
-//			console.log("1-PrevElement:      [" + prevelement[0] + "] Local Port: [" + prevelement[1] + "]");
-//			console.log("2-TempTableData:    [" + temptabledata[i][0] + "] Local Port: [" + temptabledata[i][1] + "]");
-			
-			// If the PrevElement[0] = "STARTINGVALUE", then don't output the PrevElement entry.  The TempTableData current index row is the
-			//  first real row of data.  The PrevElement is dummy data to ensure the first good row is identified.
-			if (prevelement[0] == "STARTINGVALUE") {
-				// startup previous values, so no duplicate - do nothing, no output.
-//				console.log("3-STARTINGVALUE - Skipping output");
-			} else {
-				// Save the previous values to datatable by parsing PrevElement[0] into its component pieces
-				// of Protocol:SourceIP::DestIP:DestPort:Title:TrafficID:TrafficCat and adding PrevElement[1] as Local Port.
-				var prevelement_array = prevelement[0].split(':');
-				
-				// If there are duplicates, Prepend the dup count to local port, else just leave the port alone.
-  				if (SamePortCount > 1) {
-					prevelement[1] = SamePortCount + " Ports: " + prevelement[1];
-				}
-
-				// add element to tabledata.
-				tabledata.push([prevelement_array[0],prevelement_array[1],prevelement[1],prevelement_array[3],prevelement_array[4],
-						prevelement_array[5],prevelement_array[6],prevelement_array[7] ]);
-//				console.log("3-SAVE: [" + prevelement_array[0] + "] [" + prevelement_array[1] + "] [" + prevelement[1] + "] [" + prevelement_array[3] + "] [" + prevelement_array[4] + "] [" + prevelement_array[5] + "] [" + prevelement_array[6] + "] [" + prevelement_array[7] + "]");
-
-			}
-
-			// save the current element to the previous element
-			SamePortCount = 1;  // reset the SamePortCount to 1 as we found a unique element.
-			prevelement[0] = temptabledata[i][0];
-			prevelement[1] = temptabledata[i][1];
-//			console.log("4-NewPrev: [" + prevelement[0] + "] [" + prevelement[1] + "]");
-		}
-	}  // end of FOR/NEXT
-
-	// Ensure we capture the final row - as it wouldn't be output in the FOR Loop as there is never a following, non-duplicate row.  
-	// if PrevElement[0] = "STARTINGVALUE", then don't output the PrevElement entry.  The TempTableData current index row is the
-	//  first real row of data.  The PrevElement is dummy data to ensure the first good row is identified.
-	if (prevelement[0] == "STARTINGVALUE") {
-		// startup previous values, so no duplicate - do nothing, no output.
-//		console.log("3-STARTINGVALUE - Skipping output");
-	} else {
-		// Save the previous values to datatable by parsing PrevElement[0] into its component pieces
-		// of Protocol:SourceIP::DestIP:DestPort:Title:TrafficID:TrafficCat and adding PrevElement[1] as Local Port.
-		var prevelement_array = prevelement[0].split(':');
-				
-		// If there are duplicates, Prepend the dup count to local port, else just leave the port alone.
-		if (SamePortCount > 1) {
-			prevelement[1] = SamePortCount + " Ports: " + prevelement[1];
-		}
-
-		// add element to tabledata.
-		tabledata.push([prevelement_array[0],prevelement_array[1],prevelement[1],prevelement_array[3],prevelement_array[4],
-				prevelement_array[5],prevelement_array[6],prevelement_array[7]  ]);
-//		console.log("3-SAVE: [" + prevelement_array[0] + "] [" + prevelement_array[1] + "] [" + prevelement[1] + "] [" + prevelement_array[3] + "] [" + prevelement_array[4] + "] [" + prevelement_array[5] + "] [" + prevelement_array[6] + "] [" + prevelement_array[7] + "]");
-
-	}
-
-	// clear the temptabledata
-	temptabledata = [];
-
-	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V2:dedupeTable: " + dedupeTable_start + " End: " + enddate + " Elapsed: " + (enddate - dedupeTable_start) + " milliseconds. NOTE: Included in draw_conntracktable time!!!");
-
-	// console.log("END: dedupeTable"); // DEBUG Logging
-}
-
-function V2_updateTable()
-{
-	// console.log("START: V2_updateTable");  // DEBUG Logging
-	var updateTable_start = new Date();
-
-	//sort table data
-	if (sortfield < 5)
-		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
-	else
-		tabledata.sort(function(a,b) {return a[1].localeCompare(b[1])} );
-	tabledata.sort(table_sort);
-
-	//generate table
-	var code = '<tr class="row_title">' +
-		'<th width="5%" id="track_header_0" style="cursor: pointer;" onclick="setsort(0); updateTable()">Proto</th>' +
-		'<th width="28%" id="track_header_1" style="cursor: pointer;" onclick="setsort(1); updateTable()">Local IP</th>' +
-		'<th width="6%" id="track_header_2" style="cursor: pointer;" onclick="setsort(2); updateTable()">Port</th>' +
-		'<th width="28%" id="track_header_3" style="cursor: pointer;" onclick="setsort(3); updateTable()">Remote IP</th>' +
-		'<th width="6%" id="track_header_4" style="cursor: pointer;" onclick="setsort(4); updateTable()">Port</th>' +
-		'<th width="27%" id="track_header_5" style="cursor: pointer;" onclick="setsort(5); updateTable()">Application</th></tr>';
-
-	for(var i = 0; i < tabledata.length; i++){
-		var qos_class = tabledata[i][5].split(">")[0];
-		var label = tabledata[i][5].split(">")[1];
-		var mark = (parseInt(tabledata[i][7]).toString(16).padStart(2,'0') + parseInt(tabledata[i][6]).toString(16).padStart(4,'0')).toUpperCase();
-		if (device[tabledata[i][1]]) {
-			srchost = (device[tabledata[i][1]].name == "") ? tabledata[i][1] : device[tabledata[i][1]].name;
-		} else {
-			srchost = tabledata[i][1];
-		}
-
-		// Determine if there were duplicates or not, If duplicates, then the text of the LocalPort value becomes "DUPs",
-		// else just list the port number per normal.  Add a Tool Tip of the provide port (single or duplicatg elist).
-		if (tabledata[i][2].includes(",") ) {
-			PortValue = "DUPs";
-		} else {
-			PortValue = tabledata[i][2];
-		}
-
-// DEBUG - Added in the i counter to the Protocol column!
-		code += '<tr>'
-		+ '<td>' + + (i+1) + ':V2</td>'
-		+ '<td>' + tabledata[i][0] + '</td>'
-		+ '<td>' + tabledata[i][1] + '</td>'
-		+ '<td title="' + tabledata[i][1]  + '"' + (srchost.length > 32 ? ' style="font-size: 80%;"' : '') + '>' + srchost + '</td>'
-		+ '<td title="' + tabledata[i][2] + '">' + PortValue + '</td>'
-		+ '<td' + (tabledata[i][3].length > 32 ? " style=\"font-size: 80%;\"" : "") + '>' + tabledata[i][3] +'</td>'
-		+ '<td>' + tabledata[i][4] + '</td>'
-		+ '<td class="t_item"' + 'title="' + labels_array[qos_class] + '">'
-		+ '<span class="t_label catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>' + label + '</span>'
-		+ '<span class="t_mark  catrow cat' + qos_class + '"' + (label.length > 29 ? 'style="font-size: 75%;"' : '') + '>MARK:' + mark + '</span>'
-		+ '</td></tr>';
-	}  // end of FOR/NEXT
-	if (tabledata.length == maxshown)
-	{
-		code += '<tr><td colspan="6"><span style="text-align: center;">List truncated to ' + maxshown + ' elements - use a filter</td></tr>';
-	}
-	document.getElementById('tableContainer').innerHTML = code;
-	document.getElementById('track_header_' + sortfield).style.boxShadow = "rgb(255, 204, 0) 0px " + (sortdir == 1 ? "1" : "-1") + "px 0px 0px inset";
-
-
-	// capture code
-	DEBUG_CombinedCode += code;
-
-	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V2:updateTable: " + updateTable_start + " End: " + enddate + " Elapsed: " + (enddate - updateTable_start ) + " milliseconds.")
-
-	// Calculate elapsed time and write to log.  Keep commented out unless debugging timing.
-        var enddate = new Date();
-	console.log("V2:WHOLE: Start: " + conntablestart + " End: " + enddate + " Elapsed: " + (enddate - conntablestart) + " milliseconds.  Rows: [" + tabledata.length + "]");
-
-	// console.log("END: V2_updateTable"); // DEBUG Logging
-}
-
-// End V2
-// End V2
-// End V2
-// End V2
 
 function comma(n) {
 	n = '' + n;
@@ -1279,9 +695,6 @@ function update_devicenames(leasearray)
 					device[ip].name = clientlist[mac].name;
 				}
 			}
-
-			//update device filter drop down formated values
-			document.getElementById(ip).innerHTML = ip.padEnd(21," ").replace(/ /g,"&nbsp;") + device[ip].name;
 		}
 	});
 }
@@ -1294,19 +707,6 @@ function populate_classmenu(){
 	document.getElementById('appdb_class_x').innerHTML=code;
 }
 
-function populate_devicefilter(){
-	var code = '<option value=""> </option>';
-
-	//Presort clients before adding clients into devicefilter to make it easier to read
-	keysSorted = Object.keys(device).sort(function(a,b){ return ip2dec(a)-ip2dec(b) })									// sort by IP
-	//keysSorted = Object.keys(device).sort(function(a,b){ return device[a].name.localeCompare(device[b].name) })		// sort by device name
-	for (i = 0; i < keysSorted.length; i++) {
-		key = keysSorted[i];
-		code += '<option id="' + key + '" value="' + key + '">' + key.replace(ipv6prefix,"").padEnd(21," ").replace(/ /g,"&nbsp;") + device[key].name + "</option>\n";
-	}
-	document.getElementById('devicefilter').innerHTML=code;
-}
-
 function populate_class_dropdown() {
 	var code = "";
 	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
@@ -1316,7 +716,7 @@ function populate_class_dropdown() {
 				break;
 			}
 		}
-		code += '<a><div onclick="setApplicationClass(' + i + ');">' + class_title[index] + '</div></a></a>';
+		code += '<a><div onclick="setApplicationClass(' + i + ');">' + class_title[index] + '</div></a>';
 	}
 	document.getElementById('QoS_Class_List').innerHTML=code;
 } // populate_class_dropdown
@@ -1334,11 +734,11 @@ function populate_bandwidth_table() {
 		}
 		var bw_field = bw_class_map.indexOf(class_title[index]);
 		code += '<tr>' +
-		'<th>' + class_title[index] + '</th>' +
-		'<td class="cat' + i + '"><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td class="cat' + i + '">' + class_title[index] + '</td>' +
+		'<td><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
 		'<td><input id="dcp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
 		'<td align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
-		'<td class="cat' + i + '"><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
 		'<td><input id="ucp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
 		'<td align="center"><div id="up' + bw_field + '_desc"></div></td>' +
 		'</tr>';
@@ -1379,11 +779,9 @@ function initial() {
 	populate_bandwidth_table();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
-//	populate_devicefilter();		//used to populate drop down filter
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
-//	deviceFilter = document.getElementById('devicefilter').value;
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
@@ -1396,15 +794,15 @@ function initial() {
 		document.getElementById('tracked_connections').style.display = "none";
 		document.getElementById('refresh_data').style.display = "none";
 	}
-//	$.ajax({
-//		url: "Main_DHCPStatus_Content.asp",
-//		success: function(result){
-//			result = result.match(/leasearray=([\s\S]*?);/);
-//			if (result[1]){
-//				update_devicenames(eval(result[1])); //regex data string into actual array
-//			}
-//		}
-//	});
+	$.ajax({
+		url: "Main_DHCPStatus_Content.asp",
+		success: function(result){
+			result = result.match(/leasearray=([\s\S]*?);/);
+			if (result[1]){
+				update_devicenames(eval(result[1])); //regex data string into actual array
+			}
+		}
+	});
 }
 
 function get_qos_class(category, appid) {
@@ -1785,7 +1183,11 @@ function get_data() {
 }
 
 function draw_chart(data_array, ctx, pie) {
-	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">Bandwidth Util</th></tr></thead>';
+	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">';
+	if (qos_bwmode == 1)
+		code += 'Bandwidth Util</th></tr></thead>';
+	else
+		code += 'Packet Rate</th></tr></thead>';
 	var values_array = [];
 	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
@@ -1828,14 +1230,19 @@ function draw_chart(data_array, ctx, pie) {
 			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td>';
 			rate = rate2kbs(data_array[i][2]);
 			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + rate + ' kb</td>';
-			//rate = comma(data_array[i][3]);
-			//code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
-			if (pie == "dl")
-				var rate_max = qos_dlbw;
-			else
-				var rate_max = qos_ulbw;
-			var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
-			code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max + ' kb/s"><div><div id="rx_bar" class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
+			if ( qos_bwmode == 0 ) {
+				// Auto doesn't support the rate graphs
+				rate = comma(data_array[i][3]);
+				code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
+			}
+			else {
+				if (pie == "dl")
+					var rate_max = qos_dlbw;
+				else
+					var rate_max = qos_ulbw;
+				var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
+				code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max + ' kb/s"><div><div id="rx_bar" class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
+			}
 		}
 	}
 	code += '</table>';
@@ -2505,7 +1912,7 @@ function set_FlexQoS_mod_vars()
 	if ( custom_settings.flexqos_ver != undefined )
 		document.getElementById("flexqos_version").innerHTML = " - v" + custom_settings.flexqos_ver;
 	if ( custom_settings.flexqos_branch != undefined )
-		document.getElementById("flexqos_version").innerHTML += " <small>Dev</small>";
+		document.getElementById("flexqos_version").innerHTML += " Dev";
 
 	if (qos_mode != 2) {
 		var element = document.getElementById('FlexQoS_mod_toggle')
@@ -2908,8 +2315,15 @@ function check_bandwidth() {
 		var up_desc=eval('document.getElementById("up'+i+'_desc")');
 		drptot += parseInt(drp.value);
 		urptot += parseInt(urp.value);
-		dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
-		up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+		if ( qos_bwmode == 1 ) {
+			// Manual
+			dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
+			up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+		} else {
+			// Auto
+			dp_desc.innerHTML="Automatic BW mode";
+			up_desc.innerHTML="Automatic BW mode";
+		}
 	}
 	if ( drptot > 100 )
 		document.getElementById('qos_drates_warn').style.display = "";
@@ -3196,7 +2610,7 @@ function autocomplete(inp, arr) {
 <tbody bgcolor="#4D595D">
 <tr>
 <td valign="top">
-<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span><img id="ver_update_scan" style="display:none;" src="images/InternetScan.gif"><span id="versionStatus" style="font-size:85%;color:#FC0;display:none;"></span></div>
+<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span><img id="ver_update_scan" style="display:none;max-height:16px;" src="images/InternetScan.gif"><span id="versionStatus" style="font-size:85%;color:#FC0;display:none;"></span></div>
 <div id="FlexQoS_mod_toggle" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_toggle();"><span style="padding:0 0 0" align="center">Customize</span></div>
 <div id="ver_check" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="version_check();"><span style="padding:0 0 0" align="center">Check for Update</span></div>
 <div id="ver_update" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold; display:none;" class="titlebtn" onclick="version_update();"><span style="padding:0 0 0" align="center">Update</span></div>
@@ -3255,13 +2669,14 @@ function autocomplete(inp, arr) {
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 	<thead>
 	<tr>
-		<td colspan="1">Bandwidth</td>
-		<td colspan="3" style="text-align:center;">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down()">Reset</small></td>
-		<td colspan="3" style="text-align:center;">Upload<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_up()">Reset</small></td>
+		<td colspan="7">Bandwidth<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down();FlexQoS_mod_reset_up();">Reset</small></td>
 	</tr>
 	</thead>
 	<tr>
-		<th>Class</th>
+		<th rowspan="2">Class</th>
+		<th colspan="3">Download<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_down()">Reset</small></th>
+		<th colspan="3">Upload<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_mod_reset_up()">Reset</small></th>
+	<tr>
 		<th>Minimum</th>
 		<th>Maximum</th>
 		<th>Current Settings</th>
