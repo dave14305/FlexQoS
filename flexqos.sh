@@ -724,8 +724,8 @@ parse_iptablerule() {
 			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark//\*/0}/0xc03f0000"
 			UP_mark="${UP_mark} --mark 0x40${tmpMark//\*/0}/0xc03f0000"
 		else
-			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark}/0xc03f0000"
-			UP_mark="${UP_mark} --mark 0x40${tmpMark}/0xc03f0000"
+			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark}/0xc03fffff"
+			UP_mark="${UP_mark} --mark 0x40${tmpMark}/0xc03fffff"
 		fi
 	else
 		DOWN_mark=""
