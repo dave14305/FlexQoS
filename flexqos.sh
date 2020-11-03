@@ -1535,6 +1535,8 @@ schedule_check_job() {
 } # schedule_check_job
 
 startup() {
+	logmsg "$0 (pid=$$) called with $# args: $*"
+
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
 		logmsg "Adaptive QoS is not enabled. Skipping $SCRIPTNAME_DISPLAY startup."
 		return 1
@@ -1707,12 +1709,10 @@ fi
 case "$arg1" in
 	'start')
 		# triggered from firewall-start with wan iface passed
-		logmsg "$0 (pid=$$) called with $# args: $*"
-		startup "$2"
+		startup "$wan"
 		;;
 	'check')
 		# triggered from cron or service-event-end without wan iface
-		logmsg "$0 (pid=$$) called with $# args: $*"
 		startup
 		;;
 	'appdb')
