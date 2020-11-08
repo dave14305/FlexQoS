@@ -393,7 +393,7 @@ function draw_conntrack_table() {
 								filtered = 1;
 						}
 				}
-				if (filtered) continue;
+				if (filtered) break;	// stop processing additional filters
 			}
 		}
 		if (filtered) continue;
