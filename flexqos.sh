@@ -1535,8 +1535,6 @@ schedule_check_job() {
 } # schedule_check_job
 
 startup() {
-	logmsg "$0 (pid=$$) called with $# args: $*"
-
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
 		logmsg "Adaptive QoS is not enabled. Skipping $SCRIPTNAME_DISPLAY startup."
 		return 1
@@ -1695,7 +1693,7 @@ Check_Lock() {
 	lock="true"
 } # Check_Lock
 
-arg1="$(echo "$1" | sed 's/^-//')"
+arg1="${1#-}"
 if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # FlexQoS" /jffs/scripts/firewall-start; then
 	arg1="install"
 fi
@@ -1708,10 +1706,12 @@ fi
 
 case "$arg1" in
 	'start')
+		logmsg "$0 (pid=$$) called with $# args: $*"
 		# triggered from firewall-start with wan iface passed
 		startup "$wan"
 		;;
 	'check')
+		logmsg "$0 (pid=$$) called with $# args: $*"
 		# triggered from cron or service-event-end without wan iface
 		startup
 		;;
