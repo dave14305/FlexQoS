@@ -1049,15 +1049,22 @@ remove_webui() {
 # or "none" if there are no available mount points.
 am_get_webui_page() {
 	am_webui_page="none"
+	buildno="$(nvram get buildno)"
+	if [ "${buildno:0:3}" -gt "384" ]; then
+		pagemax=20
+	else
+		pagemax=10
+	fi
+	i=1
 	# look for a match first in case the page is already there
-	for i in 1 2 3 4 5 6 7 8 9 10; do
+	while [ "$i" -le "$pagemax" ]; do
 		page="/www/user/user$i.asp"
-			if [ -f "$page" ] && [ "$(md5sum < "$1")" = "$(md5sum < "$page")" ]; then
-				am_webui_page="user$i.asp"
-				return
-			elif [ "$am_webui_page" = "none" ] && [ ! -f "$page" ]; then
-				am_webui_page="user$i.asp"
-			fi
+		if [ -f "$page" ] && [ "$(md5sum < "$1")" = "$(md5sum < "$page")" ]; then
+			am_webui_page="user$i.asp"
+			return
+		elif [ "$am_webui_page" = "none" ] && [ ! -f "$page" ]; then
+			am_webui_page="user$i.asp"
+		fi
 	done
 } # am_get_webui_page
 
@@ -1119,8 +1126,9 @@ Auto_ServiceEventEnd() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "service-event-end"
-	# Cleanup earlier bug
+	# START Cleanup earlier bug
 	sed -i '\~\"start\".* && ; then .* FlexQoS Addition~d' /jffs/scripts/service-event-end
+	# END Cleanup earlier bug
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*\{ sh ${SCRIPTPATH}"; then
 		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
