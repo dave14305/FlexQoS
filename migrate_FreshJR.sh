@@ -115,13 +115,13 @@ if [ -z "$(am_settings_get flexqos_bandwidth)" ]; then
 	am_settings_set flexqos_bandwidth "<${drp0}>${drp1}>${drp2}>${drp3}>${drp4}>${drp5}>${drp6}>${drp7}<${dcp0}>${dcp1}>${dcp2}>${dcp3}>${dcp4}>${dcp5}>${dcp6}>${dcp7}<${urp0}>${urp1}>${urp2}>${urp3}>${urp4}>${urp5}>${urp6}>${urp7}<${ucp0}>${ucp1}>${ucp2}>${ucp3}>${ucp4}>${ucp5}>${ucp6}>${ucp7}"
 fi
 
-if [ ! -f "${ADDON_DIR}/restore_freshjr_nvram.sh" ]; then
+if [ ! -f "/jffs/addons/flexqos/restore_freshjr_nvram.sh" ]; then
 	{
 		echo "nvram set fb_comment=\"$(nvram get fb_comment)\""
 		echo "nvram set fb_email_dbg=\"$(nvram get fb_email_dbg)\""
 		echo "nvram commit"
-	} > "${ADDON_DIR}/restore_freshjr_nvram.sh"
-	echo "FreshJR_QOS settings backed up to ${ADDON_DIR}/restore_freshjr_nvram.sh"
+	} > "/jffs/addons/flexqos/restore_freshjr_nvram.sh"
+	echo "FreshJR_QOS settings backed up to /jffs/addons/flexqos/restore_freshjr_nvram.sh"
 fi
 nvram set fb_comment=""
 nvram set fb_email_dbg=""
