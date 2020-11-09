@@ -1126,48 +1126,35 @@ Auto_ServiceEventEnd() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "service-event-end"
-	# START Cleanup earlier bug
-	sed -i '\~\"start\".* && ; then .* FlexQoS Addition~d' /jffs/scripts/service-event-end
-	# END Cleanup earlier bug
-	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "\"wrs\".*\"sig_check\".*# FlexQoS Addition"; then
-		cmdline="if [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
-		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
-		sed -i '\~\"sig_check\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
-		echo "$cmdline" >> /jffs/scripts/service-event-end
-	fi
-	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "\"\${2#${SCRIPTNAME}}.*# FlexQoS Addition"; then
-		cmdline="if echo \"\$2\" | /bin/grep -q \"^${SCRIPTNAME}\"; then { sh ${SCRIPTPATH} \"\${2#${SCRIPTNAME}}\" & } ; fi # FlexQoS Addition"
-		sed -i '\~\"flexqos\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
-		echo "$cmdline" >> /jffs/scripts/service-event-end
-	fi
+	sed -i '\~FlexQoS Addition~d' /jffs/scripts/service-event-end
+	cmdline="if [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
+	echo "$cmdline" >> /jffs/scripts/service-event-end
+	cmdline="if echo \"\$2\" | /bin/grep -q \"^${SCRIPTNAME}\"; then { sh ${SCRIPTPATH} \"\${2#${SCRIPTNAME}}\" & } ; fi # FlexQoS Addition"
+	echo "$cmdline" >> /jffs/scripts/service-event-end
 }
 
 Auto_FirewallStart() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "firewall-start"
-	if ! /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -qF "${SCRIPTPATH} -start \$1 & "; then
-		cmdline="sh ${SCRIPTPATH} -start \$1 & # FlexQoS Addition"
-		sed -i '\~FlexQoS Addition~d' /jffs/scripts/firewall-start
-		if /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -q "Skynet"; then
-			# If Skynet also installed, insert this script before it so it doesn't have to wait until Skynet to startup before applying QoS
-			# Won't delay Skynet startup since we fork into the background
-			sed -i "/Skynet/i $cmdline" /jffs/scripts/firewall-start
-		else
-			# Skynet not installed, so just append
-			echo "$cmdline" >> /jffs/scripts/firewall-start
-		fi # is Skynet also installed?
-	fi
+	sed -i '\~FlexQoS Addition~d' /jffs/scripts/firewall-start
+	cmdline="sh ${SCRIPTPATH} -start \$1 & # FlexQoS Addition"
+	if /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -q "Skynet"; then
+		# If Skynet also installed, insert this script before it so it doesn't have to wait until Skynet to startup before applying QoS
+		# Won't delay Skynet startup since we fork into the background
+		sed -i "/Skynet/i $cmdline" /jffs/scripts/firewall-start
+	else
+		# Skynet not installed, so just append
+		echo "$cmdline" >> /jffs/scripts/firewall-start
+	fi # is Skynet also installed?
 } # Auto_FirewallStart
 
 Auto_Crontab() {
 	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -check"
 	Init_UserScript "services-start"
-	if ! /bin/grep -vE "^#" /jffs/scripts/services-start | /bin/grep -qE "${SCRIPTPATH} -check"; then
-		cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # FlexQoS Addition"
-		sed -i '\~FlexQoS Addition~d' /jffs/scripts/services-start
-		echo "$cmdline" >> /jffs/scripts/services-start
-	fi
+	sed -i '\~FlexQoS Addition~d' /jffs/scripts/services-start
+	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # FlexQoS Addition"
+	echo "$cmdline" >> /jffs/scripts/services-start
 } # Auto_Crontab
 
 setup_aliases() {
@@ -1177,9 +1164,9 @@ setup_aliases() {
 		ln -sf "$SCRIPTPATH" /opt/bin/${SCRIPTNAME}
 	else
 		echo "Adding ${SCRIPTNAME} alias in profile.add..."
-		sed -i "/${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
+		sed -i "/alias ${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
 		alias ${SCRIPTNAME}="sh ${SCRIPTPATH}"
-		echo "alias ${SCRIPTNAME}=\"sh ${SCRIPTPATH}\"" >> /jffs/configs/profile.add
+		echo "alias ${SCRIPTNAME}=\"sh ${SCRIPTPATH}\" # FlexQoS Addition" >> /jffs/configs/profile.add
 	fi
 } # setup_aliases
 
