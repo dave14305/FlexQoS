@@ -1129,18 +1129,14 @@ Auto_ServiceEventEnd() {
 	# START Cleanup earlier bug
 	sed -i '\~\"start\".* && ; then .* FlexQoS Addition~d' /jffs/scripts/service-event-end
 	# END Cleanup earlier bug
-	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "restart.*wrs.*\{ sh ${SCRIPTPATH}"; then
-		cmdline="if [ \"\$1\" = \"restart\" ] && [ \"\$2\" = \"wrs\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
+	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "\"wrs\".*\"sig_check\".*# FlexQoS Addition"; then
+		cmdline="if [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"wrs\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
-		echo "$cmdline" >> /jffs/scripts/service-event-end
-	fi
-	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "start.*sig_check.*\{ sh ${SCRIPTPATH}"; then
-		cmdline="if [ \"\$1\" = \"start\" ] && [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
 		sed -i '\~\"sig_check\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
 	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "start.*flexqos.*\{ sh ${SCRIPTPATH}"; then
-		cmdline="if [ \"\$1\" = \"start\" ] && \$(echo \"\$2\" | /bin/grep -q \"flexqos\"); then { sh ${SCRIPTPATH} \"\$2\" & } ; fi # FlexQoS Addition"
+		cmdline="if echo \"\$2\" | /bin/grep -q \"^${SCRIPTNAME}\"; then { sh ${SCRIPTPATH} \"\${2#${SCRIPTNAME}}\" & } ; fi # FlexQoS Addition"
 		sed -i '\~\"flexqos\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
@@ -1654,10 +1650,10 @@ case "$arg1" in
 		am_settings_set "${SCRIPTNAME}_conntrack" "0"
 		echo "Disabled conntrack flushing."
 		;;
-	'flexqosupdatecheck')
+	'updatecheck')
 		checkForUpdate
 		;;
-	'flexqosupdateforce')
+	'updateforce')
 		silentUpdate
 		;;
 	*)
