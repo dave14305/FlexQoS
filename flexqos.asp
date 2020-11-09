@@ -1845,36 +1845,6 @@ function set_FlexQoS_mod_vars()
 				// prepend default rules which can be later edited/deleted by user
 				iptables_rulelist_array = iptables_default_rules;
 				iptables_rulename_array = decodeURIComponent(iptables_default_rulenames);
-				var FreshJR_nvram = decodeURIComponent('<% nvram_char_to_ascii("",fb_comment); %>')+'>'+decodeURIComponent('<% nvram_char_to_ascii("",fb_email_dbg); %>');
-				FreshJR_nvram = FreshJR_nvram.split('>');
-				for (var j=0;j<FreshJR_nvram.length;j++) {
-					var iptables_temp_rule = "";
-					var iptables_temp_rulename = "";
-					FreshJR_nvram[j] = FreshJR_nvram[j].split(";");
-					if (FreshJR_nvram[j].length == 7) {
-						for (var k=0;k<FreshJR_nvram[j].length;k++) {
-							if (k==0) {
-								iptables_temp_rule += "<";
-								iptables_temp_rulename += "<FreshJR Rule " + eval("j + 1");
-							}
-							else
-								iptables_temp_rule += ">";
-							iptables_temp_rule += FreshJR_nvram[j][k];
-						} // for inner loop
-					} // an iptables rule
-					if (iptables_temp_rule != "<>>both>>>>0") {
-						iptables_rulelist_array += iptables_temp_rule;
-						iptables_rulename_array += iptables_temp_rulename;
-					}
-				}
-				if (FreshJR_nvram[8]) {
-					var gameCIDR=FreshJR_nvram[8].toString();
-					if (gameCIDR.length > 1) {
-						iptables_rulelist_array = "<"+gameCIDR+">>both>>!80,443>000000>1" + iptables_rulelist_array;
-						iptables_rulename_array = "<Gaming%20Rule" + iptables_rulename_array;
-					}
-					FreshJR_nvram = "";
-				}
 			}
 		else { // rules are migrated to new API variables
 			iptables_rulelist_array = custom_settings.flexqos_iptables;
@@ -1890,27 +1860,8 @@ function set_FlexQoS_mod_vars()
 		}
 
 		if ( custom_settings.flexqos_appdb == undefined )
-		{
 			// start with default appdb rules which can be edited/deleted later by user
 			appdb_rulelist_array = appdb_default_rules;
-			var FreshJR_nvram = decodeURIComponent('<% nvram_char_to_ascii("",fb_email_dbg); %>').split(">");
-			if (FreshJR_nvram.length > 5) {
-				for (var j=1;j<5;j++) {
-					var appdb_temp_rule = "";
-					FreshJR_nvram[j] = FreshJR_nvram[j].split(";");
-					for (var k=0;k<FreshJR_nvram[j].length;k++) {
-						if (k==0)
-							appdb_temp_rule += "<";
-						else
-							appdb_temp_rule += ">";
-						appdb_temp_rule += FreshJR_nvram[j][k];
-					} // for inner loop
-				if (appdb_temp_rule != "<>0" && appdb_temp_rule != "<>")
-					appdb_rulelist_array += appdb_temp_rule;
-				}
-				FreshJR_nvram = "";
-			}
-		}
 		else
 			appdb_rulelist_array = custom_settings.flexqos_appdb;
 
@@ -1940,14 +1891,7 @@ function set_FlexQoS_mod_vars()
 
 		// get Bandwidth
 		if ( custom_settings.flexqos_bandwidth == undefined )
-		{
-			var FreshJR_nvram = decodeURIComponent('<% nvram_char_to_ascii("",fb_email_dbg); %>').split(">");
-			if (FreshJR_nvram.length > 10)
-				bandwidth = "<" + FreshJR_nvram[7].replace(/\;/g,">") + "<" + FreshJR_nvram[8].replace(/\;/g,">") + "<" + FreshJR_nvram[9].replace(/\;/g,">") + "<" + FreshJR_nvram[10].replace(/\;/g,">");
-			else
-				bandwidth = bandwidth_default_rules;
-			FreshJR_nvram = "";
-		}
+			bandwidth = bandwidth_default_rules;
 		else
 			bandwidth = custom_settings.flexqos_bandwidth;
 
