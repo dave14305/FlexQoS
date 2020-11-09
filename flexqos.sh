@@ -1135,7 +1135,7 @@ Auto_ServiceEventEnd() {
 		sed -i '\~\"sig_check\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
 	fi
-	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "start.*flexqos.*\{ sh ${SCRIPTPATH}"; then
+	if ! /bin/grep -vE "^#" /jffs/scripts/service-event-end | /bin/grep -qE "\"\${2#${SCRIPTNAME}}.*# FlexQoS Addition"; then
 		cmdline="if echo \"\$2\" | /bin/grep -q \"^${SCRIPTNAME}\"; then { sh ${SCRIPTPATH} \"\${2#${SCRIPTNAME}}\" & } ; fi # FlexQoS Addition"
 		sed -i '\~\"flexqos\".*# FlexQoS Addition~d' /jffs/scripts/service-event-end
 		echo "$cmdline" >> /jffs/scripts/service-event-end
