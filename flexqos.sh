@@ -872,7 +872,7 @@ silentInstall() {
 	Auto_ServiceEventEnd
 	Auto_Crontab
 	setup_aliases
-	sed -i "/^${SCRIPTNAME}_conntrack 1/d" /jffs/addons/custom_settings.txt
+	sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
 	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart force
 } # silentInstall
 
@@ -1192,7 +1192,7 @@ install() {
 		Green "Backup found!"
 		backup restore
 	fi
-	sed -i "/^${SCRIPTNAME}_conntrack 1/d" /jffs/addons/custom_settings.txt
+	sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
 	[ "$(nvram get qos_enable)" = "1" ] && needrestart=1
 } # install
 
@@ -1378,11 +1378,9 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logmsg "Applying iptables custom rules"
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
-			if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" != "0" ]; then
-				# Flush conntrack table so that existing connections will be processed by new iptables rules
-				logmsg "Flushing conntrack table"
-				/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
-			fi
+			# Flush conntrack table so that existing connections will be processed by new iptables rules
+			logmsg "Flushing conntrack table"
+			/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
 		fi
 	else
 		if ! validate_iptables_rules; then
@@ -1595,14 +1593,6 @@ case "$arg1" in
 		;;
 	'restart')
 		prompt_restart force
-		;;
-	'flushct')
-		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
-		echo "Enabled conntrack flushing."
-		;;
-	'noflushct')
-		am_settings_set "${SCRIPTNAME}_conntrack" "0"
-		echo "Disabled conntrack flushing."
 		;;
 	'updatecheck')
 		checkForUpdate
