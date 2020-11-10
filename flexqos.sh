@@ -1065,6 +1065,7 @@ am_get_webui_page() {
 		elif [ "$am_webui_page" = "none" ] && [ ! -f "$page" ]; then
 			am_webui_page="user$i.asp"
 		fi
+		i="$((i+1))"
 	done
 } # am_get_webui_page
 
