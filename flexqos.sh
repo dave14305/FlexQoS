@@ -1570,10 +1570,7 @@ case "$arg1" in
 		about
 		;;
 	'update')
-		update
-		;;
-	'forceupdate')
-		update force
+		update "$2"
 		;;
 	'menu'|'')
 		menu
@@ -1584,7 +1581,7 @@ case "$arg1" in
 		else
 			am_settings_set "${SCRIPTNAME}_branch" "develop"
 			echo "Set to development branch. Triggering update..."
-			exec "$0" forceupdate
+			exec "$0" update force
 		fi
 		;;
 	'stable')
@@ -1593,7 +1590,7 @@ case "$arg1" in
 		else
 			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
 			echo "Set to stable branch. Triggering update..."
-			exec "$0" forceupdate
+			exec "$0" update force
 		fi
 		;;
 	'restart')
