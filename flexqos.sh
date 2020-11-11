@@ -462,6 +462,8 @@ debug(){
 	cat /tmp/${SCRIPTNAME}_tcrules
 	echo "[/CODE][/SPOILER]"
 	rm /tmp/${SCRIPTNAME}_iprules /tmp/${SCRIPTNAME}_tcrules
+	echo ""
+	echo "Copy the text from [SPOILER] to [/SPOILER] and paste into a forum post at snbforums.com"
 } # debug
 
 get_flowid() {
@@ -1111,6 +1113,10 @@ Firmware_Check() {
 		Red "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
 		return 1
 	fi # adaptive qos not enabled
+	if [ "$(nvram get jffs2_scripts)" != "1" ]; then
+		Red "\"Enable JFFS custom scripts and configs\" is not enabled. Please enable it in the GUI. Aborting installation."
+		return 1
+	fi # JFFS custom scripts not enabled
 } # Firmware_Check
 
 install() {
