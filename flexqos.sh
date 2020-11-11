@@ -10,8 +10,8 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.0.5
-release=2020-11-01
+version=1.0.6
+release=2020-11-10
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
