@@ -818,105 +818,64 @@ download_file() {
 	fi
 } # download_file
 
-checkForUpdate() {
-	# Invoked by Check for Update button in WebUI
-	# Steps:
-	# 1. Write status to js
-	# 2. Get remote version for current channel
-	# 3. Write new version or md5 mismatches to js
-	# 4. Indicate completion to js file so webpage will write the new available update message
-	logmsg "Checking for updates..."
-	printf "var verUpdateStatus = \"%s\"\n" "InProgress" > /www/ext/${SCRIPTNAME}/detect_update.js
-	url="${GIT_URL}/${SCRIPTNAME}.sh"
-	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
+compare_remote_version() {
+	remotever="$(curl -fsN --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.sh" | /bin/grep "^version=" | sed -e 's/version=//')"
+	if [ "${version//.}" -lt "${remotever//.}" ]; then
+		# version upgrade
+		echo "$remotever"
+		return
+	fi
 	localmd5="$(md5sum "$0" | awk '{print $1}')"
-	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${url}" | md5sum | awk '{print $1}')"
+	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.sh" | md5sum | awk '{print $1}')"
 	localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
 	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
-	if [ "${version//.}" -lt "${remotever//.}" ]; then		# remove dots from version numbers for numeric comparison
-		# Version upgrade
-		printf "var verUpdateStatus = \"v%s\"\n" "$remotever" > /www/ext/${SCRIPTNAME}/detect_update.js
-		logmsg "Version $remotever available!"
-	elif [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
-		# Hotfix
-		printf "var verUpdateStatus = \"%s\"\n" "Hotfix" > /www/ext/${SCRIPTNAME}/detect_update.js
-		logmsg "Hotfix available!"
-	else
-		# No updates
-		printf "var verUpdateStatus = \"%s\"\n" "NoUpdate" > /www/ext/${SCRIPTNAME}/detect_update.js
-		logmsg "No updates"
+	if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
+		# hotfix
+		echo "Hotfix"
+		return
 	fi
-} # checkForUpdate
-
-silentUpdate() {
-	url="${GIT_URL}/${SCRIPTNAME}.sh"
-	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
-	exec sh "$SCRIPTPATH" -silentinstall
-	exit
-} # silentUpdate
-
-silentInstall() {
-	if ! [ -d "$ADDON_DIR" ]; then
-		mkdir -p "$ADDON_DIR"
-		chmod 755 "$ADDON_DIR"
-	fi
-	if ! [ -f "$SCRIPTPATH" ]; then
-		cp -p "$0" "$SCRIPTPATH"
-	fi
-	if ! [ -x "$SCRIPTPATH" ]; then
-		chmod +x "$SCRIPTPATH"
-	fi
-	install_webui
-	generate_bwdpi_arrays force
-	Auto_FirewallStart
-	Auto_ServiceEventEnd
-	Auto_Crontab
-	setup_aliases
-	sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
-	[ "$(nvram get qos_enable)" = "1" ] && prompt_restart force
-} # silentInstall
+	echo "NoUpdate"
+} # compare_remote_version
 
 update() {
 	scriptinfo
 	echo "Checking for updates"
-	echo ""
-	url="${GIT_URL}/${SCRIPTNAME}.sh"
-	remotever="$(curl -fsN --retry 3 ${url} | /bin/grep "^version=" | sed -e 's/version=//')"
-	if [ "$1" != "force" ]; then
-		localmd5="$(md5sum "$0" | awk '{print $1}')"
-		remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${url}" | md5sum | awk '{print $1}')"
-		localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
-		remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
-		if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
-			if [ "$version" != "$remotever" ]; then
-				Green " $SCRIPTNAME_DISPLAY v${remotever} is now available!"
-			else
-				Green " $SCRIPTNAME_DISPLAY hotfix is available."
-			fi
-			echo -n " Would you like to update now? [1=Yes 2=No] : "
-			read -r yn
-			echo ""
-			if ! [ "$yn" = "1" ]; then
-				Green " No Changes have been made"
-				return 0
-			fi
-		else
+	printf "var verUpdateStatus = \"%s\";\n" "InProgress" > /www/ext/${SCRIPTNAME}/detect_update.js
+	updateversion="$(compare_remote_version)"
+	printf "var verUpdateStatus = \"%s\";\n" "$updateversion" > /www/ext/${SCRIPTNAME}/detect_update.js
+
+	if [ "$1" = "check" ]; then
+		return
+	fi
+	if ! [ "$1" = "silent" ]; then
+		case "$updateversion" in
+		'NoUpdate')
 			Green " You have the latest version installed"
 			echo -n " Would you like to overwrite your existing installation anyway? [1=Yes 2=No] : "
-			read -r yn
-			echo ""
-			if ! [ "$yn" = "1" ]; then
-				Green " No Changes have been made"
-				return 0
-			fi
+			;;
+		'Hotfix')
+			Green " $SCRIPTNAME_DISPLAY hotfix is available."
+			echo -n " Would you like to update now? [1=Yes 2=No] : "
+			;;
+		*)
+			# New Version Number
+			Green " $SCRIPTNAME_DISPLAY v${updateversion} is now available!"
+			echo -n " Would you like to update now? [1=Yes 2=No] : "
+			;;
+		esac
+		read -r yn
+		echo ""
+		if ! [ "$yn" = "1" ]; then
+			Green " No Changes have been made"
+			return 0
 		fi
+	else
+		echo "Installing: ${SCRIPTNAME_DISPLAY}..."
+		echo ""
+		download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
+		exec sh "$SCRIPTPATH" -install "$1"
+		exit
 	fi
-
-	echo "Installing: $SCRIPTNAME_DISPLAY v${remotever}"
-	echo ""
-	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
-	exec sh "$SCRIPTPATH" -install
-	exit
 }
 
 prompt_restart() {
@@ -1155,13 +1114,15 @@ Firmware_Check() {
 } # Firmware_Check
 
 install() {
-	clear
-	scriptinfo
-	echo "Installing $SCRIPTNAME_DISPLAY..."
-	if ! Firmware_Check; then
-		PressEnter
-		rm -f "$0" 2>/dev/null
-		exit 5
+	if ! [ "$1" = "silent" ]; then
+		clear
+		scriptinfo
+		echo "Installing $SCRIPTNAME_DISPLAY..."
+		if ! Firmware_Check; then
+			PressEnter
+			rm -f "$0" 2>/dev/null
+			exit 5
+		fi
 	fi
 	if ! [ -d "$ADDON_DIR" ]; then
 		echo "Creating directories..."
@@ -1182,18 +1143,22 @@ install() {
 	echo "Adding nightly cron job..."
 	Auto_Crontab
 	setup_aliases
-	Green "$SCRIPTNAME_DISPLAY installation complete!"
 
-	scriptinfo
-	webconfigpage
+	if ! [ "$1" = "silent" ]; then
+		Green "$SCRIPTNAME_DISPLAY installation complete!"
+		scriptinfo
+		webconfigpage
 
-	if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -qE "^flexqos_[^(ver )]" /jffs/addons/custom_settings.txt ; then
-		echo ""
-		Green "Backup found!"
-		backup restore
+		if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -qE "^flexqos_[^(ver )]" /jffs/addons/custom_settings.txt ; then
+			echo ""
+			Green "Backup found!"
+			backup restore
+		fi
+		[ "$(nvram get qos_enable)" = "1" ] && needrestart=1
+	else
+		[ "$(nvram get qos_enable)" = "1" ] && prompt_restart force
 	fi
 	sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
-	[ "$(nvram get qos_enable)" = "1" ] && needrestart=1
 } # install
 
 uninstall() {
@@ -1252,7 +1217,7 @@ get_config() {
 		done
 		am_settings_set "${SCRIPTNAME}_iptables_names" "$names"
 	fi
-	iptables_names="$(am_settings_get ${SCRIPTNAME}_iptables_names)"
+#	iptables_names="$(am_settings_get ${SCRIPTNAME}_iptables_names)"
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
 		am_settings_set "${SCRIPTNAME}_appdb" "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
 	fi
@@ -1541,16 +1506,13 @@ case "$arg1" in
 	'appdb')
 		appdb "$2"
 		;;
-	'install'|'enable')		# INSTALLS AND TURNS ON SCRIPT
-		install
+	'install'|'enable')
+		install "$2"
 		;;
-	'silentinstall')		# Silent install triggered by WebUI Update button
-		silentInstall
-		;;
-	'uninstall')		# UNINSTALLS SCRIPT AND DELETES FILES
+	'uninstall')
 		uninstall
 		;;
-	'disable')		# TURNS OFF SCRIPT BUT KEEP FILES
+	'disable')
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/firewall-start  2>/dev/null
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/service-event-end  2>/dev/null
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/services-start  2>/dev/null
@@ -1567,11 +1529,8 @@ case "$arg1" in
 	'about')
 		about
 		;;
-	'update')
-		update "$2"
-		;;
-	'menu'|'')
-		menu
+	update*)		# updatecheck, updatesilent, or plain update
+		update "${arg1#update}"		# strip 'update' from arg1 to pass to update function
 		;;
 	'develop')
 		if [ "$(am_settings_get "${SCRIPTNAME}_branch")" = "develop" ]; then
@@ -1579,7 +1538,7 @@ case "$arg1" in
 		else
 			am_settings_set "${SCRIPTNAME}_branch" "develop"
 			echo "Set to development branch. Triggering update..."
-			exec "$0" update force
+			exec "$0" updatesilent
 		fi
 		;;
 	'stable')
@@ -1588,17 +1547,14 @@ case "$arg1" in
 		else
 			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
 			echo "Set to stable branch. Triggering update..."
-			exec "$0" update force
+			exec "$0" updatesilent
 		fi
+		;;
+	'menu'|'')
+		menu
 		;;
 	'restart')
 		prompt_restart force
-		;;
-	'updatecheck')
-		checkForUpdate
-		;;
-	'updateforce')
-		silentUpdate
 		;;
 	*)
 		show_help

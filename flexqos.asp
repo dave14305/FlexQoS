@@ -2263,7 +2263,7 @@ function version_check() {
 }
 
 function version_update() {
-	document.form.action_script.value="start_flexqosupdateforce"
+	document.form.action_script.value="start_flexqosupdatesilent"
 	document.form.submit();
 }
 
