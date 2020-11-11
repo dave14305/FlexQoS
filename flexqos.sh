@@ -184,10 +184,8 @@ set_tc_variables(){
 
 	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
 	if [ -n "$current_undf_rule" ]; then
-		undf_flowid="$(echo "$current_undf_rule" | /bin/grep -o "flowid.*" | cut -d" " -f2)"
 		undf_prio="$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2)"
 	else
-		undf_flowid=""
 		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc03f0000" -B1 | head -1 | /bin/grep -o "pref.*" | cut -d" " -f2)"
 		undf_prio="$((undf_prio-1))"
 	fi
@@ -427,7 +425,6 @@ debug(){
 
 	echo "tc WAN iface: $tcwan"
 	echo "Undf Prio: $undf_prio"
-	echo "Undf FlowID: $undf_flowid"
 	echo "Down Band: $DownCeil"
 	echo "Up Band  : $UpCeil"
 	echo "***********"
