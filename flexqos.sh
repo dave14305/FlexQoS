@@ -289,59 +289,61 @@ EOF
 	#GUI shows in Mb/s; nvram stores in Kb/s
 	DownCeil="$(printf "%.0f" "$(nvram get qos_ibw)")"
 	UpCeil="$(printf "%.0f" "$(nvram get qos_obw)")"
-	WANMTU="$(nvram get wan_mtu)"
+	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
+		# Automatic bandwidth mode incompatible with custom rates
+		WANMTU="$(nvram get wan_mtu)"
+		i=0
+		while [ "$i" -lt "8" ]
+		do
+			eval "DownRate$i=\$((DownCeil\*Cat${i}DownBandPercent/100))"
+			eval "UpRate$i=\$((UpCeil\*Cat${i}UpBandPercent/100))"
+			eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
+			eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
+			downquantum=$((DownRate${i}*1000/8/10))
+			if [ "$downquantum" -lt "$((WANMTU+14))" ]; then
+				downquantum="$((WANMTU+14))"
+			fi
+			upquantum=$((UpRate${i}*1000/8/10))
+			if [ "$upquantum" -lt "$((WANMTU+14))" ]; then
+				upquantum="$((WANMTU+14))"
+			fi
+			downburst=$((((DownRate${i}*1000/1280000))*1600))
+			if [ "$downburst" -lt "3200" ]; then
+				downburst=3200
+			fi
+			downcburst=$((((DownCeil${i}*1000/1280000))*1600))
+			if [ "$downcburst" -lt "3200" ]; then
+				downcburst=3200
+			fi
+			upburst=$((((UpRate${i}*1000/1280000))*1600))
+			if [ "$upburst" -lt "3200" ]; then
+				upburst=3200
+			fi
+			upcburst=$((((UpCeil${i}*1000/1280000))*1600))
+			if [ "$upcburst" -lt "3200" ]; then
+				upcburst=3200
+			fi
+			eval "DownQuantum${i}=$downquantum"
+			eval "UpQuantum${i}=$upquantum"
+			eval "DownBurst${i}=$downburst"
+			eval "DownCburst${i}=$downcburst"
+			eval "UpBurst${i}=$upburst"
+			eval "UpCburst${i}=$upcburst"
+			i="$((i+1))"
+		done
 
-	i=0
-	while [ "$i" -lt "8" ]
-	do
-		eval "DownRate$i=\$((DownCeil\*Cat${i}DownBandPercent/100))"
-		eval "UpRate$i=\$((UpCeil\*Cat${i}UpBandPercent/100))"
-		eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
-		eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
-		downquantum=$((DownRate${i}*1000/8/10))
-		if [ "$downquantum" -lt "$((WANMTU+14))" ]; then
-			downquantum="$((WANMTU+14))"
+		#read parameters for fakeTC
+		PARMS=""
+		OVERHEAD="$(nvram get qos_overhead)"
+		if [ -n "$OVERHEAD" ] && [ "$OVERHEAD" -gt "0" ]; then
+			ATM="$(nvram get qos_atm)"
+			if [ "$ATM" = "1" ]; then
+				PARMS="overhead $OVERHEAD linklayer atm"
+			else
+				PARMS="overhead $OVERHEAD linklayer ethernet"
+			fi
 		fi
-		upquantum=$((UpRate${i}*1000/8/10))
-		if [ "$upquantum" -lt "$((WANMTU+14))" ]; then
-			upquantum="$((WANMTU+14))"
-		fi
-		downburst=$((((DownRate${i}*1000/1280000))*1600))
-		if [ "$downburst" -lt "3200" ]; then
-			downburst=3200
-		fi
-		downcburst=$((((DownCeil${i}*1000/1280000))*1600))
-		if [ "$downcburst" -lt "3200" ]; then
-			downcburst=3200
-		fi
-		upburst=$((((UpRate${i}*1000/1280000))*1600))
-		if [ "$upburst" -lt "3200" ]; then
-			upburst=3200
-		fi
-		upcburst=$((((UpCeil${i}*1000/1280000))*1600))
-		if [ "$upcburst" -lt "3200" ]; then
-			upcburst=3200
-		fi
-		eval "DownQuantum${i}=$downquantum"
-		eval "UpQuantum${i}=$upquantum"
-		eval "DownBurst${i}=$downburst"
-		eval "DownCburst${i}=$downcburst"
-		eval "UpBurst${i}=$upburst"
-		eval "UpCburst${i}=$upcburst"
-		i="$((i+1))"
-	done
-
-	#read parameters for fakeTC
-	PARMS=""
-	OVERHEAD="$(nvram get qos_overhead)"
-	if [ -n "$OVERHEAD" ] && [ "$OVERHEAD" -gt "0" ]; then
-		ATM="$(nvram get qos_atm)"
-		if [ "$ATM" = "1" ]; then
-			PARMS="overhead $OVERHEAD linklayer atm"
-		else
-			PARMS="overhead $OVERHEAD linklayer ethernet"
-		fi
-	fi
+	fi # Auto Bandwidth check
 } # set_tc_variables
 
 appdb(){
@@ -415,9 +417,7 @@ debug(){
 	[ -z "$(nvram get odmpid)" ] && RMODEL=$(nvram get productid) || RMODEL=$(nvram get odmpid) 
 	echo -n "[SPOILER=\"$SCRIPTNAME_DISPLAY Debug\"][CODE]"
 	scriptinfo
-	echo "Debug:"
-	echo ""
-	echo "Log date: $(date +'%Y-%m-%d %H:%M:%S%z')"
+	echo "Debug date: $(date +'%Y-%m-%d %H:%M:%S%z')"
 	echo "Router Model: $RMODEL"
 	echo "Firmware Ver: $(nvram get buildno)_$(nvram get extendno)"
 	get_config
@@ -437,18 +437,23 @@ debug(){
 	echo "File Downloads: $Downloads"
 	echo "Game Downloads: $Learn"
 	echo "***********"
-	echo "Downrates: $DownRate0, $DownRate1, $DownRate2, $DownRate3, $DownRate4, $DownRate5, $DownRate6, $DownRate7"
-	echo "Downceils: $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
-	echo "Downbursts: $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
-	echo "DownCbursts: $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
-	echo "DownQuantums: $DownQuantum0, $DownQuantum1, $DownQuantum2, $DownQuantum3, $DownQuantum4, $DownQuantum5, $DownQuantum6, $DownQuantum7"
-	echo "***********"
-	echo "Uprates: $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
-	echo "Upceils: $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
-	echo "Upbursts: $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
-	echo "UpCbursts: $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
-	echo "UpQuantums: $UpQuantum0, $UpQuantum1, $UpQuantum2, $UpQuantum3, $UpQuantum4, $UpQuantum5, $UpQuantum6, $UpQuantum7"
-	echo "***********"
+	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
+		echo "Downrates: $DownRate0, $DownRate1, $DownRate2, $DownRate3, $DownRate4, $DownRate5, $DownRate6, $DownRate7"
+		echo "Downceils: $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
+		echo "Downbursts: $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
+		echo "DownCbursts: $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
+		echo "DownQuantums: $DownQuantum0, $DownQuantum1, $DownQuantum2, $DownQuantum3, $DownQuantum4, $DownQuantum5, $DownQuantum6, $DownQuantum7"
+		echo "***********"
+		echo "Uprates: $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
+		echo "Upceils: $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
+		echo "Upbursts: $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
+		echo "UpCbursts: $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
+		echo "UpQuantums: $UpQuantum0, $UpQuantum1, $UpQuantum2, $UpQuantum3, $UpQuantum4, $UpQuantum5, $UpQuantum6, $UpQuantum7"
+		echo "***********"
+	else
+		echo "Custom rates disabled with Automatic Bandwidth mode!"
+		echo "***********"
+	fi
 	echo "iptables settings: $(am_settings_get flexqos_iptables)"
 	write_iptables_rules
 	/bin/sed -E '/^iptables -D POSTROUTING/d; s/iptables -A POSTROUTING -t mangle //g; s/[[:space:]]{2,}/ /g' /tmp/${SCRIPTNAME}_iprules
