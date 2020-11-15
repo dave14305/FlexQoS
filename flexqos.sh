@@ -1344,9 +1344,7 @@ startup() {
 	generate_bwdpi_arrays
 	get_config
 
-	if [ -n "$1" ]; then
-		#iptables rules will only be reapplied on firewall "start" due to receiving interface name
-
+	if ! validate_iptables_rules; then
 		write_iptables_rules
 		iptables_static_rules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
@@ -1357,11 +1355,7 @@ startup() {
 			/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
 		fi
 	else
-		if ! validate_iptables_rules; then
-			logmsg "iptables rules missing. Restarting firewall..."
-			service restart_firewall >/dev/null 2>&1 &
-			return
-		fi
+		logmsg "iptables rules already present"
 	fi
 
 	cru d ${SCRIPTNAME}_5min 2>/dev/null
