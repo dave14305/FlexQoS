@@ -423,6 +423,7 @@ debug(){
 	get_config
 	set_tc_variables
 
+	echo "WAN iface: $wan"
 	echo "tc WAN iface: $tcwan"
 	echo "Undf Prio: $undf_prio"
 	echo "Down Band: $DownCeil"
@@ -1489,16 +1490,59 @@ Check_Lock() {
 	lock="true"
 } # Check_Lock
 
+get_wanif() {
+prefixes="wan0_ wan1_"
+
+if [ "$(nvram get wans_mode)" = "lb" ] ; then
+	primary="0"
+	for prefix in $prefixes; do
+		state=$(nvram get "${prefix}"state_t)
+		sbstate=$(nvram get "${prefix}"sbstate_t)
+		auxstate=$(nvram get "${prefix}"auxstate_t)
+
+		# is_wan_connect()
+		[ "$state" = "2" ] || continue
+		[ "$sbstate" = "0" ] || continue
+		[ "$auxstate" = "0" ] || [ "$auxstate" = "2" ] || continue
+
+		# get_wan_ifname()
+		proto=$(nvram get "${prefix}"proto)
+		if [ "$proto" = "pppoe" ] || [ "$proto" = "pptp" ] || [ "$proto" = "l2tp" ] ; then
+			ifname=$(nvram get "${prefix}"pppoe_ifname)
+		else
+			ifname=$(nvram get "${prefix}"ifname)
+		fi
+	done
+else
+	for prefix in $prefixes; do
+		primary=$(nvram get "${prefix}"primary)
+		[ "$primary" = "1" ] && break
+	done
+
+	[ "$primary" = "1" ] || exit 1
+
+	# get_wan_ifname()
+	proto=$(nvram get "${prefix}"proto)
+	if [ "$proto" = "pppoe" ] || [ "$proto" = "pptp" ] || [ "$proto" = "l2tp" ] ; then
+		ifname=$(nvram get "${prefix}"pppoe_ifname)
+	else
+		ifname=$(nvram get "${prefix}"ifname)
+	fi
+fi
+printf "%s" "$ifname"
+} # get_wanif
+
 arg1="${1#-}"
 if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # FlexQoS" /jffs/scripts/firewall-start; then
 	arg1="install"
 fi
 
-if [ -z "$2" ]; then
-	wan="$(nvram get wan0_ifname)"
-else
-	wan="$2"
-fi
+wan="$(get_wanif)"
+#if [ -z "$2" ]; then
+#	wan="$(nvram get wan0_ifname)"
+#else
+#	wan="$2"
+#fi
 
 case "$arg1" in
 	'start')
