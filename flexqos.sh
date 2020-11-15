@@ -896,9 +896,9 @@ prompt_restart() {
 			read -r yn
 		fi
 		if [ "$yn" = "1" ]; then
-			if /bin/grep -q "${SCRIPTPATH} -start \$1 & " /jffs/scripts/firewall-start ; then
-				echo "Restarting QoS and Firewall..."
-				service "restart_qos;restart_firewall"
+			if /bin/grep -q "${SCRIPTPATH} -start & " /jffs/scripts/service-event-end ; then
+				echo "Restarting QoS..."
+				service restart_qos
 			else
 				Red "$SCRIPTNAME_DISPLAY is not installed correctly. Please update or reinstall."
 			fi
@@ -1061,7 +1061,7 @@ Auto_ServiceEventEnd() {
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "service-event-end"
 	sed -i '\~FlexQoS Addition~d' /jffs/scripts/service-event-end
-	cmdline="if [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -check & } ; fi # FlexQoS Addition"
+	cmdline="if [ \"\$2\" = \"qos\" ] || [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -start & } ; fi # FlexQoS Addition"
 	echo "$cmdline" >> /jffs/scripts/service-event-end
 	cmdline="if echo \"\$2\" | /bin/grep -q \"^${SCRIPTNAME}\"; then { sh ${SCRIPTPATH} \"\${2#${SCRIPTNAME}}\" & } ; fi # FlexQoS Addition"
 	echo "$cmdline" >> /jffs/scripts/service-event-end
@@ -1072,7 +1072,7 @@ Auto_FirewallStart() {
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "firewall-start"
 	sed -i '\~FlexQoS Addition~d' /jffs/scripts/firewall-start
-	cmdline="sh ${SCRIPTPATH} -start \$1 & # FlexQoS Addition"
+	cmdline="sh ${SCRIPTPATH} -start & # FlexQoS Addition"
 	if /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -q "Skynet"; then
 		# If Skynet also installed, insert this script before it so it doesn't have to wait until Skynet to startup before applying QoS
 		# Won't delay Skynet startup since we fork into the background
@@ -1084,10 +1084,10 @@ Auto_FirewallStart() {
 } # Auto_FirewallStart
 
 Auto_Crontab() {
-	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -check"
+	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -start"
 	Init_UserScript "services-start"
 	sed -i '\~FlexQoS Addition~d' /jffs/scripts/services-start
-	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # FlexQoS Addition"
+	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -start\" # FlexQoS Addition"
 	echo "$cmdline" >> /jffs/scripts/services-start
 } # Auto_Crontab
 
@@ -1330,7 +1330,7 @@ EOF
 
 schedule_check_job() {
 	# Schedule check for 5 minutes after startup to ensure no qos tc resets
-	cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
+	cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -start"
 } # schedule_check_job
 
 startup() {
@@ -1539,14 +1539,8 @@ wan="$(get_wanif)"
 #fi
 
 case "$arg1" in
-	'start')
+	'start'|'check')
 		logmsg "$0 (pid=$$) called with $# args: $*"
-		# triggered from firewall-start with wan iface passed
-		startup "$wan"
-		;;
-	'check')
-		logmsg "$0 (pid=$$) called with $# args: $*"
-		# triggered from cron or service-event-end without wan iface
 		startup
 		;;
 	'appdb')

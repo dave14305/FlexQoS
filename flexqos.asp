@@ -2083,7 +2083,7 @@ function FlexQoS_mod_apply() {
 	/* Store object as a string in the amng_custom hidden input field */
 	if (JSON.stringify(custom_settings).length < 8192) {
 		document.getElementById('amng_custom').value = JSON.stringify(custom_settings);
-		document.form.action_script.value = "restart_qos;restart_firewall";
+		document.form.action_script.value = "restart_qos";
 		document.form.submit();
 	}
 	else
