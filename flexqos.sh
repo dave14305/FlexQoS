@@ -11,7 +11,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=1.0.6
-release=2020-11-10
+release=2020-11-15
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
@@ -1084,10 +1084,10 @@ Auto_FirewallStart() {
 } # Auto_FirewallStart
 
 Auto_Crontab() {
-	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -start"
+	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -check"
 	Init_UserScript "services-start"
 	sed -i '\~FlexQoS Addition~d' /jffs/scripts/services-start
-	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -start\" # FlexQoS Addition"
+	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # FlexQoS Addition"
 	echo "$cmdline" >> /jffs/scripts/services-start
 } # Auto_Crontab
 
@@ -1330,7 +1330,7 @@ EOF
 
 schedule_check_job() {
 	# Schedule check for 5 minutes after startup to ensure no qos tc resets
-	cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -start"
+	cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
 } # schedule_check_job
 
 startup() {
@@ -1378,11 +1378,6 @@ startup() {
 
 	# if TC modifcations have not been applied then run modification script
 	if ! validate_tc_rules; then
-		if [ -z "$1" ]; then
-			# check action was called without a WAN interface passed
-			logmsg "Scheduled Persistence Check -> Reapplying Changes"
-		fi # check
-
 		write_appdb_static_rules
 		write_appdb_rules
 
