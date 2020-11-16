@@ -874,13 +874,12 @@ update() {
 			Green " No Changes have been made"
 			return 0
 		fi
-	else
-		echo "Installing: ${SCRIPTNAME_DISPLAY}..."
-		echo ""
-		download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
-		exec sh "$SCRIPTPATH" -install "$1"
-		exit
 	fi
+	echo "Installing: ${SCRIPTNAME_DISPLAY}..."
+	echo ""
+	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
+	exec sh "$SCRIPTPATH" -install "$1"
+	exit
 }
 
 prompt_restart() {
