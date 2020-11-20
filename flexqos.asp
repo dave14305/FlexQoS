@@ -2237,17 +2237,21 @@ function update_status(){
 			else {
 				document.getElementById("ver_check").disabled = false;
 				document.getElementById("ver_update_scan").style.display = "none";
-				if ( verUpdateStatus != "NoUpdate") {
+				if ( verUpdateStatus == "NoUpdate" ) {
+					document.getElementById("versionStatus").innerHTML = " You have the latest version.";
+					document.getElementById("versionStatus").style.display = "";
+					}
+				else if ( verUpdateStatus == "Error" ) {
+					document.getElementById("versionStatus").innerHTML = " Error getting remote version.";
+					document.getElementById("versionStatus").style.display = "";
+					}
+				else {
 					/* version update or hotfix available */
 					/* toggle update button */
 					document.getElementById("versionStatus").innerHTML = " " + verUpdateStatus + " available!";
 					document.getElementById("versionStatus").style.display = "";
 					document.getElementById("ver_check").style.display = "none";
 					document.getElementById("ver_update").style.display = "";
-				}
-				else {
-					document.getElementById("versionStatus").innerHTML = " You have the latest version.";
-					document.getElementById("versionStatus").style.display = "";
 				}
 			}
 		}
