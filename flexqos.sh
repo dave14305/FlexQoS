@@ -48,7 +48,7 @@ fi
 
 # Global variables
 SCRIPTNAME_DISPLAY="FlexQoS"
-SCRIPTNAME="echo $SCRIPTNAME_DISPLAY | tr A-Z a-z"
+SCRIPTNAME="$(echo $SCRIPTNAME_DISPLAY | tr A-Z a-z)"
 GIT_REPO="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}"
 if [ "$(am_settings_get "${SCRIPTNAME}_branch")" != "develop" ]; then
 	GIT_BRANCH="master"
@@ -130,16 +130,20 @@ iptables_static_rules() {
 	printf "Applying iptables static rules\n"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
-	iptables -D OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -A OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
-	iptables -D OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -A OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+	iptables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
+	iptables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	if [ "$IPv6_enabled" != "disabled" ]; then
 		printf "Applying ip6tables static rules\n"
-		ip6tables -D OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -A OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
-		ip6tables -D OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -A OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+		ip6tables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
+		ip6tables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	fi
 }
 
@@ -508,7 +512,7 @@ debug() {
 	printf "iptables settings: %s\n" "$(am_settings_get flexqos_iptables)"
 	write_iptables_rules
 	# Remove superfluous commands from the output in order to focus on the parsed details
-	/bin/sed -E '/^ip[6]?tables -t mangle -D POSTROUTING/d; s/ip[6]?tables -t mangle -A POSTROUTING //g; s/[[:space:]]{2,}/ /g' /tmp/${SCRIPTNAME}_iprules
+	/bin/sed -E '/^ip[6]?tables -t mangle -D $SCRIPTNAME_DISPLAY/d; s/ip[6]?tables -t mangle -A $SCRIPTNAME_DISPLAY //g; s/[[:space:]]{2,}/ /g' /tmp/${SCRIPTNAME}_iprules
 	printf "***********\n"
 	printf "appdb rules: %s\n" "$(am_settings_get flexqos_appdb)"
 	true > /tmp/${SCRIPTNAME}_tcrules
@@ -769,43 +773,43 @@ parse_iptablerule() {
 	# This is done by parameter expansion search and replace ${PROTO//both/tcp} ${PROTO//both/udp}
 	if [ "$PROTO" = "-p both" ]; then
 		# download ipv4
-		printf "iptables -t mangle -D POSTROUTING -o br0 %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-		printf "iptables -t mangle -A POSTROUTING -o br0 %s %s %s %s %s %s %s\n" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-		printf "iptables -t mangle -D POSTROUTING -o br0 %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-		printf "iptables -t mangle -A POSTROUTING -o br0 %s %s %s %s %s %s %s\n" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -D %s -o br0 %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -A %s -o br0 %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -D %s -o br0 %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -A %s -o br0 %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
 		# upload ipv4
-		printf "iptables -t mangle -D POSTROUTING -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-		printf "iptables -t mangle -A POSTROUTING -o %s %s %s %s %s %s %s %s\n" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-		printf "iptables -t mangle -D POSTROUTING -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-		printf "iptables -t mangle -A POSTROUTING -o %s %s %s %s %s %s %s %s\n" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
 		# If rule contains no IPv4 local or remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
 		if [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ] && [ "$IPv6_enabled" != "disabled" ]; then
 			# download ipv6
-			printf "ip6tables -t mangle -D POSTROUTING -o br0 %s %s %s %s %s >/dev/null 2>&1\n" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-			printf "ip6tables -t mangle -A POSTROUTING -o br0 %s %s %s %s %s\n" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-			printf "ip6tables -t mangle -D POSTROUTING -o br0 %s %s %s %s %s >/dev/null 2>&1\n" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-			printf "ip6tables -t mangle -A POSTROUTING -o br0 %s %s %s %s %s\n" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -D %s -o br0 %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -A %s -o br0 %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -D %s -o br0 %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -A %s -o br0 %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
 			# upload ipv6
-			printf "ip6tables -t mangle -D POSTROUTING -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$wan" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-			printf "ip6tables -t mangle -A POSTROUTING -o %s %s %s %s %s %s\n" "$wan" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-			printf "ip6tables -t mangle -D POSTROUTING -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$wan" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-			printf "ip6tables -t mangle -A POSTROUTING -o %s %s %s %s %s %s\n" "$wan" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
 		fi
 	else
 		# download ipv4
-		printf "iptables -t mangle -D POSTROUTING -o br0 %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$DOWN_Lip" "$DOWN_Rip" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-		printf "iptables -t mangle -A POSTROUTING -o br0 %s %s %s %s %s %s %s\n" "$DOWN_Lip" "$DOWN_Rip" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -D %s -o br0 %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$DOWN_Lip" "$DOWN_Rip" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -A %s -o br0 %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$DOWN_Lip" "$DOWN_Rip" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
 		# upload ipv4
-		printf "iptables -t mangle -D POSTROUTING -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$wan" "$UP_Lip" "$UP_Rip" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-		printf "iptables -t mangle -A POSTROUTING -o %s %s %s %s %s %s %s %s\n" "$wan" "$UP_Lip" "$UP_Rip" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
 		# If rule contains no local or remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
 		if [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ] && [ "$IPv6_enabled" != "disabled" ]; then
 			# download ipv6
-			printf "ip6tables -t mangle -D POSTROUTING -o br0 %s %s %s %s %s >/dev/null 2>&1\n" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-			printf "ip6tables -t mangle -A POSTROUTING -o br0 %s %s %s %s %s\n" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -D %s -o br0 %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -A %s -o br0 %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
 			# upload ipv6
-			printf "ip6tables -t mangle -D POSTROUTING -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$wan" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-			printf "ip6tables -t mangle -A POSTROUTING -o %s %s %s %s %s %s\n" "$wan" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
 		fi
 	fi
 } # parse_iptablerule
@@ -1348,8 +1352,8 @@ EOF
 
 validate_iptables_rules() {
 	iptables_rules_defined="$(echo "$iptables_rules" | sed 's/</\n/g' | /bin/grep -vc "^$")"
-	iptables_rules_expected=$((iptables_rules_defined*2))
-	iptables_rulespresent="$(/usr/sbin/iptables -t mangle -S POSTROUTING | /bin/grep -c MARK)"
+	iptables_rules_expected=$((iptables_rules_defined*2+1)) # in and out rule per user rule, plus 1 for chain
+	iptables_rulespresent="$(iptables -t mangle -S $SCRIPTNAME_DISPLAY | wc -l)" # count rules in chain plus chain itself
 	if [ "$iptables_rulespresent" -lt "$iptables_rules_expected" ]; then
 		return 1
 	else
