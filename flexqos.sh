@@ -11,7 +11,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=1.0.6
-release=2020-11-20
+release=2020-11-23
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
@@ -1166,7 +1166,7 @@ install() {
 	else
 		[ "$(nvram get qos_enable)" = "1" ] && prompt_restart force
 	fi
-	sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
+	sed -i "/^${SCRIPTNAME}_conntrack 1/d" /jffs/addons/custom_settings.txt
 } # install
 
 uninstall() {
@@ -1349,9 +1349,11 @@ startup() {
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logmsg "Applying iptables custom rules"
 			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
-			# Flush conntrack table so that existing connections will be processed by new iptables rules
-			logmsg "Flushing conntrack table"
-			/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
+			if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" != "0" ]; then
+				# Flush conntrack table so that existing connections will be processed by new iptables rules
+				logmsg "Flushing conntrack table"
+				/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
+			fi
 		fi
 	else
 		logmsg "iptables rules already present"
@@ -1589,6 +1591,14 @@ case "$arg1" in
 		;;
 	'restart')
 		prompt_restart force
+		;;
+	'flushct')
+		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
+		Green "Enabled conntrack flushing."
+		;;
+	'noflushct')
+		am_settings_set "${SCRIPTNAME}_conntrack" "0"
+		Yellow "Disabled conntrack flushing."
 		;;
 	*)
 		show_help
