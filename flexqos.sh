@@ -378,16 +378,22 @@ EOF
 			i="$((i+1))"
 		done
 
-		# Apply overhead and atm parameters from QoS GUI. May be deprecated in 386 branch without faketc and fq_codel available.
-		PARMS=""
-		OVERHEAD="$(nvram get qos_overhead)"
-		if [ -n "$OVERHEAD" ] && [ "$OVERHEAD" -gt "0" ]; then
-			ATM="$(nvram get qos_atm)"
-			if [ "$ATM" = "1" ]; then
-				PARMS="overhead $OVERHEAD linklayer atm"
-			else
-				PARMS="overhead $OVERHEAD linklayer ethernet"
+		# Only apply overhead and linklayer if codel or fq_codel selected in QoS GUI. May be deprecated in 386 branch without faketc and fq_codel available.
+		# 0 = sfq
+		# 1 = codel
+		# 2 = fq_codel
+		if [ "$(nvram get qos_sched)" -gt "0" ]; then
+			OVERHEAD="$(nvram get qos_overhead)"
+			if [ -n "$OVERHEAD" ] && [ "$OVERHEAD" -gt "0" ]; then
+				ATM="$(nvram get qos_atm)"
+				if [ "$ATM" = "1" ]; then
+					PARMS="overhead $OVERHEAD linklayer atm"
+				else
+					PARMS="overhead $OVERHEAD linklayer ethernet"
+				fi
 			fi
+		else
+			PARMS=""
 		fi
 	fi # Auto Bandwidth check
 } # set_tc_variables
