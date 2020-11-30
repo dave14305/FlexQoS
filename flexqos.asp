@@ -1920,6 +1920,11 @@ function set_FlexQoS_mod_vars()
 					document.getElementById(temp_elemid + c).value=bandwidth_array[b][c];
 			}
 		}
+
+		if ( custom_settings.flexqos_conntrack == undefined )		// disabled
+			document.form.flexqos_conntrack.value = "1";
+		else
+			document.form.flexqos_conntrack.value = custom_settings.flexqos_conntrack;
 	}
 }
 
@@ -2079,6 +2084,8 @@ function FlexQoS_mod_apply() {
 	custom_settings.flexqos_iptables_names = iptables_rulename_array;
 	custom_settings.flexqos_appdb = appdb_rulelist_array;
 	custom_settings.flexqos_bandwidth = bandwidth;
+	if (document.form.flexqos_conntrack.value == 0)
+		custom_settings.flexqos_conntrack = document.form.flexqos_conntrack.value;
 
 	/* Store object as a string in the amng_custom hidden input field */
 	if (JSON.stringify(custom_settings).length < 8192) {
@@ -2488,9 +2495,21 @@ function autocomplete(inp, arr) {
 <div style="display:inline-block; margin:0px 0px 10px 5px; font-size:14px; text-shadow: 1px 1px 0px black;"><b>QoS Customization</b></div>
 <div style="margin:0px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_apply();"><span style="padding:0 0 0 0" align="center">Apply</span></div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
+	<thead>
+		<tr>
+			<td colspan="2">Options</td>
+		</tr>
+	</thead>
 	<tr>
-		<th colspan="2">Add Well-Known Rules</th>
-		<td colspan="4">
+		<th>Enable Conntrack Flushing</th>
+		<td>
+			<input type="radio" name="flexqos_conntrack" class="input" value="1">Yes
+			<input type="radio" name="flexqos_conntrack" class="input" value="0">No
+		</td>
+	</tr>
+	<tr>
+		<th>Add Well-Known Rules</th>
+		<td>
 			<select name="WellKnownRules" class="input_option" onChange="change_wizard(this);">
 				<option value="User Defined">Please select</option>
 			</select>
