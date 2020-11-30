@@ -198,11 +198,16 @@ var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
 var qos_dlbw = "<% nvram_get("qos_ibw"); %>";		// download bandwidth set in QoS settings
 var qos_ulbw = "<% nvram_get("qos_obw"); %>";		// upload bandwidth set in QoS settings
-
 if (qos_dlbw > 0 && qos_ulbw > 0)
 	var qos_bwmode = 1;	// Manual
 else
 	var qos_bwmode = 0;	// Auto
+var ulrate_array = new Array(8);
+var dlrate_array = new Array(8);
+for (var k=0;k<8;k++){
+	dlrate_array[k] = new Array();
+	ulrate_array[k] = new Array();
+}
 
 var qos_type = "<% nvram_get("qos_type"); %>";
 if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
@@ -254,6 +259,35 @@ const maxshown = 500;
 const maxrendered = 750;
 var color = ["#B3645B", "#B98F53", "#C6B36A", "#849E75", "#4C8FC0",  "#7C637A", "#2B6692",  "#6C604F"];
 var labels_array = [];
+var line_labels_array = [];
+var lineOptions = {
+	fill: false,
+	animationEasing: "easeOutQuart",
+	animationSteps: 100,
+	animateScale: true,
+	legend: {
+		display: false
+	},
+	scales: {
+		xAxes: [{
+			display: false
+		}],
+		yAxes: [{
+			type: 'linear',
+			scaleLabel: {
+				display: true,
+				labelString: 'Kb/s',
+				fontColor: '#FFCC00'
+			},
+			ticks: {
+					display: true,
+					beginAtZero: true
+			}
+		}]
+	}
+} // lineOptions
+//Chart.defaults.global.elements.point = 'line';
+
 var pieOptions = {
 	segmentShowStroke: false,
 	segmentStrokeColor: "#000",
@@ -1046,6 +1080,10 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 
 function redraw() {
 	var code;
+	var timeLabel = new Date().toLocaleTimeString();
+	line_labels_array.push(timeLabel);
+	if (line_labels_array.length > 50)
+		line_labels_array.splice(0,1);
 	switch (qos_mode) {
 		case 0: // Disabled
 			document.getElementById('dl_tr').style.display = "none";
@@ -1078,7 +1116,7 @@ function redraw() {
 	});
 	code = draw_chart(tcdata_wan_array, ctx_ul, "ul");
 	document.getElementById('legend_ul').innerHTML = code;
-	pieOptions.animation = false; // Only animate first time
+	lineOptions.animation = false; // Only animate first time
 }
 
 function get_data() {
@@ -1102,17 +1140,14 @@ function get_data() {
 }
 
 function draw_chart(data_array, ctx, pie) {
-	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">';
-	if (qos_bwmode == 1)
-		code += 'Bandwidth Util</th></tr></thead>';
-	else
-		code += 'Packet Rate</th></tr></thead>';
-	var values_array = [];
+	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th></tr></thead>';
+	var rate_array = window[pie+"rate_array"];
+	var rate = 0;
 	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
-		var value = parseInt(data_array[i][1]);
+		var value = parseInt(data_array[i][1]);		// Sent
 		var tcclass = parseInt(data_array[i][0]);
-		var rate;
+		rate = rate2kbs(data_array[i][2]);
 		if (qos_mode == 2) {
 			var index = 0;
 			for (j = 1; j < cat_id_array.length; j++) {
@@ -1130,7 +1165,6 @@ function draw_chart(data_array, ctx, pie) {
 			}
 		}
 		labels_array.push(label);
-		values_array.push(value);
 		var unit = " B";
 		if (value > 1024) {
 			value = value / 1024;
@@ -1147,43 +1181,84 @@ function draw_chart(data_array, ctx, pie) {
 		if (qos_mode == 2) {
 			code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
 			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td>';
-			rate = rate2kbs(data_array[i][2]);
-			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + rate + ' kb</td>';
-			if ( qos_bwmode == 0 ) {
-				// Auto doesn't support the rate graphs
-				rate = comma(data_array[i][3]);
-				code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
-			}
-			else {
-				if (pie == "dl")
-					var rate_max = qos_dlbw;
-				else
-					var rate_max = qos_ulbw;
-				var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
-				code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max/1024 + ' Mb/s"><div><div class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
-			}
+			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + comma(rate) + ' kb</td></tr>';
 		}
+		rate_array[i].push(rate);
+		if (rate_array[i].length > 50)
+			rate_array[i].splice(0,1);
 	}
 	code += '</table>';
-	var pieData = {
-		labels: labels_array,
-		datasets: [{
-			data: values_array,
-			backgroundColor: color,
-			hoverBackgroundColor: color,
-			borderColor: "#444",
-			borderWidth: "1"
-		}]
+
+	var lineData = {
+			labels: line_labels_array,
+			datasets: [
+				{
+					data: rate_array[0],
+					label: labels_array[0],
+					fill: false,
+					borderColor: color[0],
+					backgroundColor: color[0]
+				},
+				{
+					data: rate_array[1],
+					label: labels_array[1],
+					fill: false,
+					borderColor: color[1],
+					backgroundColor: color[1]
+				},
+				{
+					data: rate_array[2],
+					label: labels_array[2],
+					fill: false,
+					borderColor: color[2],
+					backgroundColor: color[2]
+				},
+				{
+					data: rate_array[3],
+					label: labels_array[3],
+					fill: false,
+					borderColor: color[3],
+					backgroundColor: color[3]
+				},
+				{
+					data: rate_array[4],
+					label: labels_array[4],
+					fill: false,
+					borderColor: color[4],
+					backgroundColor: color[4]
+				},
+				{
+					data: rate_array[5],
+					label: labels_array[5],
+					fill: false,
+					borderColor: color[5],
+					backgroundColor: color[5]
+				},
+				{
+					data: rate_array[6],
+					label: labels_array[6],
+					fill: false,
+					borderColor: color[6],
+					backgroundColor: color[6]
+				},
+				{
+					data: rate_array[7],
+					label: labels_array[7],
+					fill: false,
+					borderColor: color[7],
+					backgroundColor: color[7]
+				}
+			]
 	};
-	var pie_obj = new Chart(ctx, {
-		type: 'pie',
-		data: pieData,
-		options: pieOptions
+	var line_obj = new Chart(ctx, {
+		type: 'line',
+		data: lineData,
+		options: lineOptions
 	});
 	if (pie == "ul")
-		pie_obj_ul = pie_obj;
+		pie_obj_ul = line_obj;
 	else
-		pie_obj_dl = pie_obj;
+		pie_obj_dl = line_obj;
 	return code;
 }
 
@@ -1193,15 +1268,15 @@ function rate2kbs(rate)
 	{
 		if (rate.includes("Mbit"))
 		{
-			return ( comma(parseInt(rate.replace(/[^0-9]/g,"")*1000)));
+			return ( parseInt(rate.replace(/[^0-9]/g,"")*1000));
 		}
 		else if (rate.includes("Kbit"))
 		{
-			return  ( comma(parseInt(rate.replace(/[^0-9]/g,""))) );
+			return ( parseInt(rate.replace(/[^0-9]/g,"")));
 		}
 		else if (rate.includes("bit"))
 		{
-			return ( comma(parseInt(rate.replace(/[^0-9]/g,"")/1000)) )
+			return ( parseInt(rate.replace(/[^0-9]/g,"")/1000));
 		}
 	}
 
@@ -2451,7 +2526,6 @@ function autocomplete(inp, arr) {
 		closeAllLists(e.target);
 	});
 }
-
 </script>
 </head>
 <body onload="initial();" class="bg">
@@ -2595,9 +2669,9 @@ function autocomplete(inp, arr) {
 <div id="tqos_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: Traditional QoS only classifies uploaded traffic.</div>
 <table>
 <tr id="dl_tr">
-<td style="padding-right:50px;font-size:125%;color:#FFCC00;">
+<td style="padding-right:10px;font-size:125%;color:#FFCC00;">
 <div>Download</div>
-<canvas id="pie_chart_dl" width="200" height="200"></canvas>
+<canvas id="pie_chart_dl" width="340" height="200"></canvas>
 </td>
 <td><span id="legend_dl"></span></td>
 </tr>
@@ -2605,9 +2679,9 @@ function autocomplete(inp, arr) {
 <td colspan="2">&nbsp;</td>
 </tr>
 <tr id="ul_tr">
-<td style="padding-right:50px;font-size:125%;color:#FFCC00;">
+<td style="padding-right:10px;font-size:125%;color:#FFCC00;">
 <div>Upload</div>
-<canvas id="pie_chart_ul" width="200" height="200"></canvas>
+<canvas id="pie_chart_ul" width="340" height="200"></canvas>
 </td>
 <td><span id="legend_ul"></span></td>
 </tr>
