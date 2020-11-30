@@ -202,12 +202,6 @@ if (qos_dlbw > 0 && qos_ulbw > 0)
 	var qos_bwmode = 1;	// Manual
 else
 	var qos_bwmode = 0;	// Auto
-var ulrate_array = new Array(8);
-var dlrate_array = new Array(8);
-for (var k=0;k<8;k++){
-	dlrate_array[k] = new Array();
-	ulrate_array[k] = new Array();
-}
 
 var qos_type = "<% nvram_get("qos_type"); %>";
 if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
@@ -257,10 +251,30 @@ var timedEvent = 0;
 var filter = Array(6);
 const maxshown = 500;
 const maxrendered = 750;
+var maxdatapoints = 50;
 var color = ["#B3645B", "#B98F53", "#C6B36A", "#849E75", "#4C8FC0",  "#7C637A", "#2B6692",  "#6C604F"];
 var labels_array = [];
 var line_labels_array = [];
+var ulrate_array = new Array(8);
+var dlrate_array = new Array(8);
+for (var k=0;k<8;k++){
+	dlrate_array[k] = new Array();
+	ulrate_array[k] = new Array();
+	for (var l=0;l<maxdatapoints;l++){
+		dlrate_array[k].push(0);
+		ulrate_array[k].push(0);
+	}
+}
+for (var l=0;l<maxdatapoints;l++){
+	line_labels_array.push(l);
+}
 var lineOptions = {
+	title: {
+		fontColor: '#FFFFFF',
+		fontSize: 13,
+		display: true,
+		padding: 5
+	},
 	fill: false,
 	animationEasing: "easeOutQuart",
 	animationSteps: 100,
@@ -276,17 +290,33 @@ var lineOptions = {
 			type: 'linear',
 			scaleLabel: {
 				display: true,
-				labelString: 'Kb/s',
+				labelString: 'Rate (kb/s)',
 				fontColor: '#FFCC00'
 			},
 			ticks: {
 					display: true,
-					beginAtZero: true
+					fontColor: "#FFFFFF",
+					fontSize: 11,
+					beginAtZero: true,
+					callback: function(value, index, values) {
+						return comma(value);
+					}
 			}
 		}]
+	},
+	elements: {
+		line: {
+			borderWidth: 2,
+			tension: 0
+		},
+		point: {
+			radius: 2,
+			hoverRadius: 3
+		}
 	}
 } // lineOptions
 //Chart.defaults.global.elements.point = 'line';
+Chart.defaults.global.defaultFontFamily = "'Arial', 'Helvetica', 'MS UI Gothic', 'MS P Gothic', sans-serif";
 
 var pieOptions = {
 	segmentShowStroke: false,
@@ -1082,7 +1112,7 @@ function redraw() {
 	var code;
 	var timeLabel = new Date().toLocaleTimeString();
 	line_labels_array.push(timeLabel);
-	if (line_labels_array.length > 50)
+	if (line_labels_array.length > maxdatapoints)
 		line_labels_array.splice(0,1);
 	switch (qos_mode) {
 		case 0: // Disabled
@@ -1140,7 +1170,7 @@ function get_data() {
 }
 
 function draw_chart(data_array, ctx, pie) {
-	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th></tr></thead>';
+	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:right;padding-left:5px;width:76px;">Total Data</th></tr></thead>';
 	var rate_array = window[pie+"rate_array"];
 	var rate = 0;
 	labels_array = [];
@@ -1180,11 +1210,11 @@ function draw_chart(data_array, ctx, pie) {
 		}
 		if (qos_mode == 2) {
 			code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
-			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td>';
-			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + comma(rate) + ' kb</td></tr>';
+			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + comma(rate) + ' kb</td>';
+			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td></tr>';
 		}
 		rate_array[i].push(rate);
-		if (rate_array[i].length > 50)
+		if (rate_array[i].length > maxdatapoints)
 			rate_array[i].splice(0,1);
 	}
 	code += '</table>';
@@ -1195,6 +1225,7 @@ function draw_chart(data_array, ctx, pie) {
 				{
 					data: rate_array[0],
 					label: labels_array[0],
+					order: 0,
 					fill: false,
 					borderColor: color[0],
 					backgroundColor: color[0]
@@ -1202,6 +1233,7 @@ function draw_chart(data_array, ctx, pie) {
 				{
 					data: rate_array[1],
 					label: labels_array[1],
+					order: 1,
 					fill: false,
 					borderColor: color[1],
 					backgroundColor: color[1]
@@ -1209,6 +1241,7 @@ function draw_chart(data_array, ctx, pie) {
 				{
 					data: rate_array[2],
 					label: labels_array[2],
+					order: 2,
 					fill: false,
 					borderColor: color[2],
 					backgroundColor: color[2]
@@ -1216,6 +1249,7 @@ function draw_chart(data_array, ctx, pie) {
 				{
 					data: rate_array[3],
 					label: labels_array[3],
+					order: 3,
 					fill: false,
 					borderColor: color[3],
 					backgroundColor: color[3]
@@ -1223,6 +1257,7 @@ function draw_chart(data_array, ctx, pie) {
 				{
 					data: rate_array[4],
 					label: labels_array[4],
+					order: 4,
 					fill: false,
 					borderColor: color[4],
 					backgroundColor: color[4]
@@ -1230,6 +1265,7 @@ function draw_chart(data_array, ctx, pie) {
 				{
 					data: rate_array[5],
 					label: labels_array[5],
+					order: 5,
 					fill: false,
 					borderColor: color[5],
 					backgroundColor: color[5]
@@ -1237,6 +1273,7 @@ function draw_chart(data_array, ctx, pie) {
 				{
 					data: rate_array[6],
 					label: labels_array[6],
+					order: 6,
 					fill: false,
 					borderColor: color[6],
 					backgroundColor: color[6]
@@ -1244,21 +1281,24 @@ function draw_chart(data_array, ctx, pie) {
 				{
 					data: rate_array[7],
 					label: labels_array[7],
+					order: 7,
 					fill: false,
 					borderColor: color[7],
 					backgroundColor: color[7]
 				}
 			]
 	};
+	if (pie == "ul") {
+		lineOptions.title.text = "Upload";
+	} else {
+		lineOptions.title.text = "Download";
+	};
 	var line_obj = new Chart(ctx, {
 		type: 'line',
 		data: lineData,
 		options: lineOptions
 	});
-	if (pie == "ul")
-		pie_obj_ul = line_obj;
-	else
-		pie_obj_dl = line_obj;
+	window['pie_obj_'+pie]=line_obj;
 	return code;
 }
 
@@ -2670,18 +2710,16 @@ function autocomplete(inp, arr) {
 <table>
 <tr id="dl_tr">
 <td style="padding-right:10px;font-size:125%;color:#FFCC00;">
-<div>Download</div>
-<canvas id="pie_chart_dl" width="340" height="200"></canvas>
+<canvas id="pie_chart_dl" width="390" height="235"></canvas>
 </td>
 <td><span id="legend_dl"></span></td>
 </tr>
-<tr style="height:50px;">
+<tr style="height:25px;">
 <td colspan="2">&nbsp;</td>
 </tr>
 <tr id="ul_tr">
 <td style="padding-right:10px;font-size:125%;color:#FFCC00;">
-<div>Upload</div>
-<canvas id="pie_chart_ul" width="340" height="200"></canvas>
+<canvas id="pie_chart_ul" width="390" height="235"></canvas>
 </td>
 <td><span id="legend_ul"></span></td>
 </tr>
