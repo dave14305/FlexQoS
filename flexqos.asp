@@ -245,7 +245,7 @@ if (qos_mode == 2) {
 	var category_title = ["", "Highest", "High", "Medium", "Low", "Lowest"];
 }
 
-var pie_obj_ul, pie_obj_dl;
+var line_obj_ul, line_obj_dl;
 var refreshRate;
 var timedEvent = 0;
 var filter = Array(6);
@@ -257,17 +257,6 @@ var labels_array = [];
 var line_labels_array = [];
 var ulrate_array = new Array(8);
 var dlrate_array = new Array(8);
-for (var k=0;k<8;k++){
-	dlrate_array[k] = new Array();
-	ulrate_array[k] = new Array();
-	for (var l=0;l<maxdatapoints;l++){
-		dlrate_array[k].push(0);
-		ulrate_array[k].push(0);
-	}
-}
-for (var l=0;l<maxdatapoints;l++){
-	line_labels_array.push(l);
-}
 var lineOptions = {
 	title: {
 		fontColor: '#FFFFFF',
@@ -765,6 +754,7 @@ function initial() {
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
+	initialize_charts();
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
@@ -1130,21 +1120,17 @@ function redraw() {
 			document.getElementById('tqos_notice').style.display = "";
 			break;
 		case 2: // Adaptive
-			if (pie_obj_dl != undefined) pie_obj_dl.destroy();
-			var ctx_dl = document.getElementById("pie_chart_dl").getContext("2d");
 			tcdata_lan_array.sort(function(a, b) {
 				return a[0] - b[0]
 			});
-			code = draw_chart(tcdata_lan_array, ctx_dl, "dl");
+			code = draw_chart(tcdata_lan_array, "dl");
 			document.getElementById('legend_dl').innerHTML = code;
 			break;
 	}
-	if (pie_obj_ul != undefined) pie_obj_ul.destroy();
-	var ctx_ul = document.getElementById("pie_chart_ul").getContext("2d");
 	tcdata_wan_array.sort(function(a, b) {
 		return a[0] - b[0]
 	});
-	code = draw_chart(tcdata_wan_array, ctx_ul, "ul");
+	code = draw_chart(tcdata_wan_array, "ul");
 	document.getElementById('legend_ul').innerHTML = code;
 	lineOptions.animation = false; // Only animate first time
 }
@@ -1169,9 +1155,10 @@ function get_data() {
 	});
 }
 
-function draw_chart(data_array, ctx, pie) {
+function draw_chart(data_array, chartdir) {
 	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:right;padding-left:5px;width:76px;">Total Data</th></tr></thead>';
-	var rate_array = window[pie+"rate_array"];
+	var rate_array = window[chartdir+"rate_array"];
+	var datasetarray = [];
 	var rate = 0;
 	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
@@ -1219,88 +1206,70 @@ function draw_chart(data_array, ctx, pie) {
 	}
 	code += '</table>';
 
+	for (var i=0;i<8;i++)
+		datasetarray.push({ data: rate_array[i], label: labels_array[i], order: i, fill: false, borderColor: color[i], backgroundColor: color[i]});
 	var lineData = {
 			labels: line_labels_array,
-			datasets: [
-				{
-					data: rate_array[0],
-					label: labels_array[0],
-					order: 0,
-					fill: false,
-					borderColor: color[0],
-					backgroundColor: color[0]
-				},
-				{
-					data: rate_array[1],
-					label: labels_array[1],
-					order: 1,
-					fill: false,
-					borderColor: color[1],
-					backgroundColor: color[1]
-				},
-				{
-					data: rate_array[2],
-					label: labels_array[2],
-					order: 2,
-					fill: false,
-					borderColor: color[2],
-					backgroundColor: color[2]
-				},
-				{
-					data: rate_array[3],
-					label: labels_array[3],
-					order: 3,
-					fill: false,
-					borderColor: color[3],
-					backgroundColor: color[3]
-				},
-				{
-					data: rate_array[4],
-					label: labels_array[4],
-					order: 4,
-					fill: false,
-					borderColor: color[4],
-					backgroundColor: color[4]
-				},
-				{
-					data: rate_array[5],
-					label: labels_array[5],
-					order: 5,
-					fill: false,
-					borderColor: color[5],
-					backgroundColor: color[5]
-				},
-				{
-					data: rate_array[6],
-					label: labels_array[6],
-					order: 6,
-					fill: false,
-					borderColor: color[6],
-					backgroundColor: color[6]
-				},
-				{
-					data: rate_array[7],
-					label: labels_array[7],
-					order: 7,
-					fill: false,
-					borderColor: color[7],
-					backgroundColor: color[7]
-				}
-			]
+			datasets: datasetarray
 	};
-	if (pie == "ul") {
+	if (chartdir == "ul") {
 		lineOptions.title.text = "Upload";
 	} else {
 		lineOptions.title.text = "Download";
 	};
-	var line_obj = new Chart(ctx, {
+	var chartObj = window['line_obj_'+chartdir];
+	chartObj.data = lineData;
+	chartObj.options = lineOptions;
+	chartObj.update();
+	return code;
+}
+
+function initialize_charts() {
+	// Instantiate the charts one time and update data later based on refresh rate
+	var graphLoadTime = new Date();		// Get initial load time in milliseconds for further calculations of historic graph ticks
+	var secondsOffset = 0;
+	var ctx_dl = document.getElementById("line_chart_dl").getContext("2d");		// download chart canvas
+	var ctx_ul = document.getElementById("line_chart_ul").getContext("2d");		// upload chart canvas
+	for (var k=0;k<8;k++){
+		// Initialize dl and ul arrays with zeros for flatline initial chart
+		dlrate_array[k] = new Array();
+		ulrate_array[k] = new Array();
+		for (var l=0;l<maxdatapoints;l++){
+			dlrate_array[k].push(0);
+			ulrate_array[k].push(0);
+		}
+	}
+	for (var k=0;k<maxdatapoints;k++){
+		// Initialize x-axis time labels with historic intervals from the time the page was loaded
+		secondsOffset = refreshRate*k*1000;		// use refresh rate * interval * 1000 ms (1 second)
+		var timeLabel = new Date(graphLoadTime-secondsOffset);		// load time in ms less the calculated offset in ms
+		line_labels_array.unshift(timeLabel.toLocaleTimeString());	// insert at start of label array in user locale time format
+	}
+	// Setup downlaod chart
+	var lineData = {
+			labels: line_labels_array,
+			datasets: dlrate_array
+	};
+	lineOptions.title.text = "Download";
+	var line_obj = new Chart(ctx_dl, {
 		type: 'line',
 		data: lineData,
 		options: lineOptions
 	});
-	window['pie_obj_'+pie]=line_obj;
-	return code;
-}
+	line_obj_dl=line_obj;		// actually draws the chart on the page
+	// Setup uplaod chart
+	var lineData = {
+			labels: line_labels_array,
+			datasets: ulrate_array
+	};
+	lineOptions.title.text = "Upload";
+	var line_obj = new Chart(ctx_ul, {
+		type: 'line',
+		data: lineData,
+		options: lineOptions
+	});
+	line_obj_ul=line_obj;		// actually draws the chart on the page
+} // initialize_charts
 
 function rate2kbs(rate)
 {
@@ -2710,7 +2679,7 @@ function autocomplete(inp, arr) {
 <table>
 <tr id="dl_tr">
 <td style="padding-right:10px;font-size:125%;color:#FFCC00;">
-<canvas id="pie_chart_dl" width="390" height="235"></canvas>
+<canvas id="line_chart_dl" width="390" height="235"></canvas>
 </td>
 <td><span id="legend_dl"></span></td>
 </tr>
@@ -2719,7 +2688,7 @@ function autocomplete(inp, arr) {
 </tr>
 <tr id="ul_tr">
 <td style="padding-right:10px;font-size:125%;color:#FFCC00;">
-<canvas id="pie_chart_ul" width="390" height="235"></canvas>
+<canvas id="line_chart_ul" width="390" height="235"></canvas>
 </td>
 <td><span id="legend_ul"></span></td>
 </tr>
