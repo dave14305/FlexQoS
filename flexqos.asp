@@ -302,6 +302,15 @@ var lineOptions = {
 			radius: 2,
 			hoverRadius: 3
 		}
+	},
+	tooltips: {
+		callbacks: {
+			label: function(tooltipItem, data) {
+				var label = data.datasets[tooltipItem.datasetIndex].label;
+				var value = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+				return label + ': ' + comma(value) + ' kb/s';
+			}
+		}
 	}
 } // lineOptions
 //Chart.defaults.global.elements.point = 'line';
