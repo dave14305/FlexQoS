@@ -288,7 +288,7 @@ var lineOptions = {
 					fontSize: 11,
 					beginAtZero: true,
 					callback: function(value, index, values) {
-						return comma(value);
+						return comma(value).padStart(comma(qos_dlbw).length);
 					}
 			}
 		}]
