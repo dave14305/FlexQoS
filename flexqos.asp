@@ -257,6 +257,38 @@ var labels_array = [];
 var line_labels_array = [];
 var ulrate_array = new Array(8);
 var dlrate_array = new Array(8);
+
+var helpers = Chart.helpers;
+/* logarithmic formatter function */
+var logarithmicFormatter = function(tickValue, index, ticks) {
+    var me = this;
+    var labelOpts =  me.options.ticks.labels || {};
+    var labelIndex = labelOpts.index || ['min', 'max'];
+    var labelSignificand = labelOpts.significand || [1, 2, 5];
+    var significand = tickValue / (Math.pow(10, Math.floor(helpers.log10(tickValue))));
+    var emptyTick = labelOpts.removeEmptyLines === true ? undefined : '';
+    var namedIndex = '';
+
+    if (index === 0) {
+        namedIndex = 'min';
+    } else if (index === ticks.length - 1) {
+        namedIndex = 'max';
+    }
+
+    if (labelOpts === 'all'
+        || labelSignificand.indexOf(significand) !== -1
+        || labelIndex.indexOf(index) !== -1
+        || labelIndex.indexOf(namedIndex) !== -1
+    ) {
+        if (tickValue === 0) {
+            return '0';
+        } else {
+            //return tickValue.toExponential();
+            return comma(tickValue).padStart(comma(qos_dlbw).length);
+        }
+    }
+    return emptyTick;
+};
 var lineOptions = {
 	title: {
 		fontColor: '#FFFFFF',
@@ -286,10 +318,15 @@ var lineOptions = {
 					display: true,
 					fontColor: "#FFFFFF",
 					fontSize: 11,
-					beginAtZero: true,
 					callback: function(value, index, values) {
 						return comma(value).padStart(comma(qos_dlbw).length);
-					}
+					},
+					labels: {
+                        index:  ['min', 'max'],
+                        significand:  [1, 2, 5],
+                        removeEmptyLines: true
+                    },
+//                    userCallback: logarithmicFormatter
 			}
 		}]
 	},
@@ -1254,6 +1291,7 @@ function initialize_charts() {
 		var timeLabel = new Date(graphLoadTime-secondsOffset);		// load time in ms less the calculated offset in ms
 		line_labels_array.unshift(timeLabel.toLocaleTimeString());	// insert at start of label array in user locale time format
 	}
+	change_chart_scale();
 	// Setup downlaod chart
 	var lineData = {
 			labels: line_labels_array,
@@ -1279,6 +1317,37 @@ function initialize_charts() {
 	});
 	line_obj_ul=line_obj;		// actually draws the chart on the page
 } // initialize_charts
+
+function change_chart_scale(input) {
+	var chart_scale = cookie.get('flexqos_rate_graph_scale');
+	if ( input == null ) {
+		// Set scale from user options
+		if ( chart_scale != null ) {
+			if ( chart_scale == "1" )
+				document.form.rate_graph_scale.value = 1;
+			else
+				document.form.rate_graph_scale.value = 0;
+		}
+		else
+			document.form.rate_graph_scale.value = 0;
+		input = document.form.rate_graph_scale.value;
+	}
+
+	switch (input) {
+		case "1":
+			lineOptions.scales.yAxes[0].type = "logarithmic";
+			lineOptions.scales.yAxes[0].ticks.labels = { index:  ['min', 'max'], significand:  [1, 2, 5], removeEmptyLines: true };
+			lineOptions.scales.yAxes[0].ticks.userCallback = logarithmicFormatter;
+			cookie.set("flexqos_rate_graph_scale", input, 31);
+			break;
+		default:
+			lineOptions.scales.yAxes[0].type = "linear";
+			lineOptions.scales.yAxes[0].ticks.labels = "";
+			lineOptions.scales.yAxes[0].ticks.userCallback = "";
+			cookie.unset("flexqos_rate_graph_scale");
+			break;
+	}
+} // change_chart_scale
 
 function rate2kbs(rate)
 {
@@ -2592,6 +2661,22 @@ function autocomplete(inp, arr) {
 			<td colspan="2">Options</td>
 		</tr>
 	</thead>
+<!--
+	<tr>
+		<th>Graph Units</th>
+		<td>
+			<input type="radio" name="rate_graph_units" class="input" value="0" onChange="change_chart_opts(this)">kb/s
+			<input type="radio" name="rate_graph_units" class="input" value="1" onChange="change_chart_opts(this)">Mb/s
+		</td>
+	</tr>
+-->
+	<tr>
+		<th>Graph Scale</th>
+		<td>
+			<input type="radio" name="rate_graph_scale" class="input" value="0" onChange="change_chart_scale(this.value)">Linear
+			<input type="radio" name="rate_graph_scale" class="input" value="1" onChange="change_chart_scale(this.value)">Logarithmic
+		</td>
+	</tr>
 	<tr>
 		<th>Enable Conntrack Flushing</th>
 		<td>
