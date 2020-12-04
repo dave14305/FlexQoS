@@ -258,6 +258,13 @@ var line_labels_array = [];
 var ulrate_array = new Array(8);
 var dlrate_array = new Array(8);
 
+Number.prototype.toLocaleFixed = function(n) {
+    return this.toLocaleString(undefined, {
+      minimumFractionDigits: n,
+      maximumFractionDigits: n
+    });
+};
+
 var helpers = Chart.helpers;
 /* logarithmic formatter function */
 var logarithmicFormatter = function(tickValue, index, ticks) {
@@ -283,7 +290,6 @@ var logarithmicFormatter = function(tickValue, index, ticks) {
         if (tickValue === 0) {
             return '0';
         } else {
-            //return tickValue.toExponential();
             return comma(tickValue).padStart(comma(qos_dlbw).length);
         }
     }
@@ -624,10 +630,7 @@ function updateTable()
 }
 
 function comma(n) {
-	n = '' + n;
-	var p = n;
-	while ((n = n.replace(/(\d+)(\d{3})/g, '$1,$2')) != p) p = n;
-	return n;
+	return n.toLocaleString();
 }
 
 function get_devicenames()
@@ -1244,7 +1247,7 @@ function draw_chart(data_array, chartdir) {
 		if (qos_mode == 2) {
 			code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
 			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + comma(rate) + ' kb</td>';
-			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td></tr>';
+			code += '<td style="text-align:right;padding-left:5px;">' + value.toLocaleFixed(2) + unit + '</td></tr>';
 		}
 		rate_array[i].push(rate);
 		if (rate_array[i].length > maxdatapoints)
@@ -1355,15 +1358,15 @@ function rate2kbs(rate)
 	{
 		if (rate.includes("Mbit"))
 		{
-			return ( parseInt(rate.replace(/[^0-9]/g,"")*1000));
+			return ( parseInt(rate.replace(/[^0-9]/g,"")*1000) );
 		}
 		else if (rate.includes("Kbit"))
 		{
-			return ( parseInt(rate.replace(/[^0-9]/g,"")));
+			return ( parseInt(rate.replace(/[^0-9]/g,"")) );
 		}
 		else if (rate.includes("bit"))
 		{
-			return ( parseInt(rate.replace(/[^0-9]/g,"")/1000));
+			return ( parseInt(rate.replace(/[^0-9]/g,"")/1000) );
 		}
 	}
 
@@ -2349,8 +2352,8 @@ function check_bandwidth() {
 		urptot += parseInt(urp.value);
 		if ( qos_bwmode == 1 ) {
 			// Manual
-			dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
-			up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+			dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
+			up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
 		} else {
 			// Auto
 			dp_desc.innerHTML="Automatic BW mode";
@@ -2369,8 +2372,6 @@ function check_bandwidth() {
 		document.getElementById('qos_rates_warn').style.display = "";
 	else
 		document.getElementById('qos_rates_warn').style.display = "none";
-	for (var i=0;i<8;i++) {
-	}
 } // check_bandwidth
 
 function validate_percent(input)
