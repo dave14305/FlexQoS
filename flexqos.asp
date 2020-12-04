@@ -2249,8 +2249,14 @@ function FlexQoS_mod_apply() {
 	custom_settings.flexqos_iptables_names = iptables_rulename_array;
 	custom_settings.flexqos_appdb = appdb_rulelist_array;
 	custom_settings.flexqos_bandwidth = bandwidth;
-	if (document.form.flexqos_conntrack.value == 0)
-		custom_settings.flexqos_conntrack = document.form.flexqos_conntrack.value;
+	if (custom_settings.flexqos_conntrack) {					// already saved so assume enabled
+		if (document.form.flexqos_conntrack.value == 1)		// if enabled in the GUI
+			delete custom_settings.flexqos_conntrack;
+	}
+	else {
+		if (document.form.flexqos_conntrack.value == 0)		// if disabled in the GUI
+			custom_settings.flexqos_conntrack = document.form.flexqos_conntrack.value;
+	}
 
 	/* Store object as a string in the amng_custom hidden input field */
 	if (JSON.stringify(custom_settings).length < 8192) {
