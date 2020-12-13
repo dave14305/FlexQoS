@@ -258,42 +258,42 @@ var line_labels_array = [];
 var ulrate_array = new Array(8);
 var dlrate_array = new Array(8);
 
+/* prototype function to respect user locale number formatting for fixed decimal point numbers */
 Number.prototype.toLocaleFixed = function(n) {
-    return this.toLocaleString(undefined, {
-      minimumFractionDigits: n,
-      maximumFractionDigits: n
-    });
+	return this.toLocaleString(undefined, {
+		minimumFractionDigits: n,
+		maximumFractionDigits: n
+	});
 };
 
+/* helper function from https://github.com/chartjs/Chart.js/issues/4722#issuecomment-353067548 */
 var helpers = Chart.helpers;
 /* logarithmic formatter function */
 var logarithmicFormatter = function(tickValue, index, ticks) {
-    var me = this;
-    var labelOpts =  me.options.ticks.labels || {};
-    var labelIndex = labelOpts.index || ['min', 'max'];
-    var labelSignificand = labelOpts.significand || [1, 2, 5];
-    var significand = tickValue / (Math.pow(10, Math.floor(helpers.log10(tickValue))));
-    var emptyTick = labelOpts.removeEmptyLines === true ? undefined : '';
-    var namedIndex = '';
-
-    if (index === 0) {
-        namedIndex = 'min';
-    } else if (index === ticks.length - 1) {
-        namedIndex = 'max';
-    }
-
-    if (labelOpts === 'all'
-        || labelSignificand.indexOf(significand) !== -1
-        || labelIndex.indexOf(index) !== -1
-        || labelIndex.indexOf(namedIndex) !== -1
-    ) {
-        if (tickValue === 0) {
-            return '0';
-        } else {
-            return comma(tickValue).padStart(comma(qos_dlbw).length);
-        }
-    }
-    return emptyTick;
+	var me = this;
+	var labelOpts =  me.options.ticks.labels || {};
+	var labelIndex = labelOpts.index || ['min', 'max'];
+	var labelSignificand = labelOpts.significand || [1, 2, 5];
+	var significand = tickValue / (Math.pow(10, Math.floor(helpers.log10(tickValue))));
+	var emptyTick = labelOpts.removeEmptyLines === true ? undefined : '';
+	var namedIndex = '';
+	 if (index === 0) {
+		namedIndex = 'min';
+	} else if (index === ticks.length - 1) {
+		namedIndex = 'max';
+	}
+	 if (labelOpts === 'all'
+		|| labelSignificand.indexOf(significand) !== -1
+		|| labelIndex.indexOf(index) !== -1
+		|| labelIndex.indexOf(namedIndex) !== -1
+	) {
+		if (tickValue === 0) {
+			return '0';
+		} else {
+			return comma(tickValue).padStart(comma(qos_dlbw).length);
+		}
+	}
+	return emptyTick;
 };
 var lineOptions = {
 	title: {
@@ -328,11 +328,10 @@ var lineOptions = {
 						return comma(value).padStart(comma(qos_dlbw).length);
 					},
 					labels: {
-                        index:  ['min', 'max'],
-                        significand:  [1, 2, 5],
-                        removeEmptyLines: true
-                    },
-//                    userCallback: logarithmicFormatter
+						index:  ['min', 'max'],
+						significand:  [1, 2, 5],
+						removeEmptyLines: true
+					}
 			}
 		}]
 	},
