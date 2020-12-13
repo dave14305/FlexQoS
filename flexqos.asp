@@ -356,45 +356,8 @@ var lineOptions = {
 		}
 	}
 } // lineOptions
-//Chart.defaults.global.elements.point = 'line';
+// Set default fonts to match rest of UI
 Chart.defaults.global.defaultFontFamily = "'Arial', 'Helvetica', 'MS UI Gothic', 'MS P Gothic', sans-serif";
-
-var pieOptions = {
-	segmentShowStroke: false,
-	segmentStrokeColor: "#000",
-	animationEasing: "easeOutQuart",
-	animationSteps: 100,
-	animateScale: true,
-	legend: {
-		display: false
-	},
-	tooltips: {
-		callbacks: {
-			title: function(tooltipItem, data) {
-				return data.labels[tooltipItem[0].index];
-			},
-			label: function(tooltipItem, data) {
-				var value = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-				var orivalue = value;
-				var total = eval(data.datasets[tooltipItem.datasetIndex].data.join("+"));
-				var unit = " bytes";
-				if (value > 1024) {
-					value = value / 1024;
-					unit = " KB";
-				}
-				if (value > 1024) {
-					value = value / 1024;
-					unit = " MB";
-				}
-				if (value > 1024) {
-					value = value / 1024;
-					unit = " GB";
-				}
-				return value.toFixed(2) + unit + ' ( ' + parseFloat(orivalue * 100 / total).toFixed(2) + '% )';
-			},
-		}
-	},
-}
 
 function ip2dec(addr) {
 	if( /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b$/.test(addr) )		//regex that accepts ipv4 addresses ###.###.###.### (no cidr flag allowed)
