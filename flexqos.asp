@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.1.0 released 2020-12-06
+FlexQoS v1.1.0 released 2020-12-13
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -2631,7 +2631,7 @@ function autocomplete(inp, arr) {
 		</td>
 	</tr>
 	<tr>
-		<th>Add Well-Known Rules</th>
+		<th>Add Well-Known iptables Rule</th>
 		<td>
 			<select name="WellKnownRules" class="input_option" onChange="change_wizard(this);">
 				<option value="User Defined">Please select</option>

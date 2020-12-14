@@ -571,7 +571,7 @@ parse_appdb_rule() {
 		# check if wildcard mark
 		if [ "$id" = "****" ]; then
 			# Replace asterisks with zeros and use category mask
-			# This mark and mask 
+			# This mark and mask
 			DOWN_mark="0x80${1//\*/0} 0xc03f0000"
 			UP_mark="0x40${1//\*/0} 0xc03f0000"
 		elif [ "$1" = "000000" ]; then
@@ -1398,7 +1398,7 @@ write_iptables_rules() {
 
 write_appdb_rules() {
 	# Write the user appdb rules to the existing tcrules file created during write_appdb_static_rules()
-	
+
 	# Save the current filter rules once to avoid repeated calls in parse_appdb_rule() to determine existing prios
 	${tc} filter show dev $tclan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
 	${tc} filter show dev $tcwan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
