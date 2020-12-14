@@ -140,10 +140,10 @@ background-color: #2F3A3E !important;
 }
 
 .status_bar{
-  -webkit-transition: all 0.5s ease-in-out;
-  -moz-transition: all 0.5s ease-in-out;
-  -o-transition: all 0.5s ease-in-out;
-  transition: all 0.5s ease-in-out;
+-webkit-transition: all 0.5s ease-in-out;
+-moz-transition: all 0.5s ease-in-out;
+-o-transition: all 0.5s ease-in-out;
+transition: all 0.5s ease-in-out;
 }
 td.cat0{
 box-shadow: #B3645B 5px 0px 0px 0px inset;
@@ -759,6 +759,20 @@ function pullClassList(obj) {
 function initial() {
 	SetCurrentPage();
 	show_menu();
+	if (qos_mode != 2){		//if Adaptive QoS is not enabled
+		document.getElementById('no_aqos_notice').style.display = "";
+		document.getElementById('refresh_data').style.display = "none";
+		document.getElementById('dl_tr').style.display = "none";
+		document.getElementById('ul_tr').style.display = "none";
+		document.getElementById('tracked_filters').style.display = "none";
+		document.getElementById('tracked_connections').style.display = "none";
+		document.getElementById('refreshrate').value = "0";
+		var element = document.getElementById('FlexQoS_mod_toggle');
+		element.innerHTML="A.QoS Disabled";
+		element.setAttribute("onclick","location.href='QoS_EZQoS.asp';");
+		refreshRate = 0;
+		return;
+	}
 	populate_bandwidth_table();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
@@ -772,12 +786,8 @@ function initial() {
 	check_bandwidth();
 	well_known_rules();
 	populate_class_dropdown();
+	// Setup appdb auto-complete menu
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
-	if (qos_mode == 0){		//if QoS is invalid
-		document.getElementById('tracked_filters').style.display = "none";
-		document.getElementById('tracked_connections').style.display = "none";
-		document.getElementById('refresh_data').style.display = "none";
-	}
 	$.ajax({
 		url: "Main_DHCPStatus_Content.asp",
 		success: function(result){
@@ -791,7 +801,7 @@ function initial() {
 
 function get_qos_class(category, appid) {
 	var i, j, catlist, rules;
-	if ((category == 0 && appid == 0) || (qos_mode != 2))
+	if (category == 0 && appid == 0)
 		return qos_default;
 	for (i = 0; i < bwdpi_app_rulelist_row.length - 2; i++) {
 		rules = bwdpi_app_rulelist_row[i];
@@ -1115,34 +1125,19 @@ function redraw() {
 	line_labels_array.push(timeLabel);
 	if (line_labels_array.length > maxdatapoints)
 		line_labels_array.splice(0,1);
-	switch (qos_mode) {
-		case 0: // Disabled
-			document.getElementById('dl_tr').style.display = "none";
-			document.getElementById('ul_tr').style.display = "none";
-			document.getElementById('no_qos_notice').style.display = "";
-			return;
-		case 3: // Bandwith Limiter
-			document.getElementById('dl_tr').style.display = "none";
-			document.getElementById('ul_tr').style.display = "none";
-			document.getElementById('limiter_notice').style.display = "";
-			return;
-		case 1: // Traditional
-			document.getElementById('dl_tr').style.display = "none";
-			document.getElementById('tqos_notice').style.display = "";
-			break;
-		case 2: // Adaptive
-			tcdata_lan_array.sort(function(a, b) {
-				return a[0] - b[0]
-			});
-			code = draw_chart(tcdata_lan_array, "dl");
-			document.getElementById('legend_dl').innerHTML = code;
-			break;
-	}
+
+	tcdata_lan_array.sort(function(a, b) {
+		return a[0] - b[0]
+	});
+	code = draw_chart(tcdata_lan_array, "dl");
+	document.getElementById('legend_dl').innerHTML = code;
+
 	tcdata_wan_array.sort(function(a, b) {
 		return a[0] - b[0]
 	});
 	code = draw_chart(tcdata_wan_array, "ul");
 	document.getElementById('legend_ul').innerHTML = code;
+
 	lineOptions.animation = false; // Only animate first time
 }
 
@@ -1173,44 +1168,34 @@ function draw_chart(data_array, chartdir) {
 	var rate = 0;
 	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
-		var value = parseInt(data_array[i][1]);		// Sent
+		var sent = parseInt(data_array[i][1]);		// Sent
 		var tcclass = parseInt(data_array[i][0]);
 		rate = rate2kbs(data_array[i][2]);
-		if (qos_mode == 2) {
-			var index = 0;
-			for (j = 1; j < cat_id_array.length; j++) {
-				if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
-					index = j;
-					break;
-				}
-			}
-			var label = category_title[index];
-		} else {
-			tcclass = tcclass / 10;
-			var label = category_title[tcclass];
-			if (label == undefined) {
-				label = "Class " + tcclass;
+		var index = 0;
+		for (j = 1; j < cat_id_array.length; j++) {
+			if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
+				index = j;
+				break;
 			}
 		}
+		var label = category_title[index];
 		labels_array.push(label);
 		var unit = " B";
-		if (value > 1024) {
-			value = value / 1024;
+		if (sent > 1024) {
+			sent = sent / 1024;
 			unit = " KB";
 		}
-		if (value > 1024) {
-			value = value / 1024;
+		if (sent > 1024) {
+			sent = sent / 1024;
 			unit = " MB";
 		}
-		if (value > 1024) {
-			value = value / 1024;
+		if (sent > 1024) {
+			sent = sent / 1024;
 			unit = " GB";
 		}
-		if (qos_mode == 2) {
-			code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
-			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + comma(rate) + ' kb</td>';
-			code += '<td style="text-align:right;padding-left:5px;">' + value.toLocaleFixed(2) + unit + '</td></tr>';
-		}
+		code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
+		code += '<td style="text-align:right;padding-left:5px;width:76px;">' + comma(rate) + ' kb</td>';
+		code += '<td style="text-align:right;padding-left:5px;">' + sent.toLocaleFixed(2) + unit + '</td></tr>';
 		rate_array[i].push(rate);
 		if (rate_array[i].length > maxdatapoints)
 			rate_array[i].splice(0,1);
@@ -2728,9 +2713,7 @@ function autocomplete(inp, arr) {
 </tr>
 </table>
 <br>
-<div id="limiter_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: Statistics not available in Bandwidth Limiter mode.</div>
-<div id="no_qos_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: QoS is not enabled.</div>
-<div id="tqos_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: Traditional QoS only classifies uploaded traffic.</div>
+<div id="no_aqos_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: Adaptive QoS is not enabled.</div>
 <table>
 <tr id="dl_tr">
 <td style="padding-right:10px;font-size:125%;color:#FFCC00;">
