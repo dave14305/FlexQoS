@@ -10,8 +10,8 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.0.6
-release=2020-11-23
+version=1.1.0
+release=2020-12-13
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
@@ -40,15 +40,16 @@ release=2020-11-23
 # initialize Merlin Addon API helper functions
 . /usr/sbin/helper.sh
 
+# -x is a flag to show verbose script output for debugging purposes only
 if [ "$1" = "-x" ]; then
 	shift
 	set -x
 fi
 
 # Global variables
-SCRIPTNAME="flexqos"
 SCRIPTNAME_DISPLAY="FlexQoS"
-GIT_REPO="https://raw.githubusercontent.com/dave14305/FlexQoS"
+SCRIPTNAME="$(echo $SCRIPTNAME_DISPLAY | tr A-Z a-z)"
+GIT_REPO="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}"
 if [ "$(am_settings_get "${SCRIPTNAME}_branch")" != "develop" ]; then
 	GIT_BRANCH="master"
 else
@@ -61,17 +62,29 @@ WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
 IPv6_enabled="$(nvram get ipv6_service)"
 
+# Update version number in custom_settings.txt for reading in WebUI
 if [ "$(am_settings_get flexqos_ver)" != "$version" ]; then
 	am_settings_set flexqos_ver "$version"
 fi
 
+# If Merlin fq_codel patch is active, use original tc binary for passing commands
+# Will be obsolete in 386.1 and higher.
 if [ -e "/usr/sbin/realtc" ]; then
-	tc="realtc"
+	tc="/usr/sbin/realtc"
 else
-	tc="tc"
+	tc="/usr/sbin/tc"
 fi
 
-# marks for iptable rules
+# Detect if script is run from an SSH shell interactively or being invoked via cron or from the WebUI (unattended)
+if tty >/dev/null 2>&1; then
+	mode="interactive"
+else
+	mode="unattended"
+fi
+
+# marks for iptables rules
+# We use the ffff value to avoid conflicts with predefined apps in AppDB so there would be no conflict
+# with any user-defined AppDB rules.
 Net_mark_down="0x8009ffff"
 Work_mark_down="0x8006ffff"
 Gaming_mark_down="0x8008ffff"
@@ -114,44 +127,57 @@ Yellow() {
 }
 
 iptables_static_rules() {
-	echo "Applying iptables static rules"
+	printf "Applying iptables static rules\n"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
-	iptables -D OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -A OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}
-	iptables -D OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -A OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}
+	iptables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+	iptables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
+	iptables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	if [ "$IPv6_enabled" != "disabled" ]; then
-		echo "Applying ip6tables static rules"
-		ip6tables -D OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -A OUTPUT -t mangle -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}
-		ip6tables -D OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up} > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -A OUTPUT -t mangle -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}
+		printf "Applying ip6tables static rules\n"
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0x3fffff
+		ip6tables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
+		ip6tables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	fi
 }
 
 write_appdb_static_rules() {
+	# These rules define the flowid (priority level) of the Class destinations selected by users in iptables rules.
+	# Previous versions of the script were susceptible to the chosen Class being overridden by the users AppDB rules.
+	# Adding these filters ensures the Class you select in iptables rules is strictly observed.
+	# prio 5 is used because the first default filter rule (mark 0x80030000 0xc03f0000) is found at prio 6 as of this writing,
+	# so we want these filters to always take precedence over the built-in filters.
+	# File is overwritten (>) if it exists and later appended by write_appdb_rules() and write_custom_rates().
 	{
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Net_mark_down} 0xc03fffff flowid $Net"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Net_mark_up} 0xc03fffff flowid $Net"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Work_mark_down} 0xc03fffff flowid $Work"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Work_mark_up} 0xc03fffff flowid $Work"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Gaming_mark_down} 0xc03fffff flowid $Gaming"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Gaming_mark_up} 0xc03fffff flowid $Gaming"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Others_mark_down} 0xc03fffff flowid $Others"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Others_mark_up} 0xc03fffff flowid $Others"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Web_mark_down} 0xc03fffff flowid $Web"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Web_mark_up} 0xc03fffff flowid $Web"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Streaming_mark_down} 0xc03fffff flowid $Streaming"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Streaming_mark_up} 0xc03fffff flowid $Streaming"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Downloads_mark_down} 0xc03fffff flowid $Downloads"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Downloads_mark_up} 0xc03fffff flowid $Downloads"
-		echo "filter add dev br0 protocol all prio 5 u32 match mark ${Learn_mark_down} 0xc03fffff flowid $Learn"
-		echo "filter add dev $tcwan protocol all prio 5 u32 match mark ${Learn_mark_up} 0xc03fffff flowid $Learn"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Net_mark_down" "$Net"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Net_mark_up" "$Net"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Work_mark_down" "$Work"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Work_mark_up" "$Work"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Gaming_mark_down" "$Gaming"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Gaming_mark_up" "$Gaming"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Others_mark_down" "$Others"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Others_mark_up" "$Others"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Web_mark_down" "$Web"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Web_mark_up" "$Web"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Streaming_mark_down" "$Streaming"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Streaming_mark_up" "$Streaming"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Downloads_mark_down" "$Downloads"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Downloads_mark_up" "$Downloads"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Learn_mark_down" "$Learn"
+		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Learn_mark_up" "$Learn"
 	} > /tmp/${SCRIPTNAME}_tcrules
 } # write_appdb_static_rules
 
 write_custom_rates() {
+	# For all 8 classes (0-7), write the tc commands needed to modify the bandwidth rates and related parameters
+	# that get assigned in set_tc_variables().
+	# File is appended (>>) because it is initially created in write_appdb_static_rules().
 	{
 		for i in 0 1 2 3 4 5 6 7
 		do
@@ -173,7 +199,13 @@ write_custom_rates() {
 	} >> /tmp/${SCRIPTNAME}_tcrules
 } # write_custom_rates
 
-set_tc_variables(){
+set_tc_variables() {
+	# Read various settings from the router and construct the variables needed to implement the custom rules.
+
+	tclan="br0"
+	# Determine the WAN interface name used by tc by finding the existing htb root qdisc that is NOT br0.
+	# If not found, check the dev_wan file created by Adaptive QoS.
+	# If still not determined, assume eth0 but something is probably wrong at this point.
 	tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')"
 	if [ -z "$tcwan" ] && [ -s "/tmp/bwdpi/dev_wan" ]; then
 		tcwan="$(/bin/grep -oE "eth[0-9]|usb[0-9]" /tmp/bwdpi/dev_wan)"
@@ -182,15 +214,17 @@ set_tc_variables(){
 		tcwan="eth0"
 	fi
 
-	current_undf_rule="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc000ffff" -B1 | head -1)"
-	if [ -n "$current_undf_rule" ]; then
-		undf_prio="$(echo "$current_undf_rule" | /bin/grep -o "pref.*" | cut -d" " -f2)"
-	else
-		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i "0x80000000 0xc03f0000" -B1 | head -1 | /bin/grep -o "pref.*" | cut -d" " -f2)"
+	# Detect the default filter rule for Untracked traffic (Mark 000000) if it exists.
+	# Newer 384 stock firmware dropped this rule, so Untracked traffic flows into the Work-From-Home priority by default.
+	# First check for older ASUS default rule (0x80000000 0xc000ffff).
+	# If not found, get the prio for the Work-From-Home Instant messengers category 00 (0x80000000 0xc03f0000) and subtract 1.
+	undf_prio="$(${tc} filter show dev br0 | /bin/grep -i -m1 -B1 "0x80000000 0xc000ffff" | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
+	if [ -z "$undf_prio" ]; then
+		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i -m1 -B1 "0x80000000 0xc03f0000" | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
 		undf_prio="$((undf_prio-1))"
 	fi
 
-	# read priority order of QoS categories as set by user in GUI
+	# read priority order of QoS categories as set by user on the QoS page of the GUI
 	flowid=0
 	while read -r line;
 	do
@@ -213,7 +247,11 @@ set_tc_variables(){
 			eval "Cat${flowid}UpCeilPercent=$ucp7"
 			;;
 		'4')
-			if echo "$(nvram get bwdpi_app_rulelist)" | /bin/grep -qE "<4,13(<.*)?<4<"; then
+			# Special handling for category 4 since it is duplicated between Streaming and Learn-From-Home.
+			# We have to find the priority placement of Learn-From-Home versus Streaming in the QoS GUI to know
+			# if the first time we encounter a 4 in the file if it is meant to be Streaming or Learn-From-Home.
+			# The second time we encounter a 4, we know it is meant for the remaining option.
+			if nvram get bwdpi_app_rulelist | /bin/grep -qE "<4,13(<.*)?<4<"; then
 				# Learn-From-Home is higher priority than Streaming
 				if [ -z "$Learn" ]; then
 					Learn="1:1${flowid}"
@@ -274,6 +312,8 @@ set_tc_variables(){
 			eval "Cat${flowid}UpCeilPercent=$ucp4"
 			;;
 		'na')
+			# This is how the old ASUS default category would appear, but this option will soon be deprecated
+			# when all supported models are using the new QoS Categories.
 			Learn="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp6"
 			eval "Cat${flowid}DownCeilPercent=$dcp6"
@@ -289,6 +329,8 @@ EOF
 	#GUI shows in Mb/s; nvram stores in Kb/s
 	DownCeil="$(printf "%.0f" "$(nvram get qos_ibw)")"
 	UpCeil="$(printf "%.0f" "$(nvram get qos_obw)")"
+
+	# Only apply custom rates if Manual Bandwidth mode set in QoS page
 	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
 		# Automatic bandwidth mode incompatible with custom rates
 		WANMTU="$(nvram get wan_mtu)"
@@ -300,6 +342,7 @@ EOF
 			eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
 			eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
 			downquantum=$((DownRate${i}*1000/8/10))
+			# If the calculated quantum is less than the MTU, use MTU+14 as the quantum
 			if [ "$downquantum" -lt "$((WANMTU+14))" ]; then
 				downquantum="$((WANMTU+14))"
 			fi
@@ -307,19 +350,22 @@ EOF
 			if [ "$upquantum" -lt "$((WANMTU+14))" ]; then
 				upquantum="$((WANMTU+14))"
 			fi
-			downburst=$((((DownRate${i}*1000/1280000))*1600))
+			# If the calculated burst and cburst is less than ASUS' minimum value of 3200, use 3200
+			# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
+			# This calculation was reverse engineered from observing ASUS' rules
+			downburst=$((DownRate${i}*1000/1280000*1600))
 			if [ "$downburst" -lt "3200" ]; then
 				downburst=3200
 			fi
-			downcburst=$((((DownCeil${i}*1000/1280000))*1600))
+			downcburst=$((DownCeil${i}*1000/1280000*1600))
 			if [ "$downcburst" -lt "3200" ]; then
 				downcburst=3200
 			fi
-			upburst=$((((UpRate${i}*1000/1280000))*1600))
+			upburst=$((UpRate${i}*1000/1280000*1600))
 			if [ "$upburst" -lt "3200" ]; then
 				upburst=3200
 			fi
-			upcburst=$((((UpCeil${i}*1000/1280000))*1600))
+			upcburst=$((UpCeil${i}*1000/1280000*1600))
 			if [ "$upcburst" -lt "3200" ]; then
 				upcburst=3200
 			fi
@@ -332,8 +378,6 @@ EOF
 			i="$((i+1))"
 		done
 
-		#read parameters for fakeTC
-		PARMS=""
 		OVERHEAD="$(nvram get qos_overhead)"
 		if [ -n "$OVERHEAD" ] && [ "$OVERHEAD" -gt "0" ]; then
 			ATM="$(nvram get qos_atm)"
@@ -342,11 +386,14 @@ EOF
 			else
 				PARMS="overhead $OVERHEAD linklayer ethernet"
 			fi
+		else
+			PARMS=""
 		fi
 	fi # Auto Bandwidth check
 } # set_tc_variables
 
-appdb(){
+appdb() {
+	# Search TrendMicro appdb file for matches to user-specified string. Return up to 25 matches
 	/bin/grep -m 25 -i "$1" /tmp/bwdpi/bwdpi.app.db | while read -r line; do
 		echo "$line" | awk -F "," '{printf "  Application: %s\n         Mark: %02X%04X\nDefault Class: ", $4, $1, $2}'
 		cat_decimal=$(echo "$line" | cut -f 1 -d "," )
@@ -381,7 +428,9 @@ appdb(){
 } # appdb
 
 webconfigpage() {
-	urlpage=$(sed -nE "/$SCRIPTNAME_DISPLAY/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)
+	# Eye candy function that will construct a URL to display after install or upgrade so a user knows where to
+	# find the webUI page. In most cases though, they will go to the Adaptive QoS tab and find the FlexQoS sub-tab anyway.
+	urlpage="$(sed -nE "/$SCRIPTNAME_DISPLAY/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)"
 	if [ "$(nvram get http_enable)" = "1" ]; then
 		urlproto="https"
 	else
@@ -399,78 +448,87 @@ webconfigpage() {
 	fi
 
 	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
-		echo "Advanced configuration available via:"
+		printf "Advanced configuration available via:\n"
 		Blue "  ${urlproto}://${urldomain}${urlport}/${urlpage}"
 	fi
 } # webconfigpage
 
 scriptinfo() {
-	echo ""
+	# Version header used in interactive sessions
+	[ "$mode" = "interactive" ] || return
+	printf "\n"
 	Green "$SCRIPTNAME_DISPLAY v${version} released ${release}"
 	if [ "$GIT_BRANCH" != "master" ]; then
 		Yellow " Development channel"
 	fi
-	echo ""
+	printf "\n"
 } # scriptinfo
 
-debug(){
-	[ -z "$(nvram get odmpid)" ] && RMODEL=$(nvram get productid) || RMODEL=$(nvram get odmpid) 
-	echo -n "[SPOILER=\"$SCRIPTNAME_DISPLAY Debug\"][CODE]"
+debug() {
+	[ -z "$(nvram get odmpid)" ] && RMODEL="$(nvram get productid)" || RMODEL="$(nvram get odmpid)"
+	Green "[SPOILER=\"$SCRIPTNAME_DISPLAY Debug\"][CODE]"
 	scriptinfo
-	echo "Debug date: $(date +'%Y-%m-%d %H:%M:%S%z')"
-	echo "Router Model: $RMODEL"
-	echo "Firmware Ver: $(nvram get buildno)_$(nvram get extendno)"
+	printf "Debug date    : %s\n" "$(date +'%Y-%m-%d %H:%M:%S%z')"
+	printf "Router Model  : %s\n" "$RMODEL"
+	printf "Firmware Ver  : %s_%s\n" "$(nvram get buildno)" "$(nvram get extendno)"
+	printf "DPI/Sig Ver   : %s / %s\n" "$(nvram get bwdpi_dpi_ver)" "$(nvram get bwdpi_sig_ver)"
 	get_config
 	set_tc_variables
 
-	echo "WAN iface: $wan"
-	echo "tc WAN iface: $tcwan"
-	echo "Undf Prio: $undf_prio"
-	echo "Down Band: $DownCeil"
-	echo "Up Band  : $UpCeil"
-	echo "***********"
-	echo "Net Control: $Net"
-	echo "Work-From-Home: $Work"
-	echo "Gaming: $Gaming"
-	echo "Others: $Others"
-	echo "Web Surfing: $Web"
-	echo "Streaming: $Streaming"
-	echo "File Downloads: $Downloads"
-	echo "Game Downloads: $Learn"
-	echo "***********"
+	printf "WAN iface     : %s\n" "$wan"
+	printf "tc WAN iface  : %s\n" "$tcwan"
+	printf "IPv6          : %s\n" "$IPv6_enabled"
+	printf "Undf Prio     : %s\n" "$undf_prio"
+	printf "Down Band     : %s\n" "$DownCeil"
+	printf "Up Band       : %s\n" "$UpCeil"
+	printf "***********\n"
+	printf "Net Control   : %s\n" "$Net"
+	printf "Work-From-Home: %s\n" "$Work"
+	printf "Gaming        : %s\n" "$Gaming"
+	printf "Others        : %s\n" "$Others"
+	printf "Web Surfing   : %s\n" "$Web"
+	printf "Streaming     : %s\n" "$Streaming"
+	printf "File Downloads: %s\n" "$Downloads"
+	printf "Game Downloads: %s\n" "$Learn"
+	printf "***********\n"
+	# Only print custom rates if Manual Bandwidth setting is enabled on QoS page
 	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
-		echo "Downrates: $DownRate0, $DownRate1, $DownRate2, $DownRate3, $DownRate4, $DownRate5, $DownRate6, $DownRate7"
-		echo "Downceils: $DownCeil0, $DownCeil1, $DownCeil2, $DownCeil3, $DownCeil4, $DownCeil5, $DownCeil6, $DownCeil7"
-		echo "Downbursts: $DownBurst0, $DownBurst1, $DownBurst2, $DownBurst3, $DownBurst4, $DownBurst5, $DownBurst6, $DownBurst7"
-		echo "DownCbursts: $DownCburst0, $DownCburst1, $DownCburst2, $DownCburst3, $DownCburst4, $DownCburst5, $DownCburst6, $DownCburst7"
-		echo "DownQuantums: $DownQuantum0, $DownQuantum1, $DownQuantum2, $DownQuantum3, $DownQuantum4, $DownQuantum5, $DownQuantum6, $DownQuantum7"
-		echo "***********"
-		echo "Uprates: $UpRate0, $UpRate1, $UpRate2, $UpRate3, $UpRate4, $UpRate5, $UpRate6, $UpRate7"
-		echo "Upceils: $UpCeil0, $UpCeil1, $UpCeil2, $UpCeil3, $UpCeil4, $UpCeil5, $UpCeil6, $UpCeil7"
-		echo "Upbursts: $UpBurst0, $UpBurst1, $UpBurst2, $UpBurst3, $UpBurst4, $UpBurst5, $UpBurst6, $UpBurst7"
-		echo "UpCbursts: $UpCburst0, $UpCburst1, $UpCburst2, $UpCburst3, $UpCburst4, $UpCburst5, $UpCburst6, $UpCburst7"
-		echo "UpQuantums: $UpQuantum0, $UpQuantum1, $UpQuantum2, $UpQuantum3, $UpQuantum4, $UpQuantum5, $UpQuantum6, $UpQuantum7"
-		echo "***********"
+		printf "Downrates     : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownRate0" "$DownRate1" "$DownRate2" "$DownRate3" "$DownRate4" "$DownRate5" "$DownRate6" "$DownRate7"
+		printf "Downceils     : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownCeil0" "$DownCeil1" "$DownCeil2" "$DownCeil3" "$DownCeil4" "$DownCeil5" "$DownCeil6" "$DownCeil7"
+		printf "Downbursts    : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownBurst0" "$DownBurst1" "$DownBurst2" "$DownBurst3" "$DownBurst4" "$DownBurst5" "$DownBurst6" "$DownBurst7"
+		printf "DownCbursts   : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownCburst0" "$DownCburst1" "$DownCburst2" "$DownCburst3" "$DownCburst4" "$DownCburst5" "$DownCburst6" "$DownCburst7"
+		printf "DownQuantums  : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownQuantum0" "$DownQuantum1" "$DownQuantum2" "$DownQuantum3" "$DownQuantum4" "$DownQuantum5" "$DownQuantum6" "$DownQuantum7"
+		printf "***********\n"
+		printf "Uprates       : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpRate0" "$UpRate1" "$UpRate2" "$UpRate3" "$UpRate4" "$UpRate5" "$UpRate6" "$UpRate7"
+		printf "Upceils       : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpCeil0" "$UpCeil1" "$UpCeil2" "$UpCeil3" "$UpCeil4" "$UpCeil5" "$UpCeil6" "$UpCeil7"
+		printf "Upbursts      : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpBurst0" "$UpBurst1" "$UpBurst2" "$UpBurst3" "$UpBurst4" "$UpBurst5" "$UpBurst6" "$UpBurst7"
+		printf "UpCbursts     : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpCburst0" "$UpCburst1" "$UpCburst2" "$UpCburst3" "$UpCburst4" "$UpCburst5" "$UpCburst6" "$UpCburst7"
+		printf "UpQuantums    : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpQuantum0" "$UpQuantum1" "$UpQuantum2" "$UpQuantum3" "$UpQuantum4" "$UpQuantum5" "$UpQuantum6" "$UpQuantum7"
+		printf "***********\n"
 	else
-		echo "Custom rates disabled with Automatic Bandwidth mode!"
-		echo "***********"
+		printf "Custom rates disabled with Automatic Bandwidth mode!\n"
+		printf "***********\n"
 	fi
-	echo "iptables settings: $(am_settings_get flexqos_iptables)"
+	printf "iptables settings: %s\n" "$(am_settings_get flexqos_iptables)"
 	write_iptables_rules
-	/bin/sed -E '/^iptables -D POSTROUTING/d; s/iptables -A POSTROUTING -t mangle //g; s/[[:space:]]{2,}/ /g' /tmp/${SCRIPTNAME}_iprules
-	echo "***********"
-	echo "appdb rules: $(am_settings_get flexqos_appdb)"
+	# Remove superfluous commands from the output in order to focus on the parsed details
+	/bin/sed -E "/^ip[6]?tables -t mangle -D $SCRIPTNAME_DISPLAY/d; s/ip[6]?tables -t mangle -A $SCRIPTNAME_DISPLAY //g; s/[[:space:]]{2,}/ /g" /tmp/${SCRIPTNAME}_iprules
+	printf "***********\n"
+	printf "appdb rules: %s\n" "$(am_settings_get flexqos_appdb)"
 	true > /tmp/${SCRIPTNAME}_tcrules
 	write_appdb_rules
 	cat /tmp/${SCRIPTNAME}_tcrules
-	echo "[/CODE][/SPOILER]"
+	Green "[/CODE][/SPOILER]"
+	# Since these tmp files aren't being used to apply rules, we delete them to avoid confusion about the last known ruleset
 	rm /tmp/${SCRIPTNAME}_iprules /tmp/${SCRIPTNAME}_tcrules
-	echo ""
-	echo "Copy the text from [SPOILER] to [/SPOILER] and paste into a forum post at snbforums.com"
+	printf "\n"
+	Yellow "Copy the text from [SPOILER] to [/SPOILER] and paste into a forum post at snbforums.com"
 } # debug
 
 get_flowid() {
-	# destination field
+	# Map class destination field from webui settings to the established class/flowid based on user priorities
+	# flowid will be one of 1:10 - 1:17, depending on the user priority sequencing in the QoS GUI
+	# Input: numeric class destination from iptables rule
 	case "$1" in
 		0)	flowid="$Net" ;;
 		1)	flowid="$Gaming" ;;
@@ -483,22 +541,37 @@ get_flowid() {
 		# return empty if destination missing
 		*)	flowid="" ;;
 	esac
-	echo "$flowid"
+	printf "%s\n" "$flowid"
 } # get_flowid
 
+Is_Valid_CIDR() {
+	/bin/grep -qE '^[!]?([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?$'
+} # Is_Valid_CIDR
+
+Is_Valid_Port() {
+	/bin/grep -qE '^[!]?([0-9]{1,5})((:[0-9]{1,5})?|(,[0-9]{1,5})*)$'
+} # Is_Valid_Port
+
+Is_Valid_Mark() {
+	/bin/grep -qE '^[!]?[A-Fa-f0-9]{2}([A-Fa-f0-9]{4}|[\*]{4})$'
+} # Is_Valid_Mark
+
 parse_appdb_rule() {
-	#requires global variables previously set by set_tc_variables
-	#----------input-----------
-	#$1 = mark
-	#$2 = dst
+	# Process an appdb custom rule into the appropriate tc filter syntax
+	# Input: $1 = Mark from appdb rule XXYYYY XX=Category(hex) YYYY=ID(hex or ****)
+	#        $2 = Class destination
+	# Output: stdout is written directly to the /tmp/flexqos_appdb_rules file via redirect in write_appdb_rules(),
+	#         so don't add unnecessary output in this function.
 
-	cat="${1:0:2}"
-	id="${1:2:4}"
-
-	#filter field
-	if [ "${#1}" -eq "6" ]; then
+	# Only process if Mark is a valid format
+	if echo "$1" | Is_Valid_Mark; then
+		# Extract category and appid from mark
+		cat="${1:0:2}"
+		id="${1:2:4}"
 		# check if wildcard mark
 		if [ "$id" = "****" ]; then
+			# Replace asterisks with zeros and use category mask
+			# This mark and mask
 			DOWN_mark="0x80${1//\*/0} 0xc03f0000"
 			UP_mark="0x40${1//\*/0} 0xc03f0000"
 		elif [ "$1" = "000000" ]; then
@@ -506,60 +579,71 @@ parse_appdb_rule() {
 			DOWN_mark="0x80${1} 0xc000ffff"
 			UP_mark="0x40${1} 0xc000ffff"
 		else
+			# specific application mark
 			DOWN_mark="0x80${1} 0xc03fffff"
 			UP_mark="0x40${1} 0xc03fffff"
 		fi
-	else
-		# return early if mark is less than 6 characters
-		return
-	fi
 
-	# destination field
-	flowid="$(get_flowid "$2")"
+		# get destination class
+		flowid="$(get_flowid "$2")"
 
-	#prio field
-	if [ "$1" = "000000" ]; then
-		# special mask for unidentified traffic
-		currmask="0xc000ffff"
-	else
-		currmask="0xc03f0000"
-	fi
-	prio="$(/bin/grep -i "0x80${cat}0000 ${currmask}" -B1 /tmp/${SCRIPTNAME}_tmp_tcfilterdown | head -1 | cut -d " " -f5)"
-	currprio=$prio
+		# To override the default tc filters with our custom filter rules, we need to insert our rules
+		# at a higher priority (lower number) than the built-in filter for each category.
+		if [ "$1" = "000000" ]; then
+			# special mask for unidentified traffic
+			currmask="0xc000ffff"
+		else
+			currmask="0xc03f0000"
+		fi
+		# search the tc filter temp file we made in write_appdb_rules() for the existing priority of the
+		# category we are going to override with a custom appdb filter rule.
+		# e.g. If we are going to make a rule for appdb mark 1400C5, we need to find the current priority of category 14.
+		prio="$(/bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterdown | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
+		currprio="$prio"
 
-	if [ -z "$prio" ]; then
-		prio="$undf_prio"
-	else
-		prio="$((prio-1))"
-	fi
+		# If there is no existing filter for the category, use the undf_prio defined in set_tc_variables().
+		# This is usually only necessary for Untracked traffic (mark 000000).
+		# Otherwise, take the current priority and subtract 1 so that our rule will be processed earlier than the default rule.
+		if [ -z "$prio" ]; then
+			prio="$undf_prio"
+		else
+			prio="$((prio-1))"
+		fi
 
-	{
+		# Build and echo the tc filter commands based on the possible actions required:
+		# 1. Change an existing filter to point to a new flowid (mostly relevant for wildcard appdb rules).
+		# 2. Insert a new filter at a higher priority than the existing filter that would otherwise match this mark.
 		if [ "$id" = "****" -o "$1" = "000000" ] && [ -n "$currprio" ]; then
-			# change existing rule
-			currhandledown="$(/bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterdown | head -1 | cut -d " " -f8)"
-			currhandleup="$(/bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterup | head -1 | cut -d " " -f8)"
-			echo "filter change dev br0 prio $currprio protocol all handle $currhandledown u32 flowid $flowid"
-			echo "filter change dev $tcwan prio $currprio protocol all handle $currhandleup u32 flowid $flowid"
+			# change existing rule for wildcard marks and Untracked mark only if current priority already determined.
+			# Need to get handle of existing filter for proper tc filter change syntax.
+			currhandledown="$(/bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterdown | sed -nE 's/.* fh ([0-9a-f:]+) .*/\1/p')"
+			currhandleup="$(/bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterup | sed -nE 's/.* fh ([0-9a-f:]+) .*/\1/p')"
+			printf "filter change dev %s prio %s protocol all handle %s u32 flowid %s\n" "$tclan" "$currprio" "$currhandledown" "$flowid"
+			printf "filter change dev %s prio %s protocol all handle %s u32 flowid %s\n" "$tcwan" "$currprio" "$currhandleup" "$flowid"
 		else
 			# add new rule for individual app one priority level higher (-1)
-			echo "filter add dev br0 protocol all prio $prio u32 match mark $DOWN_mark flowid $flowid"
-			echo "filter add dev $tcwan protocol all prio $prio u32 match mark $UP_mark flowid $flowid"
+			printf "filter add dev %s protocol all prio %s u32 match mark %s flowid %s\n" "$tclan" "$prio" "$DOWN_mark" "$flowid"
+			printf "filter add dev %s protocol all prio %s u32 match mark %s flowid %s\n" "$tcwan" "$prio" "$UP_mark" "$flowid"
 		fi
-	}
-}
+	fi # Is_Valid_Mark
+} # parse_appdb_rule
 
 parse_iptablerule() {
-	#----------input-----------
-	#$1=local IP			accepted XXX.XXX.XXX.XXX or !XXX.XXX.XXX.XXX
-	#$2=remote IP			accepted XXX.XXX.XXX.XXX or !XXX.XXX.XXX.XXX
-	#$3=protocol  			accepted tcp or udp
-	#$4=local port			accepted XXXXX or XXXXX:YYYYY or XXX,YYY,ZZZ or  !XXXXX or !XXXXX:YYYYY or !XXX,YYY,ZZZ
-	#$5=remote port			accepted XXXXX or XXXXX:YYYYY or XXX,YYY,ZZZ or  !XXXXX or !XXXXX:YYYYY or !XXX,YYY,ZZZ
-	#$6=mark				accepted XXYYYY   (setting YYYY to **** will filter entire "XX" parent category)
-	#$7=qos destination		accepted 0-7
+	# Process an iptables custom rule into the appropriate iptables syntax
+	# Input: $1 = local IP (e.g. 192.168.1.100 !192.168.1.100 192.168.1.100/31 !192.168.1.100/31)
+	#        $2 = remote IP (e.g. 9.9.9.9 !9.9.9.9 9.9.9.0/24 !9.9.9.0/24)
+	#        $3 = protocol (e.g. both, tcp, or udp)
+	#        $4 = local port (e.g. 443 !443 1234:5678 !1234:5678 53,123,853 !53,123,853)
+	#        $5 = remote port (e.g. 443 !443 1234:5678 !1234:5678 53,123,853 !53,123,853)
+	#        $6 = mark (e.g. XXYYYY !XXYYYY XX=Category(hex) YYYY=ID(hex or ****))
+	#        $7 = class destination (e.g. 0-7)
+	# Output: stdout is written directly to the /tmp/flexqos_iprules file via redirect in write_iptables_rules(),
+	#         so don't add unnecessary output in this function.
 
-	#local IP
-	if [ "${#1}" -ge "7" ]; then
+	# local IP
+	# Check for acceptable IP format
+	if echo "$1" | Is_Valid_CIDR; then
+		# print ! (if present) and remaining CIDR
 		DOWN_Lip="${1//[^!]*/} -d ${1//!/}"
 		UP_Lip="${1//[^!]*/} -s ${1//!/}"
 	else
@@ -567,8 +651,10 @@ parse_iptablerule() {
 		UP_Lip=""
 	fi
 
-	#remote IP
-	if [ "${#2}" -ge "7" ]; then
+	# remote IP
+	# Check for acceptable IP format
+	if echo "$2" | Is_Valid_CIDR; then
+		# print ! (if present) and remaining CIDR
 		DOWN_Rip="${2//[^!]*/} -s ${2//!/}"
 		UP_Rip="${2//[^!]*/} -d ${2//!/}"
 	else
@@ -576,60 +662,52 @@ parse_iptablerule() {
 		UP_Rip=""
 	fi
 
-	#protocol (required for port rules)
-	if [ "$3" = 'tcp' ] || [ "$3" = 'udp' ]; then		#if tcp/udp
+	# protocol (required when port specified)
+	if [ "$3" = "tcp" ] || [ "$3" = "udp" ]; then
+		# print protocol directly
 		PROTO="-p ${3}"
+	elif [ "${#4}" -gt "1" ] || [ "${#5}" -gt "1" ]; then
+		# proto=both & ports are defined
+		PROTO="-p both"		# "both" gets replaced with individual tcp & udp statements later on
 	else
-		if [ "${#4}" -gt "1" ] || [ "${#5}" -gt "1" ]; then		#if both & port rules defined
-			PROTO="-p both"		#"BOTH" gets replaced with tcp & udp during later prior to rule execution
-		else		#if both & port rules not defined
-			PROTO=""
-		fi
+		# neither proto nor ports defined
+		PROTO=""
 	fi
 
-	#local port
-	if [ "${#4}" -gt "1" ]; then
-		if [ "$( echo "$4" | tr -cd ',' | wc -c )" -ge "1" ]; then
-			#multiport XXX,YYY,ZZZ
-			DOWN_Lport="-m multiport ${4//[^!]*/} --dports ${4//!/}"
-			UP_Lport="-m multiport ${4//[^!]*/} --sports ${4//!/}"
-		else
-			#single port XXX or port range XXX:YYY
-			DOWN_Lport="${4//[^!]*/} --dport ${4//!/}"
-			UP_Lport="${4//[^!]*/} --sport ${4//!/}"
-		fi
+	# local port
+	if echo "$4" | Is_Valid_Port; then
+		# Use multiport to specify any port specification:
+		# single port, multiple ports, port range
+		DOWN_Lport="-m multiport ${4//[^!]*/} --dports ${4//!/}"
+		UP_Lport="-m multiport ${4//[^!]*/} --sports ${4//!/}"
 	else
 		DOWN_Lport=""
 		UP_Lport=""
 	fi
 
 	#remote port
-	if [ "${#5}" -gt "1" ]; then
-		if [ "$( echo "$5" | tr -cd ',' | wc -c )" -ge "1" ]; then
-			#multiport XXX,YYY,ZZZ
-			DOWN_Rport="-m multiport ${5//[^!]*/} --sports ${5//!/}"
-			UP_Rport="-m multiport ${5//[^!]*/} --dports ${5//!/}"
-		else
-			#single port XXX or port range XXX:YYY
-			DOWN_Rport="${5//[^!]*/} --sport ${5//!/}"
-			UP_Rport="${5//[^!]*/} --dport ${5//!/}"
-		fi
+	if echo "$5" | Is_Valid_Port; then
+		# Use multiport to specify any port specification:
+		# single port, multiple ports, port range
+		DOWN_Rport="-m multiport ${5//[^!]*/} --sports ${5//!/}"
+		UP_Rport="-m multiport ${5//[^!]*/} --dports ${5//!/}"
 	else
 		DOWN_Rport=""
 		UP_Rport=""
 	fi
 
-	#match mark
-	if [ "${#6}" -ge "6" ] && [ "${#6}" -le "7" ]; then
-		tmpMark="$6"
+	# mark
+	if echo "$6" | Is_Valid_Mark; then
+		tmpMark="$6"		# Use a tmp variable since we have to manipulate the contents for ! and ****
 		DOWN_mark="-m mark"
 		UP_mark="-m mark"
-		if [ "${6:0:1}" = "!" ]; then
+		if [ "${6:0:1}" = "!" ]; then		# first char is !
 			DOWN_mark="${DOWN_mark} !"
 			UP_mark="${UP_mark} !"
-			tmpMark="${tmpMark//!/}"
+			tmpMark="${tmpMark//!/}"		# strip the !
 		fi
-		if [ "${tmpMark:2:4}" = "****" ]; then
+		if [ "${tmpMark:2:4}" = "****" ]; then		# wildcard mark
+			# replace **** with 0000 and use special mask
 			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark//\*/0}/0xc03f0000"
 			UP_mark="${UP_mark} --mark 0x40${tmpMark//\*/0}/0xc03f0000"
 		else
@@ -641,12 +719,13 @@ parse_iptablerule() {
 		UP_mark=""
 	fi
 
-	#if parameters are empty return early
+	# if all parameters are empty stop processing the rule
 	if [ -z "${DOWN_Lip}${DOWN_Rip}${DOWN_Lport}${DOWN_Rport}${DOWN_mark}" ]; then
 		return
 	fi
 
-	#destination mark
+	# destination mark
+	# numbers come from webui select options for class field
 	case "$7" in
 		0)
 			DOWN_dst="-j MARK --set-mark ${Net_mark_down}/0x3fffff"
@@ -681,117 +760,118 @@ parse_iptablerule() {
 			UP_dst="-j MARK --set-mark ${Learn_mark_up}/0x3fffff"
 			;;
 		*)
-			#if destinations is empty return early
+			#if destination is empty stop processing rule
 			return
 			;;
 	esac
 
-	{
-		if [ "$PROTO" = "-p both" ]; then
-			# download ipv4
-			echo "iptables -D POSTROUTING -t mangle -o br0 ${DOWN_Lip} ${DOWN_Rip} ${PROTO//both/tcp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst} >/dev/null 2>&1"
-			echo "iptables -A POSTROUTING -t mangle -o br0 ${DOWN_Lip} ${DOWN_Rip} ${PROTO//both/tcp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst}"
-			echo "iptables -D POSTROUTING -t mangle -o br0 ${DOWN_Lip} ${DOWN_Rip} ${PROTO//both/udp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst} >/dev/null 2>&1"
-			echo "iptables -A POSTROUTING -t mangle -o br0 ${DOWN_Lip} ${DOWN_Rip} ${PROTO//both/udp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst}"
-			# upload ipv4
-			echo "iptables -D POSTROUTING -t mangle -o ${wan} ${UP_Lip} ${UP_Rip} ${PROTO//both/tcp} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst} >/dev/null 2>&1"
-			echo "iptables -A POSTROUTING -t mangle -o ${wan} ${UP_Lip} ${UP_Rip} ${PROTO//both/tcp} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst}"
-			echo "iptables -D POSTROUTING -t mangle -o ${wan} ${UP_Lip} ${UP_Rip} ${PROTO//both/udp} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst} >/dev/null 2>&1"
-			echo "iptables -A POSTROUTING -t mangle -o ${wan} ${UP_Lip} ${UP_Rip} ${PROTO//both/udp} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst}"
-			if [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ] && [ "$IPv6_enabled" != "disabled" ]; then
-				# download ipv6
-				echo "ip6tables -D POSTROUTING -t mangle -o br0 ${PROTO//both/tcp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst} >/dev/null 2>&1"
-				echo "ip6tables -A POSTROUTING -t mangle -o br0 ${PROTO//both/tcp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst}"
-				echo "ip6tables -D POSTROUTING -t mangle -o br0 ${PROTO//both/udp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst} >/dev/null 2>&1"
-				echo "ip6tables -A POSTROUTING -t mangle -o br0 ${PROTO//both/udp} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst}"
-				# upload ipv6
-				echo "ip6tables -D POSTROUTING -t mangle -o ${wan} ${PROTO//both/tcp} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst} >/dev/null 2>&1"
-				echo "ip6tables -A POSTROUTING -t mangle -o ${wan} ${PROTO//both/tcp} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst}"
-				echo "ip6tables -D POSTROUTING -t mangle -o ${wan} ${PROTO//both/udp} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst} >/dev/null 2>&1"
-				echo "ip6tables -A POSTROUTING -t mangle -o ${wan} ${PROTO//both/udp} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst}"
-			fi
-		else
-			# download ipv4
-			echo "iptables -D POSTROUTING -t mangle -o br0 ${DOWN_Lip} ${DOWN_Rip} ${PROTO} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst} >/dev/null 2>&1"
-			echo "iptables -A POSTROUTING -t mangle -o br0 ${DOWN_Lip} ${DOWN_Rip} ${PROTO} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst}"
-			# upload ipv4
-			echo "iptables -D POSTROUTING -t mangle -o ${wan} ${UP_Lip} ${UP_Rip} ${PROTO} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst} >/dev/null 2>&1"
-			echo "iptables -A POSTROUTING -t mangle -o ${wan} ${UP_Lip} ${UP_Rip} ${PROTO} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst}"
-			if [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ] && [ "$IPv6_enabled" != "disabled" ]; then
-				# download ipv6
-				echo "ip6tables -D POSTROUTING -t mangle -o br0 ${PROTO} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst} >/dev/null 2>&1"
-				echo "ip6tables -A POSTROUTING -t mangle -o br0 ${PROTO} ${DOWN_Lport} ${DOWN_Rport} ${DOWN_mark} ${DOWN_dst}"
-				# upload ipv6
-				echo "ip6tables -D POSTROUTING -t mangle -o ${wan} ${PROTO} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst} >/dev/null 2>&1"
-				echo "ip6tables -A POSTROUTING -t mangle -o ${wan} ${PROTO} ${UP_Lport} ${UP_Rport} ${UP_mark} ${UP_dst}"
-			fi
+	# This block is redirected to the /tmp/flexqos_iprules file, so no extraneous output, please
+	# If proto=both we have to create 2 statements, one for tcp and one for udp.
+	# This is done by parameter expansion search and replace ${PROTO//both/tcp} ${PROTO//both/udp}
+	if [ "$PROTO" = "-p both" ]; then
+		# download ipv4
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		# upload ipv4
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		# If rule contains no IPv4 local or remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
+		if [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ] && [ "$IPv6_enabled" != "disabled" ]; then
+			# download ipv6
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$lan" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$lan" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			# upload ipv6
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
 		fi
-	} >> /tmp/${SCRIPTNAME}_iprules
-}
+	else
+		# download ipv4
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		# upload ipv4
+		printf "iptables -t mangle -D %s -o %s %s %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		# If rule contains no local or remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
+		if [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ] && [ "$IPv6_enabled" != "disabled" ]; then
+			# download ipv6
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$lan" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			# upload ipv6
+			printf "ip6tables -t mangle -D %s -o %s %s %s %s %s %s >/dev/null 2>&1\n" "$SCRIPTNAME_DISPLAY" "$wan" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		fi
+	fi
+} # parse_iptablerule
 
 about() {
 	scriptinfo
-	echo "License"
-	echo "  $SCRIPTNAME_DISPLAY is free to use under the GNU General Public License, version 3 (GPL-3.0)."
+	printf "License\n"
+	printf "  %s is free to use under the GNU General Public License, version 3 (GPL-3.0).\n" $SCRIPTNAME_DISPLAY
 	Blue "  https://opensource.org/licenses/GPL-3.0"
-	echo ""
-	echo "For discussion visit this thread:"
+	printf "\nFor discussion visit this thread:\n"
 	Blue "  https://www.snbforums.com/threads/64882/"
 	Blue "  https://github.com/dave14305/FlexQoS (Source Code)"
-	echo ""
-	echo "About"
-	echo "  Script Changes Unidentified traffic destination away from Work-From-Home into Others"
-	echo "  Script Changes HTTPS traffic destination away from Net Control into Web Surfing"
-	echo "  Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download."
-	echo "  Script Repurposes Learn-From-Home to contain Game Downloads"
-	echo ""
-	echo "  Script includes misc default rules"
-	echo "   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into Work-From-Home"
-	echo "   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into Work-From-Home"
-	echo "   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads"
-	echo "   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into Game Downloads."
-	echo "   (Snapchat)      -  Moved into Others"
-	echo "   (Speedtest.net) -  Moved into Downloads"
-	echo "   (Google Play)   -  Moved into Downloads"
-	echo "   (Apple AppStore)-  Moved into Downloads"
-	echo "   (Advertisement) -  Moved into Downloads"
-	echo "   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted"
-	echo "   (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into Gaming"
-	echo ""
+	printf "\nAbout\n"
+	printf "  Script Changes Unidentified traffic destination away from Work-From-Home into Others\n"
+	printf "  Script Changes HTTPS traffic destination away from Net Control into Web Surfing\n"
+	printf "  Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download.\n"
+	printf "  Script Repurposes Learn-From-Home to contain Game Downloads\n\n"
+	printf "  Script includes misc default rules\n"
+	printf "   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into Work-From-Home\n"
+	printf "   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into Work-From-Home\n"
+	printf "   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads\n"
+	printf "   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into Game Downloads.\n"
+	printf "   (Snapchat)      -  Moved into Others\n"
+	printf "   (Speedtest.net) -  Moved into Downloads\n"
+	printf "   (Google Play)   -  Moved into Downloads\n"
+	printf "   (Apple AppStore)-  Moved into Downloads\n"
+	printf "   (Advertisement) -  Moved into Downloads\n"
+	printf "   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted\n"
+	printf "   (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into Gaming\n\n"
 	Red  "Gaming Rule Note"
-	echo "  Gaming traffic originating from ports 80 & 443 is primarily downloads & patches (some lobby/login protocols mixed within)"
-	echo "  Manually configurable rule will take untracked traffic for specified devices, not originating from server ports 80/443, and place it into Gaming"
-	echo "  Use of this gaming rule REQUIRES devices to have a continous static ip assignment & this range needs to be passed into the script"
+	printf "  Gaming traffic originating from ports 80 & 443 is primarily downloads & patches (some lobby/login protocols mixed within)\n"
+	printf "  Manually configurable rule will take untracked traffic for specified devices, not originating from server ports 80/443, and place it into Gaming\n"
+	printf "  Use of this gaming rule REQUIRES devices to have a continous static ip assignment & this range needs to be passed into the script\n"
 }
 
 backup() {
+	# Backup existing user rules in /jffs/addons/custom_settings.txt
+	# Input: create [force]|restore|remove
 	case "$1" in
 		'create')
 			if [ "$2" != "force" ] && [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
 				grep "# Backup date" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-				echo -n "A backup already exists. Do you want to overwrite this backup? [1=Yes 2=No] "
+				printf "A backup already exists. Do you want to overwrite this backup? [1=Yes 2=No]: "
 				read -r yn
 				if [ "$yn" != "1" ]; then
 					Yellow "Backup cancelled."
 					return
 				fi
 			fi
-			echo "Running backup..."
+			printf "Running backup...\n"
 			{
-				echo "#!/bin/sh"
-				echo "# Backup date: $(date +'%Y-%m-%d %H:%M:%S%z')"
-				echo ". /usr/sbin/helper.sh"
-				echo "am_settings_set flexqos_iptables \"$(am_settings_get flexqos_iptables)\""
-				echo "am_settings_set flexqos_iptables_names \"$(am_settings_get flexqos_iptables_names)\""
-				echo "am_settings_set flexqos_appdb \"$(am_settings_get flexqos_appdb)\""
-				echo "am_settings_set flexqos_bandwidth \"$(am_settings_get flexqos_bandwidth)\""
+				printf "#!/bin/sh\n"
+				printf "# Backup date: %s\n" "$(date +'%Y-%m-%d %H:%M:%S%z')"
+				printf ". /usr/sbin/helper.sh\n"
+				printf "am_settings_set flexqos_iptables \"%s\"\n" "$(am_settings_get flexqos_iptables)"
+				printf "am_settings_set flexqos_iptables_names \"%s\"\n" "$(am_settings_get flexqos_iptables_names)"
+				printf "am_settings_set flexqos_appdb \"%s\"\n" "$(am_settings_get flexqos_appdb)"
+				printf "am_settings_set flexqos_bandwidth \"%s\"\n" "$(am_settings_get flexqos_bandwidth)"
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			Green "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-		;;
+			;;
 		'restore')
 			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
 				Yellow "$(grep "# Backup date" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh")"
-				echo -n "Do you want to restore this backup? [1=Yes 2=No] "
+				printf "Do you want to restore this backup? [1=Yes 2=No]: "
 				read -r yn
 				if [ "$yn" = "1" ]; then
 					sh "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
@@ -803,130 +883,148 @@ backup() {
 			else
 				Red "No backup file exists!"
 			fi
-		;;
+			;;
 		'remove')
 			[ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			Green "Backup deleted."
 		;;
 	esac
-}
+} # backup
 
 download_file() {
-	if [ "$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" | md5sum | awk '{print $1}')" != "$(md5sum "$2" 2>/dev/null | awk '{print $1}')" ]; then
-		if curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" -o "$2"; then
+	# Download file from Github once to a temp location. If the same as the destination file, don't replace.
+	# Otherwise move it from the temp location to the destination.
+	if curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" -o "/tmp/${1}"; then
+		if [ "$(md5sum "/tmp/${1}" | awk '{print $1}')" != "$(md5sum "$2" 2>/dev/null | awk '{print $1}')" ]; then
+			mv -f "/tmp/${1}" "$2"
 			logmsg "Updated $(echo "$1" | awk -F / '{print $NF}')"
 		else
-			logmsg "Updating $(echo "$1" | awk -F / '{print $NF}') failed"
+			logmsg "File $(echo "$2" | awk -F / '{print $NF}') is already up-to-date"
 		fi
 	else
-		logmsg "File $(echo "$2" | awk -F / '{print $NF}') is already up-to-date"
+		logmsg "Updating $(echo "$1" | awk -F / '{print $NF}') failed"
 	fi
 } # download_file
 
 compare_remote_version() {
-	remotever="$(curl -fsN --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.sh" | /bin/grep "^version=" | sed -e 's/version=//')"
-	if [ "${version//.}" -lt "${remotever//.}" ]; then
+	# Check version on Github and determine the difference with the installed version
+	# Outcomes: Version update, Hotfix (w/o version change), or no update
+
+	# Fetch version of the shell script on Github
+	remotever="$(curl -fsN --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename $SCRIPTPATH)" | /bin/grep "^version=" | sed -e 's/version=//')"
+	if [ "${version//.}" -lt "${remotever//.}" ]; then		# strip the . from version string for numeric comparison
 		# version upgrade
 		echo "$remotever"
-		return
+	else
+		# If no version change, calculate md5sum of local and remote files
+		# to determine if a hotfix has been published
+		localmd5="$(md5sum "$0" | awk '{print $1}')"
+		remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename $SCRIPTPATH)" | md5sum | awk '{print $1}')"
+		localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
+		remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename $WEBUIPATH)" | md5sum | awk '{print $1}')"
+		if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
+			# hotfix
+			printf "Hotfix\n"
+		else
+			printf "NoUpdate\n"
+		fi
 	fi
-	localmd5="$(md5sum "$0" | awk '{print $1}')"
-	remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.sh" | md5sum | awk '{print $1}')"
-	localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
-	remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${SCRIPTNAME}.asp" | md5sum | awk '{print $1}')"
-	if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
-		# hotfix
-		echo "Hotfix"
-		return
-	fi
-	echo "NoUpdate"
 } # compare_remote_version
 
 update() {
+	# Check for, and optionally apply updates.
+	# Parameter options: check (do not update), silent (update without prompting)
 	scriptinfo
-	echo "Checking for updates"
+	printf "Checking for updates\n"
+	# Update the webui status thorugh detect_update.js ajax call.
 	printf "var verUpdateStatus = \"%s\";\n" "InProgress" > /www/ext/${SCRIPTNAME}/detect_update.js
-	updateversion="$(compare_remote_version)"
-	printf "var verUpdateStatus = \"%s\";\n" "$updateversion" > /www/ext/${SCRIPTNAME}/detect_update.js
+	updatestatus="$(compare_remote_version)"
+	# Check to make sure we got back a valid status from compare_remote_version(). If not, indicate Error.
+	case "$updatestatus" in
+		'NoUpdate'|'Hotfix'|[0-9].[0-9].[0-9]) ;;
+		*) updatestatus="Error"
+	esac
+	printf "var verUpdateStatus = \"%s\";\n" "$updatestatus" > /www/ext/${SCRIPTNAME}/detect_update.js
 
 	if [ "$1" = "check" ]; then
+		# Do not proceed with any updating if check function requested
 		return
 	fi
-	if ! [ "$1" = "silent" ]; then
-		case "$updateversion" in
+	if [ "$mode" = "interactive" ] && [ -z "$1" ]; then
+		case "$updatestatus" in
 		'NoUpdate')
 			Green " You have the latest version installed"
-			echo -n " Would you like to overwrite your existing installation anyway? [1=Yes 2=No] : "
+			printf " Would you like to overwrite your existing installation anyway? [1=Yes 2=No]: "
 			;;
 		'Hotfix')
 			Green " $SCRIPTNAME_DISPLAY hotfix is available."
-			echo -n " Would you like to update now? [1=Yes 2=No] : "
+			printf " Would you like to update now? [1=Yes 2=No]: "
+			;;
+		'Error')
+			Red " Error determining remote version status!"
+			PressEnter
+			return
 			;;
 		*)
 			# New Version Number
-			Green " $SCRIPTNAME_DISPLAY v${updateversion} is now available!"
-			echo -n " Would you like to update now? [1=Yes 2=No] : "
+			Green " $SCRIPTNAME_DISPLAY v${updatestatus} is now available!"
+			printf " Would you like to update now? [1=Yes 2=No]: "
 			;;
 		esac
 		read -r yn
-		echo ""
-		if ! [ "$yn" = "1" ]; then
+		printf "\n"
+		if [ "$yn" != "1" ]; then
 			Green " No Changes have been made"
 			return 0
 		fi
 	fi
-	echo "Installing: ${SCRIPTNAME_DISPLAY}..."
-	echo ""
-	download_file "${SCRIPTNAME}.sh" "$SCRIPTPATH"
+	printf "Installing: %s...\n\n" "$SCRIPTNAME_DISPLAY"
+	download_file "$(basename $SCRIPTPATH)" "$SCRIPTPATH"
 	exec sh "$SCRIPTPATH" -install "$1"
 	exit
-}
+} # update
 
 prompt_restart() {
-	unset yn
-	if [ "$1" = "force" ]; then
-		yn="1"
-		needrestart=1
-	fi
-	if [ "$needrestart" = "1" ]; then
-		if [ -z "$yn" ]; then
-			echo ""
-			echo -n "Would you like to restart QoS for modifications to take effect? [1=Yes 2=No]: "
-			read -r yn
-		fi
-		if [ "$yn" = "1" ]; then
-			if /bin/grep -q "${SCRIPTPATH} -start & " /jffs/scripts/service-event-end ; then
-				echo "Restarting QoS..."
-				service restart_qos
-			else
-				Red "$SCRIPTNAME_DISPLAY is not installed correctly. Please update or reinstall."
+	# Restart QoS so that FlexQoS changes can take effect.
+	# Possible values for $needrestart:
+	#  0: No restart needed (initialized in main)
+	#  1: Restart needed, but prompt user if interactive session
+	#  2: Restart needed, do not prompt (force)
+	if [ "$needrestart" -gt "0" ]; then
+		if [ "$mode" = "interactive" ]; then
+			if [ "$needrestart" = "1" ]; then
+				printf "\nWould you like to restart QoS for modifications to take effect? [1=Yes 2=No]: "
+				read -r yn
+				if [ "$yn" = "2" ]; then
+					needrestart=0
+					return
+				fi
 			fi
-		else
-			echo ""
-			Yellow "$SCRIPTNAME_DISPLAY customizations will not take effect until QoS is restarted."
 		fi
-		unset needrestart
+		printf "Restarting QoS...\n"
+		service restart_qos
+		needrestart=0
 	fi
 } # prompt_restart
 
 menu() {
+	# Minimal interactive, menu-driven interface for basic maintenance functions.
+	[ "$mode" = "interactive" ] || return
 	clear
-	sed -n '2,10p' "$0"
+	sed -n '2,10p' "$0"		# display banner
 	scriptinfo
-	echo "  (1) about        explain functionality"
-	echo "  (2) update       check for updates "
-	echo "  (3) debug        traffic control parameters"
-	echo "  (4) restart      restart QoS and firewall"
-	echo "  (5) backup       create settings backup"
+	printf "  (1) about        explain functionality\n"
+	printf "  (2) update       check for updates\n"
+	printf "  (3) debug        traffic control parameters\n"
+	printf "  (4) restart      restart QoS\n"
+	printf "  (5) backup       create settings backup\n"
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		echo "  (6) restore      restore settings from backup"
-		echo "  (7) delete       remove backup"
+		printf "  (6) restore      restore settings from backup\n"
+		printf "  (7) delete       remove backup\n"
 	fi
-	echo ""
-	echo "  (9) uninstall    uninstall script"
-	echo "  (e) exit"
-	echo ""
-	echo -n "Make a selection: "
+	printf "\n  (9) uninstall    uninstall script\n"
+	printf "  (e) exit\n"
+	printf "\nMake a selection: "
 	read -r input
 	case $input in
 		'1')
@@ -946,22 +1044,30 @@ menu() {
 			backup create
 		;;
 		'6')
-			backup restore
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				backup restore
+			else
+				Red "$input is not a valid option!"
+			fi
 		;;
 		'7')
-			backup remove
+			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
+				backup remove
+			else
+				Red "$input is not a valid option!"
+			fi
 		;;
 		'9')
 			scriptinfo
-			echo -n " Confirm you want to uninstall $SCRIPTNAME_DISPLAY [1=Yes 2=No] : "
+			printf " Do you want to uninstall %s [1=Yes 2=No]: " "$SCRIPTNAME_DISPLAY"
 			read -r yn
 			if [ "$yn" = "1" ]; then
-				echo ""
+				printf "\n"
 				sh ${SCRIPTPATH} -uninstall
-				echo ""
+				printf "\n"
 				exit
 			fi
-			echo ""
+			printf "\n"
 			Yellow "$SCRIPTNAME_DISPLAY has NOT been uninstalled"
 		;;
 		'e'|'E'|'exit')
@@ -972,41 +1078,40 @@ menu() {
 		;;
 	esac
 	PressEnter
-	menu
-}
+	menu		# stay in the menu loop until exit is chosen
+} # menu
 
 remove_webui() {
-	echo "Removing WebUI..."
-	am_get_webui_page "$WEBUIPATH"
-
-	if [ -n "$am_webui_page" ] && [ "$am_webui_page" != "none" ]; then
-		if [ -f /tmp/menuTree.js ]; then
-			umount /www/require/modules/menuTree.js 2>/dev/null
-			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
-			if diff -q /tmp/menuTree.js /www/require/modules/menuTree.js > /dev/null 2>&1 ; then
-				rm /tmp/menuTree.js
-			else
-				# Still some modifications from another script so remount
-				mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
-			fi
-			if [ -f /www/user/"$am_webui_page" ]; then
-				rm /www/user/"$am_webui_page"
-			fi
+	printf "Removing WebUI...\n"
+	prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_DISPLAY}\"\}\,$/\1/p" /tmp/menuTree.js 2>/dev/null)"
+	if [ -n "$prev_webui_page" ]; then
+		# Remove page from the UI menu system
+		umount /www/require/modules/menuTree.js 2>/dev/null
+		sed -i "\~tabName: \"${SCRIPTNAME_DISPLAY}\"},~d" /tmp/menuTree.js
+		if diff -q /tmp/menuTree.js /www/require/modules/menuTree.js >/dev/null 2>&1; then
+			# no more custom pages mounted, so remove the file
+			rm /tmp/menuTree.js
+		else
+			# Still some modifications from another script so remount
+			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
-		/bin/grep -l "FlexQoS maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
+		# Remove last mounted asp page
+		rm -f /www/user/"$prev_webui_page" 2>/dev/null
+		# Look for previously mounted asp pages that are orphaned now and delete them
+		/bin/grep -l "$SCRIPTNAME_DISPLAY maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
 		do
 			rm "$oldfile"
 		done
 	fi
-	rm -rf /www/ext/${SCRIPTNAME}		# remove js helper scripts
-}
+	rm -rf /www/ext/${SCRIPTNAME} 2>/dev/null		# remove js helper scripts
+} # remove_webui
 
 install_webui() {
 	# if this is an install or update...otherwise it's a normal startup/mount
 	if [ -z "$1" ]; then
-		echo "Downloading WebUI files..."
-		download_file "${SCRIPTNAME}.asp" "$WEBUIPATH"
-		# cleanup obsolete files
+		printf "Downloading WebUI files...\n"
+		download_file "$(basename $WEBUIPATH)" "$WEBUIPATH"
+		# cleanup obsolete files from previous versions
 		[ -L "/www/ext/${SCRIPTNAME}" ] && rm "/www/ext/${SCRIPTNAME}" 2>/dev/null
 		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
 		[ -f "${ADDON_DIR}/${SCRIPTNAME}_arrays.js" ] && rm "${ADDON_DIR}/${SCRIPTNAME}_arrays.js"
@@ -1028,10 +1133,10 @@ install_webui() {
 			cp /www/require/modules/menuTree.js /tmp/
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
-		if ! /bin/grep -q "{url: \"$am_webui_page\", tabName: \"FlexQoS\"}," /tmp/menuTree.js; then
+		if ! /bin/grep -q "{url: \"$am_webui_page\", tabName: \"${SCRIPTNAME_DISPLAY}\"}," /tmp/menuTree.js; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
-			sed -i "\~tabName: \"FlexQoS\"},~d" /tmp/menuTree.js
-			sed -i "/url: \"QoS_Stats.asp\", tabName:/a {url: \"$am_webui_page\", tabName: \"FlexQoS\"}," /tmp/menuTree.js
+			sed -i "\~tabName: \"${SCRIPTNAME_DISPLAY}\"},~d" /tmp/menuTree.js
+			sed -i "/url: \"QoS_Stats.asp\", tabName:/a {url: \"$am_webui_page\", tabName: \"${SCRIPTNAME_DISPLAY}\"}," /tmp/menuTree.js
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
 	fi
@@ -1039,18 +1144,23 @@ install_webui() {
 }
 
 Init_UserScript() {
+	# Properly setup an empty Merlin user script
 	if [ -z "$1" ]; then
 		return
 	fi
 	userscript="/jffs/scripts/$1"
 	if [ ! -f "$userscript" ]; then
+		# If script doesn't exist yet, create with shebang
 		printf "#!/bin/sh\n\n" > "$userscript"
 	elif [ -f "$userscript" ] && ! head -1 "$userscript" | /bin/grep -qE "^#!/bin/sh"; then
+		#  Script exists but no shebang, so insert it at line 1
 		sed -i '1s~^~#!/bin/sh\n~' "$userscript"
 	elif [ "$(tail -c1 "$userscript" | wc -l)" = "0" ]; then
+		# Script exists with shebang, but no linefeed before EOF; makes appending content unpredictable if missing
 		printf "\n" >> "$userscript"
 	fi
 	if [ ! -x "$userscript" ]; then
+		# Ensure script is executable by owner
 		chmod 755 "$userscript"
 	fi
 } # Init_UserScript
@@ -1059,21 +1169,26 @@ Auto_ServiceEventEnd() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "service-event-end"
-	sed -i '\~FlexQoS Addition~d' /jffs/scripts/service-event-end
-	cmdline="if [ \"\$2\" = \"qos\" ] || [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -start & } ; fi # FlexQoS Addition"
+	# Delete existing lines related to this script
+	sed -i "\~$SCRIPTNAME_DISPLAY Addition~d" /jffs/scripts/service-event-end
+	# Add line to handle qos, wrs and sig_check events that require reapplying settings
+	cmdline="if [ \"\$2\" = \"qos\" ] || [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -start & } ; fi # $SCRIPTNAME_DISPLAY Addition"
 	echo "$cmdline" >> /jffs/scripts/service-event-end
-	cmdline="if echo \"\$2\" | /bin/grep -q \"^${SCRIPTNAME}\"; then { sh ${SCRIPTPATH} \"\${2#${SCRIPTNAME}}\" & } ; fi # FlexQoS Addition"
+	# Add line to handle other events triggered from webui
+	cmdline="if echo \"\$2\" | /bin/grep -q \"^${SCRIPTNAME}\"; then { sh ${SCRIPTPATH} \"\${2#${SCRIPTNAME}}\" & } ; fi # $SCRIPTNAME_DISPLAY Addition"
 	echo "$cmdline" >> /jffs/scripts/service-event-end
-}
+} # Auto_ServiceEventEnd
 
 Auto_FirewallStart() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
 	Init_UserScript "firewall-start"
-	sed -i '\~FlexQoS Addition~d' /jffs/scripts/firewall-start
-	cmdline="sh ${SCRIPTPATH} -start & # FlexQoS Addition"
+	# Delete existing lines related to this script
+	sed -i "\~$SCRIPTNAME_DISPLAY Addition~d" /jffs/scripts/firewall-start
+	# Add line to trigger script on firewall startup
+	cmdline="sh ${SCRIPTPATH} -start & # $SCRIPTNAME_DISPLAY Addition"
 	if /bin/grep -vE "^#" /jffs/scripts/firewall-start | /bin/grep -q "Skynet"; then
-		# If Skynet also installed, insert this script before it so it doesn't have to wait until Skynet to startup before applying QoS
+		# If Skynet also installed, insert this script before Skynet so it doesn't have to wait for Skynet to startup before applying QoS
 		# Won't delay Skynet startup since we fork into the background
 		sed -i "/Skynet/i $cmdline" /jffs/scripts/firewall-start
 	else
@@ -1083,126 +1198,130 @@ Auto_FirewallStart() {
 } # Auto_FirewallStart
 
 Auto_Crontab() {
+	# Setup cronjob for nightly check of QoS settings
 	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -check"
 	Init_UserScript "services-start"
-	sed -i '\~FlexQoS Addition~d' /jffs/scripts/services-start
-	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # FlexQoS Addition"
+	sed -i "\~$SCRIPTNAME_DISPLAY Addition~d" /jffs/scripts/services-start
+	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # $SCRIPTNAME_DISPLAY Addition"
 	echo "$cmdline" >> /jffs/scripts/services-start
 } # Auto_Crontab
 
 setup_aliases() {
 	# shortcuts to launching script
 	if [ -d /opt/bin ]; then
-		echo "Adding ${SCRIPTNAME} link in Entware /opt/bin..."
+		# Entware is installed, so setup link to /opt/bin
+		printf "Adding %s link in Entware /opt/bin...\n" "$SCRIPTNAME"
 		ln -sf "$SCRIPTPATH" /opt/bin/${SCRIPTNAME}
 	else
-		echo "Adding ${SCRIPTNAME} alias in profile.add..."
+		# Setup shell alias
+		printf "Adding %s alias in profile.add...\n" "$SCRIPTNAME"
 		sed -i "/alias ${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
-		alias ${SCRIPTNAME}="sh ${SCRIPTPATH}"
-		echo "alias ${SCRIPTNAME}=\"sh ${SCRIPTPATH}\" # FlexQoS Addition" >> /jffs/configs/profile.add
+		cmdline="alias ${SCRIPTNAME}=\"sh ${SCRIPTPATH}\" # $SCRIPTNAME_DISPLAY Addition"
+		echo "$cmdline" >> /jffs/configs/profile.add
 	fi
 } # setup_aliases
 
 Firmware_Check() {
-	echo "Checking firmware support..."
+	printf "Checking firmware support...\n"
 	if ! nvram get rc_support | grep -q am_addons; then
 		Red "$SCRIPTNAME_DISPLAY requires ASUSWRT-Merlin Addon API support. Installation aborted."
-		echo ""
-		echo "Install FreshJR_QOS via amtm as an alternative for your firmware version."
+		printf "\nInstall FreshJR_QOS via amtm as an alternative for your firmware version.\n"
 		return 1
 	fi
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
 		Red "Adaptive QoS is not enabled. Please enable it in the GUI. Aborting installation."
 		return 1
-	fi # adaptive qos not enabled
+	fi
 	if [ "$(nvram get jffs2_scripts)" != "1" ]; then
 		Red "\"Enable JFFS custom scripts and configs\" is not enabled. Please enable it in the GUI. Aborting installation."
 		return 1
-	fi # JFFS custom scripts not enabled
+	fi
 } # Firmware_Check
 
 install() {
-	if ! [ "$1" = "silent" ]; then
+	# Install script and download webui file
+	# This is also called by the update process once a new script is downlaoded by update() function
+	if [ "$mode" = "interactive" ]; then
 		clear
 		scriptinfo
-		echo "Installing $SCRIPTNAME_DISPLAY..."
+		printf "Installing %s...\n" "$SCRIPTNAME_DISPLAY"
 		if ! Firmware_Check; then
 			PressEnter
 			rm -f "$0" 2>/dev/null
 			exit 5
 		fi
 	fi
-	if ! [ -d "$ADDON_DIR" ]; then
-		echo "Creating directories..."
+	if [ ! -d "$ADDON_DIR" ]; then
+		printf "Creating directories...\n"
 		mkdir -p "$ADDON_DIR"
 		chmod 755 "$ADDON_DIR"
 	fi
-	if ! [ -f "$SCRIPTPATH" ]; then
+	if [ ! -f "$SCRIPTPATH" ]; then
 		cp -p "$0" "$SCRIPTPATH"
 	fi
-	if ! [ -x "$SCRIPTPATH" ]; then
-		chmod +x "$SCRIPTPATH"
+	if [ ! -x "$SCRIPTPATH" ]; then
+		chmod 755 "$SCRIPTPATH"
 	fi
 	install_webui
 	generate_bwdpi_arrays force
-	echo "Adding $SCRIPTNAME_DISPLAY entries to Merlin user scripts..."
+	printf "Adding %s entries to Merlin user scripts...\n" "$SCRIPTNAME_DISPLAY"
 	Auto_FirewallStart
 	Auto_ServiceEventEnd
-	echo "Adding nightly cron job..."
+	printf "Adding nightly cron job...\n"
 	Auto_Crontab
 	setup_aliases
 
-	if ! [ "$1" = "silent" ]; then
+	if [ "$mode" = "interactive" ]; then
 		Green "$SCRIPTNAME_DISPLAY installation complete!"
 		scriptinfo
 		webconfigpage
 
-		if [ -f "${ADDON_DIR}/restore_flexqos_settings.sh" ] && ! /bin/grep -qE "^flexqos_[^(ver )]" /jffs/addons/custom_settings.txt ; then
-			echo ""
+		if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ] && ! /bin/grep -qE "^${SCRIPTNAME}_[^(ver )]" /jffs/addons/custom_settings.txt ; then
 			Green "Backup found!"
 			backup restore
 		fi
 		[ "$(nvram get qos_enable)" = "1" ] && needrestart=1
 	else
-		[ "$(nvram get qos_enable)" = "1" ] && prompt_restart force
+		[ "$(nvram get qos_enable)" = "1" ] && needrestart=2
 	fi
+	# Remove setting if set to default value 1 (enabled)
 	sed -i "/^${SCRIPTNAME}_conntrack 1/d" /jffs/addons/custom_settings.txt
 } # install
 
 uninstall() {
-	echo "Removing entries from Merlin user scripts..."
-	sed -i '/FlexQoS/d' /jffs/scripts/firewall-start 2>/dev/null
-	sed -i '/FlexQoS/d' /jffs/scripts/service-event-end 2>/dev/null
-	sed -i '/FlexQoS/d' /jffs/scripts/services-start 2>/dev/null
-	echo "Removing aliases and shortcuts..."
-	sed -i "/${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
-	rm -f /opt/bin/${SCRIPTNAME} 2>/dev/null
-	echo "Removing cron job..."
+	printf "Removing entries from Merlin user scripts...\n"
+	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/firewall-start 2>/dev/null
+	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/service-event-end 2>/dev/null
+	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/services-start 2>/dev/null
+	printf "Removing aliases and shortcuts...\n"
+	sed -i "/alias ${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
+	rm -f "/opt/bin/$SCRIPTNAME" 2>/dev/null
+	printf "Removing cron job...\n"
 	cru d "$SCRIPTNAME"
 	cru d "${SCRIPTNAME}_5min" 2>/dev/null
 	remove_webui
-	echo "Removing $SCRIPTNAME_DISPLAY settings..."
+	printf "Removing %s settings...\n" "$SCRIPTNAME_DISPLAY"
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		echo -n "Backup found! Would you like to delete it? [1=Yes 2=No]: "
+		printf "Backup found! Would you like to delete it? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
-			echo "Deleting Backup..."
+			printf "Deleting Backup...\n"
 			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		fi
 	else
-		echo -n "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
+		printf "Do you want to backup your settings before uninstall? [1=Yes 2=No]: "
 		read -r yn
 		if [ "$yn" = "1" ]; then
-			echo "Backing up $SCRIPTNAME_DISPLAY settings..."
+			printf "Backing up %s settings...\n" "$SCRIPTNAME_DISPLAY"
 			backup create force
 		fi
 	fi
 	sed -i "/^${SCRIPTNAME}_/d" /jffs/addons/custom_settings.txt
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		echo "Deleting $SCRIPTNAME_DISPLAY folder contents except Backup file..."
+		printf "Deleting %s folder contents except Backup file...\n" "$SCRIPTNAME_DISPLAY"
 		/usr/bin/find ${ADDON_DIR} ! -name restore_${SCRIPTNAME}_settings.sh ! -exec test -d {} \; -a -exec rm {} +
 	else
-		echo "Deleting $SCRIPTNAME_DISPLAY directory..."
+		printf "Deleting %s directory...\n" "$SCRIPTNAME_DISPLAY"
 		rm -rf "$ADDON_DIR"
 	fi
 	Green "$SCRIPTNAME_DISPLAY has been uninstalled"
@@ -1210,6 +1329,7 @@ uninstall() {
 } # uninstall
 
 get_config() {
+	# Read settings from Addon API config file. If not defined, set default values
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables)" ]; then
 		am_settings_set "${SCRIPTNAME}_iptables" "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
 		am_settings_set "${SCRIPTNAME}_iptables_names" "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads"
@@ -1225,7 +1345,6 @@ get_config() {
 		done
 		am_settings_set "${SCRIPTNAME}_iptables_names" "$names"
 	fi
-#	iptables_names="$(am_settings_get ${SCRIPTNAME}_iptables_names)"
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
 		am_settings_set "${SCRIPTNAME}_appdb" "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
 	fi
@@ -1244,9 +1363,11 @@ EOF
 } # get_config
 
 validate_iptables_rules() {
+	# Basic check to ensure the number of rules present in the iptables chain matches the number of expected rules
+	# Does not verify that the rules present match the rules in the config, since the config hasn't been parsed at this point.
 	iptables_rules_defined="$(echo "$iptables_rules" | sed 's/</\n/g' | /bin/grep -vc "^$")"
-	iptables_rules_expected=$((iptables_rules_defined*2))
-	iptables_rulespresent="$(/usr/sbin/iptables -t mangle -S POSTROUTING | /bin/grep -c MARK)"
+	iptables_rules_expected=$((iptables_rules_defined*2+1)) # 1 downlaod and upload rule per user rule, plus 1 for chain definition
+	iptables_rulespresent="$(iptables -t mangle -S $SCRIPTNAME_DISPLAY | wc -l)" # count rules in chain plus chain itself
 	if [ "$iptables_rulespresent" -lt "$iptables_rules_expected" ]; then
 		return 1
 	else
@@ -1255,50 +1376,67 @@ validate_iptables_rules() {
 } # validate_iptables_rules
 
 write_iptables_rules() {
-	# loop through iptables rules and write an iptables command to a temporary script file
-	OLDIFS="$IFS"
-	IFS=">"
+	# loop through iptables rules and write an iptables command to a temporary file for later execution
+	OLDIFS="$IFS"		# Save existing field separator
+	IFS=">"				# Set custom field separator to match rule format
+	# Remove previous script file if it exists
 	if [ -f "/tmp/${SCRIPTNAME}_iprules" ]; then
 		rm -f "/tmp/${SCRIPTNAME}_iprules"
 	fi
 
+	# read the rules, 1 per line and break into separate fields
 	echo "$iptables_rules" | sed 's/</\n/g' | while read -r localip remoteip proto lport rport mark class
 	do
+		# Ensure at least one criteria field is populated
 		if [ -n "${localip}${remoteip}${proto}${lport}${rport}${mark}" ]; then
-			parse_iptablerule "$localip" "$remoteip" "$proto" "$lport" "$rport" "$mark" "$class"
+			# Process the rule and the stdout containing the resulting rule gets saved to the temporary script file
+			parse_iptablerule "$localip" "$remoteip" "$proto" "$lport" "$rport" "$mark" "$class" >> /tmp/${SCRIPTNAME}_iprules 2>/dev/null
 		fi
 	done
-	IFS="$OLDIFS"
+	IFS="$OLDIFS"		# Restore saved field separator
 } # write_iptables_rules
 
 write_appdb_rules() {
-	${tc} filter show dev br0 parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
-	${tc} filter show dev ${tcwan} parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
+	# Write the user appdb rules to the existing tcrules file created during write_appdb_static_rules()
+
+	# Save the current filter rules once to avoid repeated calls in parse_appdb_rule() to determine existing prios
+	${tc} filter show dev $tclan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
+	${tc} filter show dev $tcwan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
 
 	# loop through appdb rules and write a tc command to a temporary script file
-	OLDIFS="$IFS"
-	IFS=">"
+	OLDIFS="$IFS"		# Save existing field separator
+	IFS=">"				# Set custom field separator to match rule format
+
+	# read the rules, 1 per line and break into separate fields
 	echo "$appdb_rules" | sed 's/</\n/g' | while read -r mark class
 	do
+		# Ensure the appdb mark is populated
 		if [ -n "$mark" ]; then
-			parse_appdb_rule "$mark" "$class" >> /tmp/${SCRIPTNAME}_tcrules
+			parse_appdb_rule "$mark" "$class" >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
 		fi
 	done
-	IFS="$OLDIFS"
+	IFS="$OLDIFS"		# Restore old field separator
 } # write_appdb_rules
 
 check_qos_tc() {
+	# Check the status of the existing tc class and filter setup by stock Adaptive QoS before custom settings applied.
+	# Only br0 interface is checked since we have not yet identified the tcwan interface name yet.
 	dlclasscnt="$(${tc} class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
 	dlfiltercnt="$(${tc} filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+	# Check class count, filter count, and tcwan interface name defined with an htb qdisc
 	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
 		return 0
+	else
+		return 1
 	fi
-	return 1
 } # check_qos_tc
 
 validate_tc_rules() {
+	# Check the existing tc filter rules against the user configuration. If any rule missing, force creation of all rules
+	# Must run after set_tc_variables() to ensure flowid can be determined
 	{
-		${tc} filter show dev br0 parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
+		# print a list of existing filters in the format of an appdb rule for easy comparison. Write to tmp file
+		${tc} filter show dev "$tclan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
 		${tc} filter show dev "$tcwan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
 	} > /tmp/${SCRIPTNAME}_checktcrules 2>/dev/null
 	OLDIFS="$IFS"
@@ -1311,7 +1449,7 @@ validate_tc_rules() {
 			mark="${mark//\*/0}"
 			if [ "$(/bin/grep -ic "<${mark}>${flowid}" /tmp/${SCRIPTNAME}_checktcrules)" -lt "2" ]; then
 				filtermissing="$((filtermissing+1))"
-				break
+				break		# stop checking after the first missing rule is identified
 			fi
 		fi
 	done <<EOF
@@ -1407,23 +1545,21 @@ startup() {
 show_help() {
 	scriptinfo
 	Red "You have entered an invalid command"
-	echo ""
-	echo "Available commands:"
-	echo ""
-	echo "  ${SCRIPTNAME} -about              explains functionality"
-	echo "  ${SCRIPTNAME} -appdb string       search appdb for application marks"
-	echo "  ${SCRIPTNAME} -update             checks for updates"
-	echo "  ${SCRIPTNAME} -restart            restart QoS and Firewall"
-	echo "  ${SCRIPTNAME} -install            install   script"
-	echo "  ${SCRIPTNAME} -uninstall          uninstall script & delete from disk"
-	echo "  ${SCRIPTNAME} -enable             enable    script"
-	echo "  ${SCRIPTNAME} -disable            disable   script but do not delete from disk"
-	echo "  ${SCRIPTNAME} -backup             backup user settings"
-	echo "  ${SCRIPTNAME} -debug              print debug info"
-	echo "  ${SCRIPTNAME} -develop            switch to development channel"
-	echo "  ${SCRIPTNAME} -stable             switch to stable channel"
-	echo "  ${SCRIPTNAME} -menu               interactive main menu"
-	echo ""
+	printf "\nAvailable commands:\n\n"
+	printf "  %s -about              explains functionality\n" $SCRIPTNAME
+	printf "  %s -appdb string       search appdb for application marks\n" $SCRIPTNAME
+	printf "  %s -update             checks for updates\n" $SCRIPTNAME
+	printf "  %s -restart            restart QoS and Firewall\n" $SCRIPTNAME
+	printf "  %s -install            install   script\n" $SCRIPTNAME
+	printf "  %s -uninstall          uninstall script & delete from disk\n" $SCRIPTNAME
+	printf "  %s -enable             enable    script\n" $SCRIPTNAME
+	printf "  %s -disable            disable   script but do not delete from disk\n" $SCRIPTNAME
+	printf "  %s -backup             backup user settings\n" $SCRIPTNAME
+	printf "  %s -debug              print debug info\n" $SCRIPTNAME
+	printf "  %s -develop            switch to development channel\n" $SCRIPTNAME
+	printf "  %s -stable             switch to stable channel\n" $SCRIPTNAME
+	printf "  %s -menu               interactive main menu\n" $SCRIPTNAME
+	printf "\n"
 	webconfigpage
 } # show_help
 
@@ -1450,9 +1586,10 @@ generate_bwdpi_arrays() {
 }
 
 PressEnter(){
-	echo ""
+	[ "$mode" = "interactive" ] || return
+	printf "\n"
 	while true; do
-		echo -n "Press enter to continue..."
+		printf "Press enter to continue..."
 		read -r "key"
 		case "$key" in
 			*)
@@ -1476,24 +1613,39 @@ Check_Lock() {
 	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" ] && [ "$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" != "$$" ]; then
 		Kill_Lock
 	fi
-	echo "$$" > /tmp/${SCRIPTNAME}.lock
+	printf "%s\n" "$$" > /tmp/${SCRIPTNAME}.lock
 	lock="true"
 } # Check_Lock
 
 get_wanif() {
-prefixes="wan0_ wan1_"
+	prefixes="wan0_ wan1_"
 
-if [ "$(nvram get wans_mode)" = "lb" ] ; then
-	primary="0"
-	for prefix in $prefixes; do
-		state=$(nvram get "${prefix}"state_t)
-		sbstate=$(nvram get "${prefix}"sbstate_t)
-		auxstate=$(nvram get "${prefix}"auxstate_t)
+	if [ "$(nvram get wans_mode)" = "lb" ] ; then
+		for prefix in $prefixes; do
+			state=$(nvram get "${prefix}"state_t)
+			sbstate=$(nvram get "${prefix}"sbstate_t)
+			auxstate=$(nvram get "${prefix}"auxstate_t)
 
-		# is_wan_connect()
-		[ "$state" = "2" ] || continue
-		[ "$sbstate" = "0" ] || continue
-		[ "$auxstate" = "0" ] || [ "$auxstate" = "2" ] || continue
+			# is_wan_connect()
+			[ "$state" = "2" ] || continue
+			[ "$sbstate" = "0" ] || continue
+			[ "$auxstate" = "0" ] || [ "$auxstate" = "2" ] || continue
+
+			# get_wan_ifname()
+			proto=$(nvram get "${prefix}"proto)
+			if [ "$proto" = "pppoe" ] || [ "$proto" = "pptp" ] || [ "$proto" = "l2tp" ] ; then
+				ifname=$(nvram get "${prefix}"pppoe_ifname)
+			else
+				ifname=$(nvram get "${prefix}"ifname)
+			fi
+		done
+	else
+		for prefix in $prefixes; do
+			primary=$(nvram get "${prefix}"primary)
+			[ "$primary" = "1" ] && break
+		done
+
+		[ "$primary" = "1" ] || ifname="eth0"
 
 		# get_wan_ifname()
 		proto=$(nvram get "${prefix}"proto)
@@ -1502,24 +1654,8 @@ if [ "$(nvram get wans_mode)" = "lb" ] ; then
 		else
 			ifname=$(nvram get "${prefix}"ifname)
 		fi
-	done
-else
-	for prefix in $prefixes; do
-		primary=$(nvram get "${prefix}"primary)
-		[ "$primary" = "1" ] && break
-	done
-
-	[ "$primary" = "1" ] || exit 1
-
-	# get_wan_ifname()
-	proto=$(nvram get "${prefix}"proto)
-	if [ "$proto" = "pppoe" ] || [ "$proto" = "pptp" ] || [ "$proto" = "l2tp" ] ; then
-		ifname=$(nvram get "${prefix}"pppoe_ifname)
-	else
-		ifname=$(nvram get "${prefix}"ifname)
 	fi
-fi
-printf "%s" "$ifname"
+	printf "%s" "$ifname"
 } # get_wanif
 
 arg1="${1#-}"
@@ -1528,15 +1664,12 @@ if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* #
 fi
 
 wan="$(get_wanif)"
-#if [ -z "$2" ]; then
-#	wan="$(nvram get wan0_ifname)"
-#else
-#	wan="$2"
-#fi
+lan="$(nvram get lan_ifname)"
+needrestart=0		# initialize variable used in prompt_restart()
 
 case "$arg1" in
 	'start'|'check')
-		logmsg "$0 (pid=$$) called with $# args: $*"
+		logmsg "$0 (pid=$$) called in $mode mode with $# args: $*"
 		startup
 		;;
 	'appdb')
@@ -1554,7 +1687,7 @@ case "$arg1" in
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/services-start  2>/dev/null
 		cru d "$SCRIPTNAME"
 		remove_webui
-		prompt_restart force
+		needrestart=2
 		;;
 	'backup')
 		backup create force
@@ -1570,19 +1703,19 @@ case "$arg1" in
 		;;
 	'develop')
 		if [ "$(am_settings_get "${SCRIPTNAME}_branch")" = "develop" ]; then
-			echo "Already set to development branch."
+			printf "Already set to development branch.\n"
 		else
 			am_settings_set "${SCRIPTNAME}_branch" "develop"
-			echo "Set to development branch. Triggering update..."
+			printf "Set to development branch. Triggering update...\n"
 			exec "$0" updatesilent
 		fi
 		;;
 	'stable')
 		if [ -z "$(am_settings_get "${SCRIPTNAME}_branch")" ]; then
-			echo "Already set to stable branch."
+			printf "Already set to stable branch.\n"
 		else
 			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
-			echo "Set to stable branch. Triggering update..."
+			printf "Set to stable branch. Triggering update...\n"
 			exec "$0" updatesilent
 		fi
 		;;
@@ -1590,7 +1723,15 @@ case "$arg1" in
 		menu
 		;;
 	'restart')
-		prompt_restart force
+		needrestart=2
+		;;
+	'flushct')
+		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
+		echo "Enabled conntrack flushing."
+		;;
+	'noflushct')
+		am_settings_set "${SCRIPTNAME}_conntrack" "0"
+		echo "Disabled conntrack flushing."
 		;;
 	'flushct')
 		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt

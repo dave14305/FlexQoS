@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.0.6 released 2020-11-20
+FlexQoS v1.1.0 released 2020-12-13
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -140,10 +140,10 @@ background-color: #2F3A3E !important;
 }
 
 .status_bar{
-  -webkit-transition: all 0.5s ease-in-out;
-  -moz-transition: all 0.5s ease-in-out;
-  -o-transition: all 0.5s ease-in-out;
-  transition: all 0.5s ease-in-out;
+-webkit-transition: all 0.5s ease-in-out;
+-moz-transition: all 0.5s ease-in-out;
+-o-transition: all 0.5s ease-in-out;
+transition: all 0.5s ease-in-out;
 }
 td.cat0{
 box-shadow: #B3645B 5px 0px 0px 0px inset;
@@ -198,7 +198,6 @@ var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
 var qos_dlbw = "<% nvram_get("qos_ibw"); %>";		// download bandwidth set in QoS settings
 var qos_ulbw = "<% nvram_get("qos_obw"); %>";		// upload bandwidth set in QoS settings
-
 if (qos_dlbw > 0 && qos_ulbw > 0)
 	var qos_bwmode = 1;	// Manual
 else
@@ -246,50 +245,118 @@ if (qos_mode == 2) {
 	var category_title = ["", "Highest", "High", "Medium", "Low", "Lowest"];
 }
 
-var pie_obj_ul, pie_obj_dl;
+var line_obj_ul, line_obj_dl;
 var refreshRate;
 var timedEvent = 0;
 var filter = Array(6);
 const maxshown = 500;
 const maxrendered = 750;
+var maxdatapoints = 50;
 var color = ["#B3645B", "#B98F53", "#C6B36A", "#849E75", "#4C8FC0",  "#7C637A", "#2B6692",  "#6C604F"];
 var labels_array = [];
-var pieOptions = {
-	segmentShowStroke: false,
-	segmentStrokeColor: "#000",
+var line_labels_array = [];
+var ulrate_array = new Array(8);
+var dlrate_array = new Array(8);
+
+/* prototype function to respect user locale number formatting for fixed decimal point numbers */
+Number.prototype.toLocaleFixed = function(n) {
+	return this.toLocaleString(undefined, {
+		minimumFractionDigits: n,
+		maximumFractionDigits: n
+	});
+};
+
+/* helper function from https://github.com/chartjs/Chart.js/issues/4722#issuecomment-353067548 */
+var helpers = Chart.helpers;
+/* logarithmic formatter function */
+var logarithmicFormatter = function(tickValue, index, ticks) {
+	var me = this;
+	var labelOpts =  me.options.ticks.labels || {};
+	var labelIndex = labelOpts.index || ['min', 'max'];
+	var labelSignificand = labelOpts.significand || [1, 2, 5];
+	var significand = tickValue / (Math.pow(10, Math.floor(helpers.log10(tickValue))));
+	var emptyTick = labelOpts.removeEmptyLines === true ? undefined : '';
+	var namedIndex = '';
+	 if (index === 0) {
+		namedIndex = 'min';
+	} else if (index === ticks.length - 1) {
+		namedIndex = 'max';
+	}
+	 if (labelOpts === 'all'
+		|| labelSignificand.indexOf(significand) !== -1
+		|| labelIndex.indexOf(index) !== -1
+		|| labelIndex.indexOf(namedIndex) !== -1
+	) {
+		if (tickValue === 0) {
+			return '0';
+		} else {
+			return comma(tickValue).padStart(comma(qos_dlbw).length);
+		}
+	}
+	return emptyTick;
+};
+var lineOptions = {
+	title: {
+		fontColor: '#FFFFFF',
+		fontSize: 13,
+		display: true,
+		padding: 5
+	},
+	fill: false,
 	animationEasing: "easeOutQuart",
 	animationSteps: 100,
 	animateScale: true,
 	legend: {
 		display: false
 	},
-	tooltips: {
-		callbacks: {
-			title: function(tooltipItem, data) {
-				return data.labels[tooltipItem[0].index];
+	scales: {
+		xAxes: [{
+			display: false
+		}],
+		yAxes: [{
+			type: 'linear',
+			scaleLabel: {
+				display: true,
+				labelString: 'Rate (kb/s)',
+				fontColor: '#FFCC00'
 			},
-			label: function(tooltipItem, data) {
-				var value = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-				var orivalue = value;
-				var total = eval(data.datasets[tooltipItem.datasetIndex].data.join("+"));
-				var unit = " bytes";
-				if (value > 1024) {
-					value = value / 1024;
-					unit = " KB";
-				}
-				if (value > 1024) {
-					value = value / 1024;
-					unit = " MB";
-				}
-				if (value > 1024) {
-					value = value / 1024;
-					unit = " GB";
-				}
-				return value.toFixed(2) + unit + ' ( ' + parseFloat(orivalue * 100 / total).toFixed(2) + '% )';
-			},
+			ticks: {
+					display: true,
+					fontColor: "#FFFFFF",
+					fontSize: 11,
+					callback: function(value, index, values) {
+						return comma(value).padStart(comma(qos_dlbw).length);
+					},
+					labels: {
+						index:  ['min', 'max'],
+						significand:  [1, 2, 5],
+						removeEmptyLines: true
+					}
+			}
+		}]
+	},
+	elements: {
+		line: {
+			borderWidth: 2,
+			tension: 0
+		},
+		point: {
+			radius: 2,
+			hoverRadius: 3
 		}
 	},
-}
+	tooltips: {
+		callbacks: {
+			label: function(tooltipItem, data) {
+				var label = data.datasets[tooltipItem.datasetIndex].label;
+				var value = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+				return label + ': ' + comma(value) + ' kb/s';
+			}
+		}
+	}
+} // lineOptions
+// Set default fonts to match rest of UI
+Chart.defaults.global.defaultFontFamily = "'Arial', 'Helvetica', 'MS UI Gothic', 'MS P Gothic', sans-serif";
 
 function ip2dec(addr) {
 	if( /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b$/.test(addr) )		//regex that accepts ipv4 addresses ###.###.###.### (no cidr flag allowed)
@@ -525,10 +592,7 @@ function updateTable()
 }
 
 function comma(n) {
-	n = '' + n;
-	var p = n;
-	while ((n = n.replace(/(\d+)(\d{3})/g, '$1,$2')) != p) p = n;
-	return n;
+	return n.toLocaleString();
 }
 
 function get_devicenames()
@@ -695,24 +759,35 @@ function pullClassList(obj) {
 function initial() {
 	SetCurrentPage();
 	show_menu();
+	if (qos_mode != 2){		//if Adaptive QoS is not enabled
+		document.getElementById('no_aqos_notice').style.display = "";
+		document.getElementById('refresh_data').style.display = "none";
+		document.getElementById('dl_tr').style.display = "none";
+		document.getElementById('ul_tr').style.display = "none";
+		document.getElementById('tracked_filters').style.display = "none";
+		document.getElementById('tracked_connections').style.display = "none";
+		document.getElementById('refreshrate').value = "0";
+		var element = document.getElementById('FlexQoS_mod_toggle');
+		element.innerHTML="A.QoS Disabled";
+		element.setAttribute("onclick","location.href='QoS_EZQoS.asp';");
+		refreshRate = 0;
+		return;
+	}
 	populate_bandwidth_table();
 	set_FlexQoS_mod_vars();
 	get_devicenames();
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
+	initialize_charts();
 	get_data();
 	show_iptables_rules();
 	show_appdb_rules();
 	check_bandwidth();
 	well_known_rules();
 	populate_class_dropdown();
+	// Setup appdb auto-complete menu
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
-	if (qos_mode == 0){		//if QoS is invalid
-		document.getElementById('tracked_filters').style.display = "none";
-		document.getElementById('tracked_connections').style.display = "none";
-		document.getElementById('refresh_data').style.display = "none";
-	}
 	$.ajax({
 		url: "Main_DHCPStatus_Content.asp",
 		success: function(result){
@@ -726,7 +801,7 @@ function initial() {
 
 function get_qos_class(category, appid) {
 	var i, j, catlist, rules;
-	if ((category == 0 && appid == 0) || (qos_mode != 2))
+	if (category == 0 && appid == 0)
 		return qos_default;
 	for (i = 0; i < bwdpi_app_rulelist_row.length - 2; i++) {
 		rules = bwdpi_app_rulelist_row[i];
@@ -1046,39 +1121,24 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 
 function redraw() {
 	var code;
-	switch (qos_mode) {
-		case 0: // Disabled
-			document.getElementById('dl_tr').style.display = "none";
-			document.getElementById('ul_tr').style.display = "none";
-			document.getElementById('no_qos_notice').style.display = "";
-			return;
-		case 3: // Bandwith Limiter
-			document.getElementById('dl_tr').style.display = "none";
-			document.getElementById('ul_tr').style.display = "none";
-			document.getElementById('limiter_notice').style.display = "";
-			return;
-		case 1: // Traditional
-			document.getElementById('dl_tr').style.display = "none";
-			document.getElementById('tqos_notice').style.display = "";
-			break;
-		case 2: // Adaptive
-			if (pie_obj_dl != undefined) pie_obj_dl.destroy();
-			var ctx_dl = document.getElementById("pie_chart_dl").getContext("2d");
-			tcdata_lan_array.sort(function(a, b) {
-				return a[0] - b[0]
-			});
-			code = draw_chart(tcdata_lan_array, ctx_dl, "dl");
-			document.getElementById('legend_dl').innerHTML = code;
-			break;
-	}
-	if (pie_obj_ul != undefined) pie_obj_ul.destroy();
-	var ctx_ul = document.getElementById("pie_chart_ul").getContext("2d");
+	var timeLabel = new Date().toLocaleTimeString();
+	line_labels_array.push(timeLabel);
+	if (line_labels_array.length > maxdatapoints)
+		line_labels_array.splice(0,1);
+
+	tcdata_lan_array.sort(function(a, b) {
+		return a[0] - b[0]
+	});
+	code = draw_chart(tcdata_lan_array, "dl");
+	document.getElementById('legend_dl').innerHTML = code;
+
 	tcdata_wan_array.sort(function(a, b) {
 		return a[0] - b[0]
 	});
-	code = draw_chart(tcdata_wan_array, ctx_ul, "ul");
+	code = draw_chart(tcdata_wan_array, "ul");
 	document.getElementById('legend_ul').innerHTML = code;
-	pieOptions.animation = false; // Only animate first time
+
+	lineOptions.animation = false; // Only animate first time
 }
 
 function get_data() {
@@ -1101,91 +1161,143 @@ function get_data() {
 	});
 }
 
-function draw_chart(data_array, ctx, pie) {
-	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Total</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:center;">';
-	if (qos_bwmode == 1)
-		code += 'Bandwidth Util</th></tr></thead>';
-	else
-		code += 'Packet Rate</th></tr></thead>';
-	var values_array = [];
+function draw_chart(data_array, chartdir) {
+	var code = '<table><thead style="text-align:left;"><tr><th style="padding-left:5px;">Class</th><th style="text-align:right;padding-left:5px;width:76px;">Rate</th><th style="text-align:right;padding-left:5px;width:76px;">Total Data</th></tr></thead>';
+	var rate_array = window[chartdir+"rate_array"];
+	var datasetarray = [];
+	var rate = 0;
 	labels_array = [];
 	for (i = 0; i < data_array.length - 1; i++) {
-		var value = parseInt(data_array[i][1]);
+		var sent = parseInt(data_array[i][1]);		// Sent
 		var tcclass = parseInt(data_array[i][0]);
-		var rate;
-		if (qos_mode == 2) {
-			var index = 0;
-			for (j = 1; j < cat_id_array.length; j++) {
-				if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
-					index = j;
-					break;
-				}
-			}
-			var label = category_title[index];
-		} else {
-			tcclass = tcclass / 10;
-			var label = category_title[tcclass];
-			if (label == undefined) {
-				label = "Class " + tcclass;
+		rate = rate2kbs(data_array[i][2]);
+		var index = 0;
+		for (j = 1; j < cat_id_array.length; j++) {
+			if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
+				index = j;
+				break;
 			}
 		}
+		var label = category_title[index];
 		labels_array.push(label);
-		values_array.push(value);
 		var unit = " B";
-		if (value > 1024) {
-			value = value / 1024;
+		if (sent > 1024) {
+			sent = sent / 1024;
 			unit = " KB";
 		}
-		if (value > 1024) {
-			value = value / 1024;
+		if (sent > 1024) {
+			sent = sent / 1024;
 			unit = " MB";
 		}
-		if (value > 1024) {
-			value = value / 1024;
+		if (sent > 1024) {
+			sent = sent / 1024;
 			unit = " GB";
 		}
-		if (qos_mode == 2) {
-			code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
-			code += '<td style="text-align:right;padding-left:5px;">' + value.toFixed(2) + unit + '</td>';
-			rate = rate2kbs(data_array[i][2]);
-			code += '<td style="text-align:right;padding-left:5px;width:76px;">' + rate + ' kb</td>';
-			if ( qos_bwmode == 0 ) {
-				// Auto doesn't support the rate graphs
-				rate = comma(data_array[i][3]);
-				code += '<td style="padding-left:5px; text-align:right;">' + rate.replace(/([0-9,])([a-zA-Z])/g, '$1 $2') + '</td></tr>';
-			}
-			else {
-				if (pie == "dl")
-					var rate_max = qos_dlbw;
-				else
-					var rate_max = qos_ulbw;
-				var class_rate_pct = Math.round((rate.replace(",", "")/rate_max)*100);
-				code += '<td class="loading_bar" title="' + class_rate_pct + '% of ' + rate_max/1024 + ' Mb/s"><div><div class="status_bar" style="width:' + class_rate_pct + '%;background-color:' + color[i] + '"></div></div></td>';
-			}
-		}
+		code += '<tr><td style="word-wrap:break-word;padding-left:5px;padding-right:5px;border:1px #2f3a3e solid; border-radius:5px;background-color:' + color[i] + ';margin-right:10px;line-height:20px;">' + label + '</td>';
+		code += '<td style="text-align:right;padding-left:5px;width:76px;">' + comma(rate) + ' kb</td>';
+		code += '<td style="text-align:right;padding-left:5px;">' + sent.toLocaleFixed(2) + unit + '</td></tr>';
+		rate_array[i].push(rate);
+		if (rate_array[i].length > maxdatapoints)
+			rate_array[i].splice(0,1);
 	}
 	code += '</table>';
-	var pieData = {
-		labels: labels_array,
-		datasets: [{
-			data: values_array,
-			backgroundColor: color,
-			hoverBackgroundColor: color,
-			borderColor: "#444",
-			borderWidth: "1"
-		}]
+
+	for (var i=0;i<8;i++)
+		datasetarray.push({ data: rate_array[i], label: labels_array[i], order: i, fill: false, borderColor: color[i], backgroundColor: color[i]});
+	var lineData = {
+			labels: line_labels_array,
+			datasets: datasetarray
 	};
-	var pie_obj = new Chart(ctx, {
-		type: 'pie',
-		data: pieData,
-		options: pieOptions
-	});
-	if (pie == "ul")
-		pie_obj_ul = pie_obj;
-	else
-		pie_obj_dl = pie_obj;
+	if (chartdir == "ul") {
+		lineOptions.title.text = "Upload";
+	} else {
+		lineOptions.title.text = "Download";
+	};
+	var chartObj = window['line_obj_'+chartdir];
+	chartObj.data = lineData;
+	chartObj.options = lineOptions;
+	chartObj.update();
 	return code;
 }
+
+function initialize_charts() {
+	// Instantiate the charts one time and update data later based on refresh rate
+	var graphLoadTime = new Date();		// Get initial load time in milliseconds for further calculations of historic graph ticks
+	var secondsOffset = 0;
+	var ctx_dl = document.getElementById("line_chart_dl").getContext("2d");		// download chart canvas
+	var ctx_ul = document.getElementById("line_chart_ul").getContext("2d");		// upload chart canvas
+	for (var k=0;k<8;k++){
+		// Initialize dl and ul arrays with zeros for flatline initial chart
+		dlrate_array[k] = new Array();
+		ulrate_array[k] = new Array();
+		for (var l=0;l<maxdatapoints;l++){
+			dlrate_array[k].push(0);
+			ulrate_array[k].push(0);
+		}
+	}
+	for (var k=0;k<maxdatapoints;k++){
+		// Initialize x-axis time labels with historic intervals from the time the page was loaded
+		secondsOffset = refreshRate*k*1000;		// use refresh rate * interval * 1000 ms (1 second)
+		var timeLabel = new Date(graphLoadTime-secondsOffset);		// load time in ms less the calculated offset in ms
+		line_labels_array.unshift(timeLabel.toLocaleTimeString());	// insert at start of label array in user locale time format
+	}
+	change_chart_scale();
+	// Setup downlaod chart
+	var lineData = {
+			labels: line_labels_array,
+			datasets: dlrate_array
+	};
+	lineOptions.title.text = "Download";
+	var line_obj = new Chart(ctx_dl, {
+		type: 'line',
+		data: lineData,
+		options: lineOptions
+	});
+	line_obj_dl=line_obj;		// actually draws the chart on the page
+	// Setup uplaod chart
+	var lineData = {
+			labels: line_labels_array,
+			datasets: ulrate_array
+	};
+	lineOptions.title.text = "Upload";
+	var line_obj = new Chart(ctx_ul, {
+		type: 'line',
+		data: lineData,
+		options: lineOptions
+	});
+	line_obj_ul=line_obj;		// actually draws the chart on the page
+} // initialize_charts
+
+function change_chart_scale(input) {
+	var chart_scale = cookie.get('flexqos_rate_graph_scale');
+	if ( input == null ) {
+		// Set scale from user options
+		if ( chart_scale != null ) {
+			if ( chart_scale == "1" )
+				document.form.rate_graph_scale.value = 1;
+			else
+				document.form.rate_graph_scale.value = 0;
+		}
+		else
+			document.form.rate_graph_scale.value = 0;
+		input = document.form.rate_graph_scale.value;
+	}
+
+	switch (input) {
+		case "1":
+			lineOptions.scales.yAxes[0].type = "logarithmic";
+			lineOptions.scales.yAxes[0].ticks.labels = { index:  ['min', 'max'], significand:  [1, 2, 5], removeEmptyLines: true };
+			lineOptions.scales.yAxes[0].ticks.userCallback = logarithmicFormatter;
+			cookie.set("flexqos_rate_graph_scale", input, 31);
+			break;
+		default:
+			lineOptions.scales.yAxes[0].type = "linear";
+			lineOptions.scales.yAxes[0].ticks.labels = "";
+			lineOptions.scales.yAxes[0].ticks.userCallback = "";
+			cookie.unset("flexqos_rate_graph_scale");
+			break;
+	}
+} // change_chart_scale
 
 function rate2kbs(rate)
 {
@@ -1193,15 +1305,15 @@ function rate2kbs(rate)
 	{
 		if (rate.includes("Mbit"))
 		{
-			return ( comma(parseInt(rate.replace(/[^0-9]/g,"")*1000)));
+			return ( parseInt(rate.replace(/[^0-9]/g,"")*1000) );
 		}
 		else if (rate.includes("Kbit"))
 		{
-			return  ( comma(parseInt(rate.replace(/[^0-9]/g,""))) );
+			return ( parseInt(rate.replace(/[^0-9]/g,"")) );
 		}
 		else if (rate.includes("bit"))
 		{
-			return ( comma(parseInt(rate.replace(/[^0-9]/g,"")/1000)) )
+			return ( parseInt(rate.replace(/[^0-9]/g,"")/1000) );
 		}
 	}
 
@@ -1833,94 +1945,91 @@ function set_FlexQoS_mod_vars()
 	if ( custom_settings.flexqos_branch != undefined )
 		document.getElementById("flexqos_version").innerHTML += " Dev";
 
-	if (qos_mode != 2) {
-		var element = document.getElementById('FlexQoS_mod_toggle')
-		element.innerHTML="A.QoS Disabled";
-		element.setAttribute("onclick","location.href='QoS_EZQoS.asp';");
+	if ( custom_settings.flexqos_iptables == undefined )  // rules not yet converted to API format
+		{
+			// prepend default rules which can be later edited/deleted by user
+			iptables_rulelist_array = iptables_default_rules;
+			iptables_rulename_array = decodeURIComponent(iptables_default_rulenames);
+		}
+	else { // rules are migrated to new API variables
+		iptables_rulelist_array = custom_settings.flexqos_iptables;
+		if ( custom_settings.flexqos_iptables_names == undefined ) {
+			iptables_rulename_array = "";
+			var iptables_rulecount = iptables_rulelist_array.split("<").length;
+			for (var i=0;i<iptables_rulecount;i++) {
+				iptables_rulename_array += "<Rule " + eval(" i + 1 ");
+			}
+		}
+		else
+			iptables_rulename_array = decodeURIComponent(custom_settings.flexqos_iptables_names);
 	}
+
+	if ( custom_settings.flexqos_appdb == undefined )
+		// start with default appdb rules which can be edited/deleted later by user
+		appdb_rulelist_array = appdb_default_rules;
 	else
-	{
-		if ( custom_settings.flexqos_iptables == undefined )  // rules not yet converted to API format
-			{
-				// prepend default rules which can be later edited/deleted by user
-				iptables_rulelist_array = iptables_default_rules;
-				iptables_rulename_array = decodeURIComponent(iptables_default_rulenames);
-			}
-		else { // rules are migrated to new API variables
-			iptables_rulelist_array = custom_settings.flexqos_iptables;
-			if ( custom_settings.flexqos_iptables_names == undefined ) {
-				iptables_rulename_array = "";
-				var iptables_rulecount = iptables_rulelist_array.split("<").length;
-				for (var i=0;i<iptables_rulecount;i++) {
-					iptables_rulename_array += "<Rule " + eval(" i + 1 ");
-				}
-			}
-			else
-				iptables_rulename_array = decodeURIComponent(custom_settings.flexqos_iptables_names);
-		}
+		appdb_rulelist_array = custom_settings.flexqos_appdb;
 
-		if ( custom_settings.flexqos_appdb == undefined )
-			// start with default appdb rules which can be edited/deleted later by user
-			appdb_rulelist_array = appdb_default_rules;
-		else
-			appdb_rulelist_array = custom_settings.flexqos_appdb;
-
-		appdb_temp_array = appdb_rulelist_array.split("<");
-		appdb_temp_array.shift();
-		for (var a=0; a<appdb_temp_array.length;a++) {
-			if (appdb_temp_array[a].length == 8) {
-				appdb_temp_array[a]=appdb_temp_array[a].split(">");
-				appdb_temp_array[a].unshift(catdb_label_array[catdb_mark_array.indexOf(appdb_temp_array[a][0])]);
-				appdb_rules.push(create_rule("", "", "", "", "", appdb_temp_array[a][1], appdb_temp_array[a][2]));
-			}
-		}
-
-		var r=0;
-		iptables_temp_array = iptables_rulelist_array.split("<");
-		var iptables_names_temp_array = iptables_rulename_array.split("<");
-		iptables_temp_array.shift();
-		iptables_names_temp_array.shift();
-		for (r=0;r<iptables_temp_array.length;r++){
-			if (iptables_temp_array[r] != "") {
-				iptables_temp_array[r]=iptables_temp_array[r].split(">");
-				if (iptables_names_temp_array[r])
-					iptables_temp_array[r].unshift(iptables_names_temp_array[r]);
-				iptables_rules.unshift(create_rule(iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6], iptables_temp_array[r][7], iptables_temp_array[r][0]));
-			}
-		}
-
-		// get Bandwidth
-		if ( custom_settings.flexqos_bandwidth == undefined )
-			bandwidth = bandwidth_default_rules;
-		else
-			bandwidth = custom_settings.flexqos_bandwidth;
-
-		var bandwidth_array = bandwidth.split("<");
-		bandwidth_array.shift();
-		for (var b=0;b<bandwidth_array.length;b++) {
-			bandwidth_array[b] = bandwidth_array[b].split(">");
-			var temp_elemid;
-			var maxpct;
-			switch (b) {
-				case 0:
-					temp_elemid="drp"; maxpct=99;
-					break;
-				case 1:
-					temp_elemid="dcp"; maxpct=100;
-					break;
-				case 2:
-					temp_elemid="urp"; maxpct=99;
-					break;
-				case 3:
-					temp_elemid="ucp"; maxpct=100;
-					break;
-			}
-			for (var c=0;c<bandwidth_array[b].length;c++) {
-				if (bandwidth_array[b][c] >=1 && bandwidth_array[b][c]<=maxpct)
-					document.getElementById(temp_elemid + c).value=bandwidth_array[b][c];
-			}
+	appdb_temp_array = appdb_rulelist_array.split("<");
+	appdb_temp_array.shift();
+	for (var a=0; a<appdb_temp_array.length;a++) {
+		if (appdb_temp_array[a].length == 8) {
+			appdb_temp_array[a]=appdb_temp_array[a].split(">");
+			appdb_temp_array[a].unshift(catdb_label_array[catdb_mark_array.indexOf(appdb_temp_array[a][0])]);
+			appdb_rules.push(create_rule("", "", "", "", "", appdb_temp_array[a][1], appdb_temp_array[a][2]));
 		}
 	}
+
+	var r=0;
+	iptables_temp_array = iptables_rulelist_array.split("<");
+	var iptables_names_temp_array = iptables_rulename_array.split("<");
+	iptables_temp_array.shift();
+	iptables_names_temp_array.shift();
+	for (r=0;r<iptables_temp_array.length;r++){
+		if (iptables_temp_array[r] != "") {
+			iptables_temp_array[r]=iptables_temp_array[r].split(">");
+			if (iptables_names_temp_array[r])
+				iptables_temp_array[r].unshift(iptables_names_temp_array[r]);
+			iptables_rules.unshift(create_rule(iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6], iptables_temp_array[r][7], iptables_temp_array[r][0]));
+		}
+	}
+
+	// get Bandwidth
+	if ( custom_settings.flexqos_bandwidth == undefined )
+		bandwidth = bandwidth_default_rules;
+	else
+		bandwidth = custom_settings.flexqos_bandwidth;
+
+	var bandwidth_array = bandwidth.split("<");
+	bandwidth_array.shift();
+	for (var b=0;b<bandwidth_array.length;b++) {
+		bandwidth_array[b] = bandwidth_array[b].split(">");
+		var temp_elemid;
+		var maxpct;
+		switch (b) {
+			case 0:
+				temp_elemid="drp"; maxpct=99;
+				break;
+			case 1:
+				temp_elemid="dcp"; maxpct=100;
+				break;
+			case 2:
+				temp_elemid="urp"; maxpct=99;
+				break;
+			case 3:
+				temp_elemid="ucp"; maxpct=100;
+				break;
+		}
+		for (var c=0;c<bandwidth_array[b].length;c++) {
+			if (bandwidth_array[b][c] >=1 && bandwidth_array[b][c]<=maxpct)
+				document.getElementById(temp_elemid + c).value=bandwidth_array[b][c];
+		}
+	}
+
+	if ( custom_settings.flexqos_conntrack == undefined )		// disabled
+		document.form.flexqos_conntrack.value = "1";
+	else
+		document.form.flexqos_conntrack.value = custom_settings.flexqos_conntrack;
 }
 
 function FlexQoS_reset_iptables() {
@@ -2079,6 +2188,14 @@ function FlexQoS_mod_apply() {
 	custom_settings.flexqos_iptables_names = iptables_rulename_array;
 	custom_settings.flexqos_appdb = appdb_rulelist_array;
 	custom_settings.flexqos_bandwidth = bandwidth;
+	if (custom_settings.flexqos_conntrack) {					// already saved so assume enabled
+		if (document.form.flexqos_conntrack.value == 1)		// if enabled in the GUI
+			delete custom_settings.flexqos_conntrack;
+	}
+	else {
+		if (document.form.flexqos_conntrack.value == 0)		// if disabled in the GUI
+			custom_settings.flexqos_conntrack = document.form.flexqos_conntrack.value;
+	}
 
 	/* Store object as a string in the amng_custom hidden input field */
 	if (JSON.stringify(custom_settings).length < 8192) {
@@ -2180,8 +2297,8 @@ function check_bandwidth() {
 		urptot += parseInt(urp.value);
 		if ( qos_bwmode == 1 ) {
 			// Manual
-			dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
-			up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+			dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
+			up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
 		} else {
 			// Auto
 			dp_desc.innerHTML="Automatic BW mode";
@@ -2200,8 +2317,6 @@ function check_bandwidth() {
 		document.getElementById('qos_rates_warn').style.display = "";
 	else
 		document.getElementById('qos_rates_warn').style.display = "none";
-	for (var i=0;i<8;i++) {
-	}
 } // check_bandwidth
 
 function validate_percent(input)
@@ -2237,17 +2352,21 @@ function update_status(){
 			else {
 				document.getElementById("ver_check").disabled = false;
 				document.getElementById("ver_update_scan").style.display = "none";
-				if ( verUpdateStatus != "NoUpdate") {
+				if ( verUpdateStatus == "NoUpdate" ) {
+					document.getElementById("versionStatus").innerHTML = " You have the latest version.";
+					document.getElementById("versionStatus").style.display = "";
+					}
+				else if ( verUpdateStatus == "Error" ) {
+					document.getElementById("versionStatus").innerHTML = " Error getting remote version.";
+					document.getElementById("versionStatus").style.display = "";
+					}
+				else {
 					/* version update or hotfix available */
 					/* toggle update button */
 					document.getElementById("versionStatus").innerHTML = " " + verUpdateStatus + " available!";
 					document.getElementById("versionStatus").style.display = "";
 					document.getElementById("ver_check").style.display = "none";
 					document.getElementById("ver_update").style.display = "";
-				}
-				else {
-					document.getElementById("versionStatus").innerHTML = " You have the latest version.";
-					document.getElementById("versionStatus").style.display = "";
 				}
 			}
 		}
@@ -2440,7 +2559,6 @@ function autocomplete(inp, arr) {
 		closeAllLists(e.target);
 	});
 }
-
 </script>
 </head>
 <body onload="initial();" class="bg">
@@ -2484,9 +2602,37 @@ function autocomplete(inp, arr) {
 <div style="display:inline-block; margin:0px 0px 10px 5px; font-size:14px; text-shadow: 1px 1px 0px black;"><b>QoS Customization</b></div>
 <div style="margin:0px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_apply();"><span style="padding:0 0 0 0" align="center">Apply</span></div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
+	<thead>
+		<tr>
+			<td colspan="2">Options</td>
+		</tr>
+	</thead>
+<!--
 	<tr>
-		<th colspan="2">Add Well-Known Rules</th>
-		<td colspan="4">
+		<th>Graph Units</th>
+		<td>
+			<input type="radio" name="rate_graph_units" class="input" value="0" onChange="change_chart_opts(this)">kb/s
+			<input type="radio" name="rate_graph_units" class="input" value="1" onChange="change_chart_opts(this)">Mb/s
+		</td>
+	</tr>
+-->
+	<tr>
+		<th>Graph Scale</th>
+		<td>
+			<input type="radio" name="rate_graph_scale" class="input" value="0" onChange="change_chart_scale(this.value)">Linear
+			<input type="radio" name="rate_graph_scale" class="input" value="1" onChange="change_chart_scale(this.value)">Logarithmic
+		</td>
+	</tr>
+	<tr>
+		<th>Enable Conntrack Flushing</th>
+		<td>
+			<input type="radio" name="flexqos_conntrack" class="input" value="1">Yes
+			<input type="radio" name="flexqos_conntrack" class="input" value="0">No
+		</td>
+	</tr>
+	<tr>
+		<th>Add Well-Known iptables Rule</th>
+		<td>
 			<select name="WellKnownRules" class="input_option" onChange="change_wizard(this);">
 				<option value="User Defined">Please select</option>
 			</select>
@@ -2567,24 +2713,20 @@ function autocomplete(inp, arr) {
 </tr>
 </table>
 <br>
-<div id="limiter_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: Statistics not available in Bandwidth Limiter mode.</div>
-<div id="no_qos_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: QoS is not enabled.</div>
-<div id="tqos_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: Traditional QoS only classifies uploaded traffic.</div>
+<div id="no_aqos_notice" style="display:none;font-size:125%;color:#FFCC00;">Note: Adaptive QoS is not enabled.</div>
 <table>
 <tr id="dl_tr">
-<td style="padding-right:50px;font-size:125%;color:#FFCC00;">
-<div>Download</div>
-<canvas id="pie_chart_dl" width="200" height="200"></canvas>
+<td style="padding-right:10px;font-size:125%;color:#FFCC00;">
+<canvas id="line_chart_dl" width="390" height="235"></canvas>
 </td>
 <td><span id="legend_dl"></span></td>
 </tr>
-<tr style="height:50px;">
+<tr style="height:25px;">
 <td colspan="2">&nbsp;</td>
 </tr>
 <tr id="ul_tr">
-<td style="padding-right:50px;font-size:125%;color:#FFCC00;">
-<div>Upload</div>
-<canvas id="pie_chart_ul" width="200" height="200"></canvas>
+<td style="padding-right:10px;font-size:125%;color:#FFCC00;">
+<canvas id="line_chart_ul" width="390" height="235"></canvas>
 </td>
 <td><span id="legend_ul"></span></td>
 </tr>
