@@ -11,7 +11,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=1.1.0
-release=2020-12-06
+release=2020-12-13
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 #
 # Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
@@ -70,9 +70,9 @@ fi
 # If Merlin fq_codel patch is active, use original tc binary for passing commands
 # Will be obsolete in 386.1 and higher.
 if [ -e "/usr/sbin/realtc" ]; then
-	tc="realtc"
+	tc="/usr/sbin/realtc"
 else
-	tc="tc"
+	tc="/usr/sbin/tc"
 fi
 
 # Detect if script is run from an SSH shell interactively or being invoked via cron or from the WebUI (unattended)
