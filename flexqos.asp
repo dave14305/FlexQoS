@@ -1960,99 +1960,91 @@ function set_FlexQoS_mod_vars()
 	if ( custom_settings.flexqos_branch != undefined )
 		document.getElementById("flexqos_version").innerHTML += " Dev";
 
-	if (qos_mode != 2) {
-		var element = document.getElementById('FlexQoS_mod_toggle')
-		element.innerHTML="A.QoS Disabled";
-		element.setAttribute("onclick","location.href='QoS_EZQoS.asp';");
+	if ( custom_settings.flexqos_iptables == undefined )  // rules not yet converted to API format
+		{
+			// prepend default rules which can be later edited/deleted by user
+			iptables_rulelist_array = iptables_default_rules;
+			iptables_rulename_array = decodeURIComponent(iptables_default_rulenames);
+		}
+	else { // rules are migrated to new API variables
+		iptables_rulelist_array = custom_settings.flexqos_iptables;
+		if ( custom_settings.flexqos_iptables_names == undefined ) {
+			iptables_rulename_array = "";
+			var iptables_rulecount = iptables_rulelist_array.split("<").length;
+			for (var i=0;i<iptables_rulecount;i++) {
+				iptables_rulename_array += "<Rule " + eval(" i + 1 ");
+			}
+		}
+		else
+			iptables_rulename_array = decodeURIComponent(custom_settings.flexqos_iptables_names);
 	}
+
+	if ( custom_settings.flexqos_appdb == undefined )
+		// start with default appdb rules which can be edited/deleted later by user
+		appdb_rulelist_array = appdb_default_rules;
 	else
-	{
-		if ( custom_settings.flexqos_iptables == undefined )  // rules not yet converted to API format
-			{
-				// prepend default rules which can be later edited/deleted by user
-				iptables_rulelist_array = iptables_default_rules;
-				iptables_rulename_array = decodeURIComponent(iptables_default_rulenames);
-			}
-		else { // rules are migrated to new API variables
-			iptables_rulelist_array = custom_settings.flexqos_iptables;
-			if ( custom_settings.flexqos_iptables_names == undefined ) {
-				iptables_rulename_array = "";
-				var iptables_rulecount = iptables_rulelist_array.split("<").length;
-				for (var i=0;i<iptables_rulecount;i++) {
-					iptables_rulename_array += "<Rule " + eval(" i + 1 ");
-				}
-			}
-			else
-				iptables_rulename_array = decodeURIComponent(custom_settings.flexqos_iptables_names);
+		appdb_rulelist_array = custom_settings.flexqos_appdb;
+
+	appdb_temp_array = appdb_rulelist_array.split("<");
+	appdb_temp_array.shift();
+	for (var a=0; a<appdb_temp_array.length;a++) {
+		if (appdb_temp_array[a].length == 8) {
+			appdb_temp_array[a]=appdb_temp_array[a].split(">");
+			appdb_temp_array[a].unshift(catdb_label_array[catdb_mark_array.indexOf(appdb_temp_array[a][0])]);
+			appdb_rules.push(create_rule("", "", "", "", "", appdb_temp_array[a][1], appdb_temp_array[a][2]));
 		}
-
-		if ( custom_settings.flexqos_appdb == undefined )
-			// start with default appdb rules which can be edited/deleted later by user
-			appdb_rulelist_array = appdb_default_rules;
-		else
-			appdb_rulelist_array = custom_settings.flexqos_appdb;
-
-		appdb_temp_array = appdb_rulelist_array.split("<");
-		appdb_temp_array.shift();
-		for (var a=0; a<appdb_temp_array.length;a++) {
-			if (appdb_temp_array[a].length == 8) {
-				appdb_temp_array[a]=appdb_temp_array[a].split(">");
-				appdb_temp_array[a].unshift(catdb_label_array[catdb_mark_array.indexOf(appdb_temp_array[a][0])]);
-				appdb_rules.push(create_rule("", "", "", "", "", appdb_temp_array[a][1], appdb_temp_array[a][2]));
-			}
-		}
-
-		var r=0;
-		iptables_temp_array = iptables_rulelist_array.split("<");
-		var iptables_names_temp_array = iptables_rulename_array.split("<");
-		iptables_temp_array.shift();
-		iptables_names_temp_array.shift();
-		for (r=0;r<iptables_temp_array.length;r++){
-			if (iptables_temp_array[r] != "") {
-				iptables_temp_array[r]=iptables_temp_array[r].split(">");
-				if (iptables_names_temp_array[r])
-					iptables_temp_array[r].unshift(iptables_names_temp_array[r]);
-				iptables_rules.unshift(create_rule(iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6], iptables_temp_array[r][7], iptables_temp_array[r][0]));
-			}
-		}
-
-		// get Bandwidth
-		if ( custom_settings.flexqos_bandwidth == undefined )
-			bandwidth = bandwidth_default_rules;
-		else
-			bandwidth = custom_settings.flexqos_bandwidth;
-
-		var bandwidth_array = bandwidth.split("<");
-		bandwidth_array.shift();
-		for (var b=0;b<bandwidth_array.length;b++) {
-			bandwidth_array[b] = bandwidth_array[b].split(">");
-			var temp_elemid;
-			var maxpct;
-			switch (b) {
-				case 0:
-					temp_elemid="drp"; maxpct=99;
-					break;
-				case 1:
-					temp_elemid="dcp"; maxpct=100;
-					break;
-				case 2:
-					temp_elemid="urp"; maxpct=99;
-					break;
-				case 3:
-					temp_elemid="ucp"; maxpct=100;
-					break;
-			}
-			for (var c=0;c<bandwidth_array[b].length;c++) {
-				if (bandwidth_array[b][c] >=1 && bandwidth_array[b][c]<=maxpct)
-					document.getElementById(temp_elemid + c).value=bandwidth_array[b][c];
-			}
-		}
-
-		if ( custom_settings.flexqos_conntrack == undefined )		// disabled
-			document.form.flexqos_conntrack.value = "1";
-		else
-			document.form.flexqos_conntrack.value = custom_settings.flexqos_conntrack;
 	}
+
+	var r=0;
+	iptables_temp_array = iptables_rulelist_array.split("<");
+	var iptables_names_temp_array = iptables_rulename_array.split("<");
+	iptables_temp_array.shift();
+	iptables_names_temp_array.shift();
+	for (r=0;r<iptables_temp_array.length;r++){
+		if (iptables_temp_array[r] != "") {
+			iptables_temp_array[r]=iptables_temp_array[r].split(">");
+			if (iptables_names_temp_array[r])
+				iptables_temp_array[r].unshift(iptables_names_temp_array[r]);
+			iptables_rules.unshift(create_rule(iptables_temp_array[r][1], iptables_temp_array[r][2], iptables_temp_array[r][3], iptables_temp_array[r][4], iptables_temp_array[r][5], iptables_temp_array[r][6], iptables_temp_array[r][7], iptables_temp_array[r][0]));
+		}
+	}
+
+	// get Bandwidth
+	if ( custom_settings.flexqos_bandwidth == undefined )
+		bandwidth = bandwidth_default_rules;
+	else
+		bandwidth = custom_settings.flexqos_bandwidth;
+
+	var bandwidth_array = bandwidth.split("<");
+	bandwidth_array.shift();
+	for (var b=0;b<bandwidth_array.length;b++) {
+		bandwidth_array[b] = bandwidth_array[b].split(">");
+		var temp_elemid;
+		var maxpct;
+		switch (b) {
+			case 0:
+				temp_elemid="drp"; maxpct=99;
+				break;
+			case 1:
+				temp_elemid="dcp"; maxpct=100;
+				break;
+			case 2:
+				temp_elemid="urp"; maxpct=99;
+				break;
+			case 3:
+				temp_elemid="ucp"; maxpct=100;
+				break;
+		}
+		for (var c=0;c<bandwidth_array[b].length;c++) {
+			if (bandwidth_array[b][c] >=1 && bandwidth_array[b][c]<=maxpct)
+				document.getElementById(temp_elemid + c).value=bandwidth_array[b][c];
+		}
+	}
+
+	if ( custom_settings.flexqos_conntrack == undefined )		// disabled
+		document.form.flexqos_conntrack.value = "1";
+	else
+		document.form.flexqos_conntrack.value = custom_settings.flexqos_conntrack;
 }
 
 function FlexQoS_reset_iptables() {
