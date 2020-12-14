@@ -1302,9 +1302,9 @@ uninstall() {
 	remove_webui
 	printf "Removing %s settings...\n" "$SCRIPTNAME_DISPLAY"
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
-		printf "Backup found! Would you like to delete it? [1=Yes 2=No]: "
+		printf "Backup found! Would you like to keep it? [1=Yes 2=No]: "
 		read -r yn
-		if [ "$yn" = "1" ]; then
+		if [ "$yn" = "2" ]; then
 			printf "Deleting Backup...\n"
 			rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 		fi
