@@ -70,9 +70,9 @@ fi
 # If Merlin fq_codel patch is active, use original tc binary for passing commands
 # Will be obsolete in 386.1 and higher.
 if [ -e "/usr/sbin/realtc" ]; then
-	tc="/usr/sbin/realtc"
+	TC="/usr/sbin/realtc"
 else
-	tc="/usr/sbin/tc"
+	TC="/usr/sbin/tc"
 fi
 
 # Detect if script is run from an SSH shell interactively or being invoked via cron or from the WebUI (unattended)
@@ -206,7 +206,7 @@ set_tc_variables() {
 	# Determine the WAN interface name used by tc by finding the existing htb root qdisc that is NOT br0.
 	# If not found, check the dev_wan file created by Adaptive QoS.
 	# If still not determined, assume eth0 but something is probably wrong at this point.
-	tcwan="$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')"
+	tcwan="$($TC qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')"
 	if [ -z "$tcwan" ] && [ -s "/tmp/bwdpi/dev_wan" ]; then
 		tcwan="$(/bin/grep -oE "eth[0-9]|usb[0-9]" /tmp/bwdpi/dev_wan)"
 	fi
@@ -218,9 +218,9 @@ set_tc_variables() {
 	# Newer 384 stock firmware dropped this rule, so Untracked traffic flows into the Work-From-Home priority by default.
 	# First check for older ASUS default rule (0x80000000 0xc000ffff).
 	# If not found, get the prio for the Work-From-Home Instant messengers category 00 (0x80000000 0xc03f0000) and subtract 1.
-	undf_prio="$(${tc} filter show dev br0 | /bin/grep -i -m1 -B1 "0x80000000 0xc000ffff" | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
+	undf_prio="$($TC filter show dev br0 | /bin/grep -i -m1 -B1 "0x80000000 0xc000ffff" | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
 	if [ -z "$undf_prio" ]; then
-		undf_prio="$(${tc} filter show dev br0 | /bin/grep -i -m1 -B1 "0x80000000 0xc03f0000" | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
+		undf_prio="$($TC filter show dev br0 | /bin/grep -i -m1 -B1 "0x80000000 0xc03f0000" | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
 		undf_prio="$((undf_prio-1))"
 	fi
 
@@ -1401,8 +1401,8 @@ write_appdb_rules() {
 	# Write the user appdb rules to the existing tcrules file created during write_appdb_static_rules()
 
 	# Save the current filter rules once to avoid repeated calls in parse_appdb_rule() to determine existing prios
-	${tc} filter show dev $tclan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
-	${tc} filter show dev $tcwan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
+	$TC filter show dev $tclan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
+	$TC filter show dev $tcwan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
 
 	# loop through appdb rules and write a tc command to a temporary script file
 	OLDIFS="$IFS"		# Save existing field separator
@@ -1422,10 +1422,10 @@ write_appdb_rules() {
 check_qos_tc() {
 	# Check the status of the existing tc class and filter setup by stock Adaptive QoS before custom settings applied.
 	# Only br0 interface is checked since we have not yet identified the tcwan interface name yet.
-	dlclasscnt="$(${tc} class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
-	dlfiltercnt="$(${tc} filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+	dlclasscnt="$($TC class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
+	dlfiltercnt="$($TC filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
 	# Check class count, filter count, and tcwan interface name defined with an htb qdisc
-	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$(${tc} qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
+	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$($TC qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
 		return 0
 	else
 		return 1
@@ -1437,8 +1437,8 @@ validate_tc_rules() {
 	# Must run after set_tc_variables() to ensure flowid can be determined
 	{
 		# print a list of existing filters in the format of an appdb rule for easy comparison. Write to tmp file
-		${tc} filter show dev "$tclan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
-		${tc} filter show dev "$tcwan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
+		$TC filter show dev "$tclan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
+		$TC filter show dev "$tcwan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
 	} > /tmp/${SCRIPTNAME}_checktcrules 2>/dev/null
 	OLDIFS="$IFS"
 	IFS=">"
@@ -1529,7 +1529,7 @@ startup() {
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logmsg "Applying AppDB rules and TC rates"
-			if ! ${tc} -force -batch /tmp/${SCRIPTNAME}_tcrules >/tmp/${SCRIPTNAME}_tcrules.log 2>&1; then
+			if ! $TC -force -batch /tmp/${SCRIPTNAME}_tcrules >/tmp/${SCRIPTNAME}_tcrules.log 2>&1; then
 				cp -f /tmp/${SCRIPTNAME}_tcrules /tmp/${SCRIPTNAME}_tcrules.err
 				logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
 			else
