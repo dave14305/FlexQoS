@@ -47,9 +47,9 @@ if [ "$1" = "-x" ]; then
 fi
 
 # Global variables
-SCRIPTNAME_DISPLAY="FlexQoS"
-SCRIPTNAME="$(echo $SCRIPTNAME_DISPLAY | tr A-Z a-z)"
-GIT_REPO="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}"
+readonly SCRIPTNAME_DISPLAY="FlexQoS"
+readonly SCRIPTNAME="$(echo $SCRIPTNAME_DISPLAY | tr A-Z a-z)"
+readonly GIT_REPO="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}"
 if [ "$(am_settings_get "${SCRIPTNAME}_branch")" != "develop" ]; then
 	GIT_BRANCH="master"
 else
@@ -57,9 +57,9 @@ else
 fi
 GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 
-ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
-WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
-SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
+readonly ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
+readonly WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
+readonly SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
 IPv6_enabled="$(nvram get ipv6_service)"
 
 # Update version number in custom_settings.txt for reading in WebUI
