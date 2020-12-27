@@ -900,6 +900,7 @@ download_file() {
 			logmsg "Updated $(echo "$1" | awk -F / '{print $NF}')"
 		else
 			logmsg "File $(echo "$2" | awk -F / '{print $NF}') is already up-to-date"
+			rm -f "/tmp/$1" 2>/dev/null
 		fi
 	else
 		logmsg "Updating $(echo "$1" | awk -F / '{print $NF}') failed"
