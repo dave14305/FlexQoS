@@ -187,7 +187,7 @@ var ipv6prefix = "<% nvram_get("ipv6_prefix"); %>".replace(/::$/,":");
 const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7";
 const iptables_default_rulenames = "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads";
 const appdb_default_rules = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5";
-const bandwidth_default_rules = "<5>20>15>10>10>30>5>5<100>100>100>100>100>100>100>100<5>20>15>30>10>10>5>5<100>100>100>100>100>100>100>100";
+const bandwidth_default_rules = "<5>15>30>20>10>5>10>5<100>100>100>100>100>100>100>100<5>15>10>20>10>5>30>5<100>100>100>100>100>100>100>100";
 var iptables_rulelist_array="";
 var iptables_rulename_array="";
 var iptables_temp_array=[];
@@ -705,8 +705,6 @@ function populate_class_dropdown() {
 } // populate_class_dropdown
 
 function populate_bandwidth_table() {
-	// kludge until I can harmonize custom bandwidth field numbering with menu order
-	var bw_class_map = [ "Net Control", "Work-From-Home", "Gaming", "Others", "Web Surfing", "Streaming", "Game Downloads", "File Downloads" ];
 	var code = "";
 	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
 		for (j=0;j<cat_id_array.length;j++) {
@@ -715,15 +713,14 @@ function populate_bandwidth_table() {
 				break;
 			}
 		}
-		var bw_field = bw_class_map.indexOf(class_title[index]);
 		code += '<tr>' +
 		'<td class="cat' + i + '">' + class_title[index] + '</td>' +
-		'<td><input id="drp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
-		'<td><input id="dcp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
-		'<td align="center"><div id="dp' + bw_field + '_desc"></div></td>' +
-		'<td><input id="urp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
-		'<td><input id="ucp' + bw_field + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
-		'<td align="center"><div id="up' + bw_field + '_desc"></div></td>' +
+		'<td><input id="drp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="dcp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="dp' + index + '_desc"></div></td>' +
+		'<td><input id="urp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="2" autocomplete="off" autocorrect="off" autocapitalize="off" value="5"> % </td>' +
+		'<td><input id="ucp' + index + '" onfocusout="validate_percent(this)" type="text" class="input_3_table" maxlength="3" autocomplete="off" autocorrect="off" autocapitalize="off" value="100"> % </td>' +
+		'<td align="center"><div id="up' + index + '_desc"></div></td>' +
 		'</tr>';
 	}
 	code += '<tr id="qos_rates_warn" style="display:none;"><td>' +
@@ -1938,6 +1935,46 @@ function FlexQoS_mod_toggle()
 	}
 }
 
+function convert_BW_settings(settings) {
+	var newSettings = "";
+	var bandwidth_array = settings.split("<");
+	bandwidth_array.shift();
+	for (var b=0;b<bandwidth_array.length;b++) {
+		bandwidth_array[b] = bandwidth_array[b].split(">");
+	}
+	for (var b=0;b<bandwidth_array.length;b++) {
+		for (var c=0;c<bandwidth_array[b].length;c++) {
+			switch (c) {
+				case 0:
+					newSettings += '<' + bandwidth_array[b][0];
+					break;
+				case 1:
+					newSettings += '>' + bandwidth_array[b][2];
+					break;
+				case 2:
+					newSettings += '>' + bandwidth_array[b][5];
+					break;
+				case 3:
+					newSettings += '>' + bandwidth_array[b][1];
+					break;
+				case 4:
+					newSettings += '>' + bandwidth_array[b][4];
+					break;
+				case 5:
+					newSettings += '>' + bandwidth_array[b][7];
+					break;
+				case 6:
+					newSettings += '>' + bandwidth_array[b][3];
+					break;
+				case 7:
+					newSettings += '>' + bandwidth_array[b][6];
+					break;
+			}
+		}
+	}
+	return newSettings;
+} // convert_BW_Settings
+
 function set_FlexQoS_mod_vars()
 {
 	if ( custom_settings.flexqos_ver != undefined )
@@ -1995,10 +2032,19 @@ function set_FlexQoS_mod_vars()
 	}
 
 	// get Bandwidth
-	if ( custom_settings.flexqos_bandwidth == undefined )
-		bandwidth = bandwidth_default_rules;
+	if ( custom_settings.flexqos_bwrates == undefined ) {
+		if ( custom_settings.flexqos_bandwidth == undefined )
+			bandwidth = bandwidth_default_rules;
+		else {
+			bandwidth = convert_BW_settings(custom_settings.flexqos_bandwidth);
+			if (bandwidth) {
+				custom_settings.flexqos_bwrates = bandwidth;
+				delete custom_settings.flexqos_bandwidth;
+			}
+		}
+	}
 	else
-		bandwidth = custom_settings.flexqos_bandwidth;
+		bandwidth = custom_settings.flexqos_bwrates;
 
 	var bandwidth_array = bandwidth.split("<");
 	bandwidth_array.shift();
@@ -2070,12 +2116,12 @@ function FlexQoS_reset_filter() {
 function FlexQoS_mod_reset_down()
 {
 	document.getElementById('drp0').value=5;
-	document.getElementById('drp1').value=20;
-	document.getElementById('drp2').value=15;
-	document.getElementById('drp3').value=10;
+	document.getElementById('drp1').value=15;
+	document.getElementById('drp2').value=30;
+	document.getElementById('drp3').value=20;
 	document.getElementById('drp4').value=10;
-	document.getElementById('drp5').value=30;
-	document.getElementById('drp6').value=5;
+	document.getElementById('drp5').value=5;
+	document.getElementById('drp6').value=10;
 	document.getElementById('drp7').value=5;
 
 	document.getElementById('dcp0').value=100;
@@ -2093,12 +2139,12 @@ function FlexQoS_mod_reset_down()
 function FlexQoS_mod_reset_up()
 {
 	document.getElementById('urp0').value=5;
-	document.getElementById('urp1').value=20;
-	document.getElementById('urp2').value=15;
-	document.getElementById('urp3').value=30;
+	document.getElementById('urp1').value=15;
+	document.getElementById('urp2').value=10;
+	document.getElementById('urp3').value=20;
 	document.getElementById('urp4').value=10;
-	document.getElementById('urp5').value=10;
-	document.getElementById('urp6').value=5;
+	document.getElementById('urp5').value=5;
+	document.getElementById('urp6').value=30;
 	document.getElementById('urp7').value=5;
 
 	document.getElementById('ucp0').value=100;
@@ -2187,7 +2233,7 @@ function FlexQoS_mod_apply() {
 	custom_settings.flexqos_iptables = iptables_rulelist_array;
 	custom_settings.flexqos_iptables_names = iptables_rulename_array;
 	custom_settings.flexqos_appdb = appdb_rulelist_array;
-	custom_settings.flexqos_bandwidth = bandwidth;
+	custom_settings.flexqos_bwrates = bandwidth;
 	if (custom_settings.flexqos_conntrack) {					// already saved so assume enabled
 		if (document.form.flexqos_conntrack.value == 1)		// if enabled in the GUI
 			delete custom_settings.flexqos_conntrack;
