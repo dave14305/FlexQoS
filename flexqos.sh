@@ -10,29 +10,9 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.1.0
+version=1.1.1
 release=2020-12-13
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
-#
-# Script Changes Unidentified traffic destination away from "Work-From-Home" into "Others"
-# Script Changes HTTPS traffic destination away from "Net Control" into "Web Surfing"
-# Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download.
-# Script includes other default rules:
-#   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into Work-From-Home
-#   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into Work-From-Home
-#   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads
-#   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into Game Downloads.
-#   (Snapchat)      -  Moved into Others
-#   (Speedtest.net) -  Moved into Downloads
-#   (Google Play)   -  Moved into Downloads
-#   (Apple AppStore)-  Moved into Downloads
-#   (Advertisement) -  Moved into Downloads
-#   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted
-#   (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into "Gaming"
-#
-#  Gaming traffic originating from ports 80 & 443 is primarily downloads & patches (some lobby/login protocols mixed within)
-#  Manually configurable rule will take untracked traffic, not originating from 80/443, for specified devices and place it into Gaming
-#  Use of this gaming rule REQUIRES devices to have a continuous static ip assignment && this range needs to be defined in the script
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
 #  https://opensource.org/licenses/GPL-3.0
@@ -813,33 +793,38 @@ parse_iptablerule() {
 
 about() {
 	scriptinfo
-	printf "License\n"
-	printf "  %s is free to use under the GNU General Public License, version 3 (GPL-3.0).\n" $SCRIPTNAME_DISPLAY
-	Blue "  https://opensource.org/licenses/GPL-3.0"
-	printf "\nFor discussion visit this thread:\n"
-	Blue "  https://www.snbforums.com/threads/64882/"
-	Blue "  https://github.com/dave14305/FlexQoS (Source Code)"
-	printf "\nAbout\n"
-	printf "  Script Changes Unidentified traffic destination away from Work-From-Home into Others\n"
-	printf "  Script Changes HTTPS traffic destination away from Net Control into Web Surfing\n"
-	printf "  Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download.\n"
-	printf "  Script Repurposes Learn-From-Home to contain Game Downloads\n\n"
-	printf "  Script includes misc default rules\n"
-	printf "   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into Work-From-Home\n"
-	printf "   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into Work-From-Home\n"
-	printf "   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads\n"
-	printf "   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into Game Downloads.\n"
-	printf "   (Snapchat)      -  Moved into Others\n"
-	printf "   (Speedtest.net) -  Moved into Downloads\n"
-	printf "   (Google Play)   -  Moved into Downloads\n"
-	printf "   (Apple AppStore)-  Moved into Downloads\n"
-	printf "   (Advertisement) -  Moved into Downloads\n"
-	printf "   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted\n"
-	printf "   (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into Gaming\n\n"
-	Red  "Gaming Rule Note"
-	printf "  Gaming traffic originating from ports 80 & 443 is primarily downloads & patches (some lobby/login protocols mixed within)\n"
-	printf "  Manually configurable rule will take untracked traffic for specified devices, not originating from server ports 80/443, and place it into Gaming\n"
-	printf "  Use of this gaming rule REQUIRES devices to have a continous static ip assignment & this range needs to be passed into the script\n"
+	cat <<EOF
+License
+  $SCRIPTNAME is free to use under the GNU General Public License, version 3 (GPL-3.0).
+  https://opensource.org/licenses/GPL-3.0
+
+For discussion visit this thread:
+  https://www.snbforums.com/forums/asuswrt-merlin-addons.60/?prefix_id=8
+  https://github.com/dave14305/FlexQoS (Source Code)
+
+About
+  Script Changes Unidentified traffic destination away from Work-From-Home into Others
+  Script Changes HTTPS traffic destination away from Net Control into Web Surfing
+  Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download.
+  Script Repurposes Learn-From-Home to contain Game Downloads
+  Script includes misc default rules
+   (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into Work-From-Home
+   (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into Work-From-Home
+   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads
+   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into Game Downloads.
+   (Snapchat)      -  Moved into Others
+   (Speedtest.net) -  Moved into Downloads
+   (Google Play)   -  Moved into Downloads
+   (Apple AppStore)-  Moved into Downloads
+   (Advertisement) -  Moved into Downloads
+   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted
+   (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into Gaming
+
+Gaming Rule Note
+  Gaming traffic originating from ports 80 & 443 is primarily downloads & patches (some lobby/login protocols mixed within)
+  Manually configurable rule will take untracked traffic for specified devices, not originating from server ports 80/443, and place it into Gaming
+  Use of this gaming rule REQUIRES devices to have a continous static ip assignment & this range needs to be passed into the script
+EOF
 }
 
 backup() {
@@ -1562,21 +1547,25 @@ startup() {
 show_help() {
 	scriptinfo
 	Red "You have entered an invalid command"
-	printf "\nAvailable commands:\n\n"
-	printf "  %s -about              explains functionality\n" $SCRIPTNAME
-	printf "  %s -appdb string       search appdb for application marks\n" $SCRIPTNAME
-	printf "  %s -update             checks for updates\n" $SCRIPTNAME
-	printf "  %s -restart            restart QoS and Firewall\n" $SCRIPTNAME
-	printf "  %s -install            install   script\n" $SCRIPTNAME
-	printf "  %s -uninstall          uninstall script & delete from disk\n" $SCRIPTNAME
-	printf "  %s -enable             enable    script\n" $SCRIPTNAME
-	printf "  %s -disable            disable   script but do not delete from disk\n" $SCRIPTNAME
-	printf "  %s -backup             backup user settings\n" $SCRIPTNAME
-	printf "  %s -debug              print debug info\n" $SCRIPTNAME
-	printf "  %s -develop            switch to development channel\n" $SCRIPTNAME
-	printf "  %s -stable             switch to stable channel\n" $SCRIPTNAME
-	printf "  %s -menu               interactive main menu\n" $SCRIPTNAME
-	printf "\n"
+	cat <<EOF
+
+Available commands:
+
+  $SCRIPTNAME -about              explains functionality
+  $SCRIPTNAME -appdb string       search appdb for application marks
+  $SCRIPTNAME -update             checks for updates
+  $SCRIPTNAME -restart            restart QoS and Firewall
+  $SCRIPTNAME -install            install   script
+  $SCRIPTNAME -uninstall          uninstall script & delete from disk
+  $SCRIPTNAME -enable             enable    script
+  $SCRIPTNAME -disable            disable   script but do not delete from disk
+  $SCRIPTNAME -backup             backup user settings
+  $SCRIPTNAME -debug              print debug info
+  $SCRIPTNAME -develop            switch to development channel
+  $SCRIPTNAME -stable             switch to stable channel
+  $SCRIPTNAME -menu               interactive main menu
+
+EOF
 	webconfigpage
 } # show_help
 
