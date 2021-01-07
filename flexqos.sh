@@ -65,23 +65,14 @@ fi
 # marks for iptables rules
 # We use the ffff value to avoid conflicts with predefined apps in AppDB so there would be no conflict
 # with any user-defined AppDB rules.
-Net_mark_down="0x8009ffff"
-Work_mark_down="0x8006ffff"
-Gaming_mark_down="0x8008ffff"
-Others_mark_down="0x800affff"
-Web_mark_down="0x8018ffff"
-Streaming_mark_down="0x8004ffff"
-Downloads_mark_down="0x8003ffff"
-Learn_mark_down="0x803fffff"
-
-Net_mark_up="0x4009ffff"
-Work_mark_up="0x4006ffff"
-Gaming_mark_up="0x4008ffff"
-Others_mark_up="0x400affff"
-Web_mark_up="0x4018ffff"
-Streaming_mark_up="0x4004ffff"
-Downloads_mark_up="0x4003ffff"
-Learn_mark_up="0x403fffff"
+Net_mark="09"
+Work_mark="06"
+Gaming_mark="08"
+Others_mark="0a"
+Web_mark="18"
+Streaming_mark="04"
+Downloads_mark="03"
+Learn_mark="3f"
 
 logmsg() {
 	if [ "$#" = "0" ]; then
@@ -110,22 +101,33 @@ iptables_static_rules() {
 	printf "Applying iptables static rules\n"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
-	iptables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0xc03fffff
-	iptables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0xc03fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff
 	iptables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
 	iptables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	if [ "$IPv6_enabled" != "disabled" ]; then
 		printf "Applying ip6tables static rules\n"
-		ip6tables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark ${Downloads_mark_up}/0xc03fffff
-		ip6tables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark ${Downloads_mark_up}/0xc03fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff
 		ip6tables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
 		ip6tables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	fi
 }
+
+get_static_filter() {
+	local MARK
+	local FLOWID
+
+	MARK="$1"
+	FLOWID="$2"
+
+	printf "filter add dev %s protocol all prio 5 u32 match mark 0x80%sffff 0xc03fffff flowid %s\n" "$tclan" "$MARK" "$FLOWID"
+	printf "filter add dev %s protocol all prio 5 u32 match mark 0x40%sffff 0xc03fffff flowid %s\n" "$tcwan" "$MARK" "$FLOWID"
+} # get_static_filter
 
 write_appdb_static_rules() {
 	# These rules define the flowid (priority level) of the Class destinations selected by users in iptables rules.
@@ -135,22 +137,14 @@ write_appdb_static_rules() {
 	# so we want these filters to always take precedence over the built-in filters.
 	# File is overwritten (>) if it exists and later appended by write_appdb_rules() and write_custom_rates().
 	{
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Net_mark_down" "$Net"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Net_mark_up" "$Net"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Work_mark_down" "$Work"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Work_mark_up" "$Work"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Gaming_mark_down" "$Gaming"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Gaming_mark_up" "$Gaming"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Others_mark_down" "$Others"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Others_mark_up" "$Others"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Web_mark_down" "$Web"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Web_mark_up" "$Web"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Streaming_mark_down" "$Streaming"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Streaming_mark_up" "$Streaming"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Downloads_mark_down" "$Downloads"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Downloads_mark_up" "$Downloads"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tclan" "$Learn_mark_down" "$Learn"
-		printf "filter add dev %s protocol all prio 5 u32 match mark %s 0xc03fffff flowid %s\n" "$tcwan" "$Learn_mark_up" "$Learn"
+		get_static_filter "$Net_mark" "$Net"
+		get_static_filter "$Work_mark" "$Work"
+		get_static_filter "$Gaming_mark" "$Gaming"
+		get_static_filter "$Others_mark" "$Others"
+		get_static_filter "$Web_mark" "$Web"
+		get_static_filter "$Streaming_mark" "$Streaming"
+		get_static_filter "$Downloads_mark" "$Downloads"
+		get_static_filter "$Learn_mark" "$Learn"
 	} > /tmp/${SCRIPTNAME}_tcrules
 } # write_appdb_static_rules
 
@@ -708,36 +702,36 @@ parse_iptablerule() {
 	# numbers come from webui select options for class field
 	case "$7" in
 		0)
-			DOWN_dst="-j MARK --set-mark ${Net_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Net_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark 0x80${Net_mark}ffff/0xc03fffff"
+			UP_dst="-j MARK --set-mark 0x40${Net_mark}ffff/0xc03fffff"
 			;;
 		1)
-			DOWN_dst="-j MARK --set-mark ${Gaming_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Gaming_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark 0x80${Gaming_mark}ffff/0xc03fffff"
+			UP_dst="-j MARK --set-mark 0x40${Gaming_mark}ffff/0xc03fffff"
 			;;
 		2)
-			DOWN_dst="-j MARK --set-mark ${Streaming_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Streaming_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark 0x80${Streaming_mark}ffff/0xc03fffff"
+			UP_dst="-j MARK --set-mark 0x40${Streaming_mark}ffff/0xc03fffff"
 			;;
 		3)
-			DOWN_dst="-j MARK --set-mark ${Work_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Work_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark 0x80${Work_mark}ffff/0xc03fffff"
+			UP_dst="-j MARK --set-mark 0x40${Work_mark}ffff/0xc03fffff"
 			;;
 		4)
-			DOWN_dst="-j MARK --set-mark ${Web_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Web_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark 0x80${Web_mark}ffff/0xc03fffff"
+			UP_dst="-j MARK --set-mark 0x40${Web_mark}ffff/0xc03fffff"
 			;;
 		5)
-			DOWN_dst="-j MARK --set-mark ${Downloads_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Downloads_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark 0x80${Downloads_mark}ffff/0xc03fffff"
+			UP_dst="-j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff"
 			;;
 		6)
-			DOWN_dst="-j MARK --set-mark ${Others_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Others_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark 0x80${Others_mark}ffff/0xc03fffff"
+			UP_dst="-j MARK --set-mark 0x40${Others_mark}ffff/0xc03fffff"
 			;;
 		7)
-			DOWN_dst="-j MARK --set-mark ${Learn_mark_down}/0x3fffff"
-			UP_dst="-j MARK --set-mark ${Learn_mark_up}/0x3fffff"
+			DOWN_dst="-j MARK --set-mark 0x80${Learn_mark}ffff/0xc03fffff"
+			UP_dst="-j MARK --set-mark 0x40${Learn_mark}ffff/0xc03fffff"
 			;;
 		*)
 			#if destination is empty stop processing rule
@@ -1746,3 +1740,4 @@ esac
 
 prompt_restart
 if [ "$lock" = "true" ]; then rm -rf "/tmp/${SCRIPTNAME}.lock"; fi
+set > /tmp/flexqos_vars
