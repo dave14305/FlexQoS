@@ -239,6 +239,7 @@ get_custom_rate_rule() {
 } # get_custom_rate_rule
 
 write_custom_rates() {
+	local i
 	# For all 8 classes (0-7), write the tc commands needed to modify the bandwidth rates and related parameters
 	# that get assigned in set_tc_variables().
 	# File is appended (>>) because it is initially created in write_appdb_static_rules().
@@ -253,6 +254,13 @@ write_custom_rates() {
 
 set_tc_variables() {
 	# Read various settings from the router and construct the variables needed to implement the custom rules.
+	local drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7
+	local dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7
+	local urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7
+	local ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7
+	local flowid
+	local line
+	local i
 
 	tclan="br0"
 	# Determine the WAN interface name used by tc by finding the existing htb root qdisc that is NOT br0.
@@ -275,6 +283,15 @@ set_tc_variables() {
 		undf_prio="$($TC filter show dev br0 | /bin/grep -i -m1 -B1 "0x80000000 0xc03f0000" | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
 		undf_prio="$((undf_prio-1))"
 	fi
+
+	read \
+		drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7 \
+		dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7 \
+		urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7 \
+		ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7 \
+<<EOF
+$(am_settings_get ${SCRIPTNAME}_bwrates | sed 's/^<//g;s/[<>]/ /g')
+EOF
 
 	# read priority order of QoS categories as set by user on the QoS page of the GUI
 	flowid=0
@@ -433,6 +450,8 @@ appdb() {
 } # appdb
 
 webconfigpage() {
+	local urlpage urlproto urldomain urlport
+
 	# Eye candy function that will construct a URL to display after install or upgrade so a user knows where to
 	# find the webUI page. In most cases though, they will go to the Adaptive QoS tab and find the FlexQoS sub-tab anyway.
 	urlpage="$(sed -nE "/$SCRIPTNAME_DISPLAY/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)"
@@ -470,6 +489,7 @@ scriptinfo() {
 } # scriptinfo
 
 debug() {
+	local RMODEL
 	[ -z "$(nvram get odmpid)" ] && RMODEL="$(nvram get productid)" || RMODEL="$(nvram get odmpid)"
 	Green "[SPOILER=\"$SCRIPTNAME_DISPLAY Debug\"][CODE]"
 	scriptinfo
@@ -1322,6 +1342,12 @@ uninstall() {
 } # uninstall
 
 get_config() {
+	local names n
+	local drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7
+	local dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7
+	local urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7
+	local ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7
+
 	# Read settings from Addon API config file. If not defined, set default values
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables)" ]; then
 		am_settings_set "${SCRIPTNAME}_iptables" "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
@@ -1361,14 +1387,6 @@ EOF
 			sed -i "/^${SCRIPTNAME}_bandwidth /d" /jffs/addons/custom_settings.txt
 		fi
 	fi
-	read \
-		drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7 \
-		dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7 \
-		urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7 \
-		ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7 \
-<<EOF
-$(am_settings_get ${SCRIPTNAME}_bwrates | sed 's/^<//g;s/[<>]/ /g')
-EOF
 } # get_config
 
 validate_iptables_rules() {
@@ -1386,14 +1404,16 @@ validate_iptables_rules() {
 
 write_iptables_rules() {
 	# loop through iptables rules and write an iptables command to a temporary file for later execution
-	OLDIFS="$IFS"		# Save existing field separator
-	IFS=">"				# Set custom field separator to match rule format
+	local OLDIFS
 	{
 		printf "iptables -t mangle -F %s 2>/dev/null\n" "$SCRIPTNAME_DISPLAY"
 		if [ "$IPv6_enabled" != "disabled" ]; then
 			printf "ip6tables -t mangle -F %s 2>/dev/null\n" "$SCRIPTNAME_DISPLAY"
 		fi
 	} > "/tmp/${SCRIPTNAME}_iprules"
+
+	OLDIFS="$IFS"		# Save existing field separator
+	IFS=">"				# Set custom field separator to match rule format
 	# read the rules, 1 per line and break into separate fields
 	echo "$iptables_rules" | sed 's/</\n/g' | while read -r localip remoteip proto lport rport mark class
 	do
@@ -1408,6 +1428,7 @@ write_iptables_rules() {
 
 write_appdb_rules() {
 	# Write the user appdb rules to the existing tcrules file created during write_appdb_static_rules()
+	local OLDIFS
 
 	# Save the current filter rules once to avoid repeated calls in parse_appdb_rule() to determine existing prios
 	$TC filter show dev $tclan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
@@ -1444,6 +1465,7 @@ check_qos_tc() {
 validate_tc_rules() {
 	# Check the existing tc filter rules against the user configuration. If any rule missing, force creation of all rules
 	# Must run after set_tc_variables() to ensure flowid can be determined
+	local OLDIFS
 	{
 		# print a list of existing filters in the format of an appdb rule for easy comparison. Write to tmp file
 		$TC filter show dev "$tclan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
