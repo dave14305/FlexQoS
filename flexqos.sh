@@ -1463,7 +1463,7 @@ EOF
 
 schedule_check_job() {
 	# Schedule check for 5 minutes after startup to ensure no qos tc resets
-	cru a ${SCRIPTNAME}_5min "$(date -D '%s' +'%M %H %d %m %a' -d $(($(date +%s)+300))) $SCRIPTPATH -check"
+	cru a ${SCRIPTNAME}_5min "$(/bin/date -D '%s' +'%M %H %d %m %a' -d $(($(/bin/date +%s)+300))) $SCRIPTPATH -check"
 } # schedule_check_job
 
 startup() {
@@ -1740,4 +1740,3 @@ esac
 
 prompt_restart
 if [ "$lock" = "true" ]; then rm -rf "/tmp/${SCRIPTNAME}.lock"; fi
-set > /tmp/flexqos_vars
