@@ -11,7 +11,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=1.1.1
-release=2020-12-13
+release=2021-01-07
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -138,14 +138,14 @@ write_appdb_static_rules() {
 	# so we want these filters to always take precedence over the built-in filters.
 	# File is overwritten (>) if it exists and later appended by write_appdb_rules() and write_custom_rates().
 	{
-		get_static_filter "$Net_mark" "$Net"
-		get_static_filter "$Work_mark" "$Work"
-		get_static_filter "$Gaming_mark" "$Gaming"
-		get_static_filter "$Others_mark" "$Others"
-		get_static_filter "$Web_mark" "$Web"
-		get_static_filter "$Streaming_mark" "$Streaming"
-		get_static_filter "$Downloads_mark" "$Downloads"
-		get_static_filter "$Learn_mark" "$Learn"
+		get_static_filter "$Net_mark" "$Net_flow"
+		get_static_filter "$Work_mark" "$Work_flow"
+		get_static_filter "$Gaming_mark" "$Gaming_flow"
+		get_static_filter "$Others_mark" "$Others_flow"
+		get_static_filter "$Web_mark" "$Web_flow"
+		get_static_filter "$Streaming_mark" "$Streaming_flow"
+		get_static_filter "$Downloads_mark" "$Downloads_flow"
+		get_static_filter "$Learn_mark" "$Learn_flow"
 	} > /tmp/${SCRIPTNAME}_tcrules
 } # write_appdb_static_rules
 
@@ -285,14 +285,14 @@ set_tc_variables() {
 		fi
 		case ${line} in
 		'0')
-			Work="1:1${flowid}"
+			Work_flow="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp1"
 			eval "Cat${flowid}DownCeilPercent=$dcp1"
 			eval "Cat${flowid}UpBandPercent=$urp1"
 			eval "Cat${flowid}UpCeilPercent=$ucp1"
 			;;
 		'1')
-			Downloads="1:1${flowid}"
+			Downloads_flow="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp7"
 			eval "Cat${flowid}DownCeilPercent=$dcp7"
 			eval "Cat${flowid}UpBandPercent=$urp7"
@@ -305,14 +305,14 @@ set_tc_variables() {
 			# The second time we encounter a 4, we know it is meant for the remaining option.
 			if nvram get bwdpi_app_rulelist | /bin/grep -qE "<4,13(<.*)?<4<"; then
 				# Learn-From-Home is higher priority than Streaming
-				if [ -z "$Learn" ]; then
-					Learn="1:1${flowid}"
+				if [ -z "$Learn_flow" ]; then
+					Learn_flow="1:1${flowid}"
 					eval "Cat${flowid}DownBandPercent=$drp6"
 					eval "Cat${flowid}DownCeilPercent=$dcp6"
 					eval "Cat${flowid}UpBandPercent=$urp6"
 					eval "Cat${flowid}UpCeilPercent=$ucp6"
 				else
-					Streaming="1:1${flowid}"
+					Streaming_flow="1:1${flowid}"
 					eval "Cat${flowid}DownBandPercent=$drp5"
 					eval "Cat${flowid}DownCeilPercent=$dcp5"
 					eval "Cat${flowid}UpBandPercent=$urp5"
@@ -320,14 +320,14 @@ set_tc_variables() {
 				fi
 			else
 				# Streaming is higher priority than Learn-From-Home
-				if [ -z "$Streaming" ]; then
-					Streaming="1:1${flowid}"
+				if [ -z "$Streaming_flow" ]; then
+					Streaming_flow="1:1${flowid}"
 					eval "Cat${flowid}DownBandPercent=$drp5"
 					eval "Cat${flowid}DownCeilPercent=$dcp5"
 					eval "Cat${flowid}UpBandPercent=$urp5"
 					eval "Cat${flowid}UpCeilPercent=$ucp5"
 				else
-					Learn="1:1${flowid}"
+					Learn_flow="1:1${flowid}"
 					eval "Cat${flowid}DownBandPercent=$drp6"
 					eval "Cat${flowid}DownCeilPercent=$dcp6"
 					eval "Cat${flowid}UpBandPercent=$urp6"
@@ -336,28 +336,28 @@ set_tc_variables() {
 			fi  # Check Learn-From-Home and Streaming priority order
 			;;
 		'7')
-			Others="1:1${flowid}"
+			Others_flow="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp3"
 			eval "Cat${flowid}DownCeilPercent=$dcp3"
 			eval "Cat${flowid}UpBandPercent=$urp3"
 			eval "Cat${flowid}UpCeilPercent=$ucp3"
 			;;
 		'8')
-			Gaming="1:1${flowid}"
+			Gaming_flow="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp2"
 			eval "Cat${flowid}DownCeilPercent=$dcp2"
 			eval "Cat${flowid}UpBandPercent=$urp2"
 			eval "Cat${flowid}UpCeilPercent=$ucp2"
 			;;
 		'9')
-			Net="1:1${flowid}"
+			Net_flow="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp0"
 			eval "Cat${flowid}DownCeilPercent=$dcp0"
 			eval "Cat${flowid}UpBandPercent=$urp0"
 			eval "Cat${flowid}UpCeilPercent=$ucp0"
 			;;
 		'24')
-			Web="1:1${flowid}"
+			Web_flow="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp4"
 			eval "Cat${flowid}DownCeilPercent=$dcp4"
 			eval "Cat${flowid}UpBandPercent=$urp4"
@@ -366,7 +366,7 @@ set_tc_variables() {
 		'na')
 			# This is how the old ASUS default category would appear, but this option will soon be deprecated
 			# when all supported models are using the new QoS Categories.
-			Learn="1:1${flowid}"
+			Learn_flow="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp6"
 			eval "Cat${flowid}DownCeilPercent=$dcp6"
 			eval "Cat${flowid}UpBandPercent=$urp6"
@@ -487,14 +487,14 @@ debug() {
 	printf "Down Band     : %s\n" "$DownCeil"
 	printf "Up Band       : %s\n" "$UpCeil"
 	printf "***********\n"
-	printf "Net Control   : %s\n" "$Net"
-	printf "Work-From-Home: %s\n" "$Work"
-	printf "Gaming        : %s\n" "$Gaming"
-	printf "Others        : %s\n" "$Others"
-	printf "Web Surfing   : %s\n" "$Web"
-	printf "Streaming     : %s\n" "$Streaming"
-	printf "File Downloads: %s\n" "$Downloads"
-	printf "Game Downloads: %s\n" "$Learn"
+	printf "Net Control   : %s\n" "$Net_flow"
+	printf "Work-From-Home: %s\n" "$Work_flow"
+	printf "Gaming        : %s\n" "$Gaming_flow"
+	printf "Others        : %s\n" "$Others_flow"
+	printf "Web Surfing   : %s\n" "$Web_flow"
+	printf "Streaming     : %s\n" "$Streaming_flow"
+	printf "File Downloads: %s\n" "$Downloads_flow"
+	printf "Game Downloads: %s\n" "$Learn_flow"
 	printf "***********\n"
 	# Only print custom rates if Manual Bandwidth setting is enabled on QoS page
 	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
@@ -529,14 +529,14 @@ get_flowid() {
 	# flowid will be one of 1:10 - 1:17, depending on the user priority sequencing in the QoS GUI
 	# Input: numeric class destination from iptables rule
 	case "$1" in
-		0)	flowid="$Net" ;;
-		1)	flowid="$Gaming" ;;
-		2)	flowid="$Streaming" ;;
-		3)	flowid="$Work" ;;
-		4)	flowid="$Web" ;;
-		5)	flowid="$Downloads" ;;
-		6)	flowid="$Others" ;;
-		7)	flowid="$Learn" ;;
+		0)	flowid="$Net_flow" ;;
+		1)	flowid="$Gaming_flow" ;;
+		2)	flowid="$Streaming_flow" ;;
+		3)	flowid="$Work_flow" ;;
+		4)	flowid="$Web_flow" ;;
+		5)	flowid="$Downloads_flow" ;;
+		6)	flowid="$Others_flow" ;;
+		7)	flowid="$Learn_flow" ;;
 		# return empty if destination missing
 		*)	flowid="" ;;
 	esac
