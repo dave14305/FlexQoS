@@ -41,6 +41,7 @@ readonly ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 readonly WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 readonly SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
 IPv6_enabled="$(nvram get ipv6_service)"
+WANMTU="$(nvram get wan_mtu)"
 
 # Update version number in custom_settings.txt for reading in WebUI
 if [ "$(am_settings_get flexqos_ver)" != "$version" ]; then
@@ -148,6 +149,95 @@ write_appdb_static_rules() {
 	} > /tmp/${SCRIPTNAME}_tcrules
 } # write_appdb_static_rules
 
+get_burst() {
+	local RATE
+	local DURATION
+	local BURST
+
+	RATE=$1
+	DURATION=$2	# acceptable added latency in microseconds (1ms)
+
+	BURST=$((DURATION*RATE/8000))
+
+	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
+	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
+	if [ $BURST -lt 3200 ]; then
+		BURST=3200
+	fi
+
+	printf "%s" $BURST
+} # get_burst
+
+get_cburst() {
+	local RATE
+	local BURST
+
+	RATE=$1
+
+	BURST=$((RATE*1000/1280000*1600))
+
+	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
+	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
+	if [ $BURST -lt 3200 ]; then
+		BURST=3200
+	fi
+
+	printf "%s" $BURST
+} # get_cburst
+
+get_quantum() {
+	local RATE
+	local QUANTUM
+
+	RATE=$1
+
+	QUANTUM=$((RATE*1000/8/10))
+
+	# If the calculated quantum is less than the MTU, use MTU+14 as the quantum
+	if [ $QUANTUM -lt "$((WANMTU+14))" ]; then
+		QUANTUM="$((WANMTU+14))"
+	fi
+
+	printf "%s" $QUANTUM
+} # get_burst
+
+get_overhead() {
+	local NVRAM_OVERHEAD
+	local NVRAM_ATM
+	local OVERHEAD
+
+	NVRAM_OVERHEAD="$(nvram get qos_overhead)"
+
+	if [ -n "$NVRAM_OVERHEAD" ] && [ "$NVRAM_OVERHEAD" -gt "0" ]; then
+		OVERHEAD="overhead $NVRAM_OVERHEAD"
+		NVRAM_ATM="$(nvram get qos_atm)"
+		if [ "$NVRAM_ATM" = "1" ]; then
+			OVERHEAD="$OVERHEAD linklayer atm"
+		else
+			OVERHEAD="$OVERHEAD linklayer ethernet"
+		fi
+	fi
+
+	printf "%s" "$OVERHEAD"
+} # get_overhead
+
+get_custom_rate_rule() {
+	local IFACE
+	local PRIO
+	local RATE
+	local CEIL
+	local DURATION
+
+	IFACE=$1
+	PRIO=$2
+	RATE=$3
+	CEIL=$4
+	DURATION=1000
+
+	printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %sb cburst %sb quantum %s\n" \
+			"$IFACE" "$PRIO" "$(get_overhead)" "$PRIO" "$RATE" "$CEIL" "$(get_burst $CEIL $DURATION)" "$(get_cburst $CEIL)" "$(get_quantum $RATE)"
+} # get_custom_rate_rule
+
 write_custom_rates() {
 	# For all 8 classes (0-7), write the tc commands needed to modify the bandwidth rates and related parameters
 	# that get assigned in set_tc_variables().
@@ -155,20 +245,8 @@ write_custom_rates() {
 	{
 		for i in 0 1 2 3 4 5 6 7
 		do
-			eval DownRate=\$DownRate$i
-			eval DownCeil=\$DownCeil$i
-			eval DownBurst=\$DownBurst$i
-			eval DownCburst=\$DownCburst$i
-			eval DownQuantum=\$DownQuantum$i
-			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %sb cburst %sb quantum %s\n" \
-					"br0" "$i" "$PARMS" "$i" "$DownRate" "$DownCeil" "$DownBurst" "$DownCburst" "$DownQuantum"
-			eval UpRate=\$UpRate$i
-			eval UpCeil=\$UpCeil$i
-			eval UpBurst=\$UpBurst$i
-			eval UpCburst=\$UpCburst$i
-			eval UpQuantum=\$UpQuantum$i
-			printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %sb cburst %sb quantum %s\n" \
-					"$tcwan" "$i" "$PARMS" "$i" "$UpRate" "$UpCeil" "$UpBurst" "$UpCburst" "$UpQuantum"
+			eval get_custom_rate_rule "$tclan" $i \$DownRate$i \$DownCeil$i
+			eval get_custom_rate_rule "$tcwan" $i \$UpRate$i \$UpCeil$i
 		done
 	} >> /tmp/${SCRIPTNAME}_tcrules
 } # write_custom_rates
@@ -307,7 +385,6 @@ EOF
 	# Only apply custom rates if Manual Bandwidth mode set in QoS page
 	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
 		# Automatic bandwidth mode incompatible with custom rates
-		WANMTU="$(nvram get wan_mtu)"
 		i=0
 		while [ "$i" -lt "8" ]
 		do
@@ -315,54 +392,8 @@ EOF
 			eval "UpRate$i=\$((UpCeil\*Cat${i}UpBandPercent/100))"
 			eval "DownCeil$i=\$((DownCeil\*Cat${i}DownCeilPercent/100))"
 			eval "UpCeil$i=\$((UpCeil\*Cat${i}UpCeilPercent/100))"
-			downquantum=$((DownRate${i}*1000/8/10))
-			# If the calculated quantum is less than the MTU, use MTU+14 as the quantum
-			if [ "$downquantum" -lt "$((WANMTU+14))" ]; then
-				downquantum="$((WANMTU+14))"
-			fi
-			upquantum=$((UpRate${i}*1000/8/10))
-			if [ "$upquantum" -lt "$((WANMTU+14))" ]; then
-				upquantum="$((WANMTU+14))"
-			fi
-			# If the calculated burst and cburst is less than ASUS' minimum value of 3200, use 3200
-			# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
-			# This calculation was reverse engineered from observing ASUS' rules
-			downburst=$((DownRate${i}*1000/1280000*1600))
-			if [ "$downburst" -lt "3200" ]; then
-				downburst=3200
-			fi
-			downcburst=$((DownCeil${i}*1000/1280000*1600))
-			if [ "$downcburst" -lt "3200" ]; then
-				downcburst=3200
-			fi
-			upburst=$((UpRate${i}*1000/1280000*1600))
-			if [ "$upburst" -lt "3200" ]; then
-				upburst=3200
-			fi
-			upcburst=$((UpCeil${i}*1000/1280000*1600))
-			if [ "$upcburst" -lt "3200" ]; then
-				upcburst=3200
-			fi
-			eval "DownQuantum${i}=$downquantum"
-			eval "UpQuantum${i}=$upquantum"
-			eval "DownBurst${i}=$downburst"
-			eval "DownCburst${i}=$downcburst"
-			eval "UpBurst${i}=$upburst"
-			eval "UpCburst${i}=$upcburst"
 			i="$((i+1))"
 		done
-
-		OVERHEAD="$(nvram get qos_overhead)"
-		if [ -n "$OVERHEAD" ] && [ "$OVERHEAD" -gt "0" ]; then
-			ATM="$(nvram get qos_atm)"
-			if [ "$ATM" = "1" ]; then
-				PARMS="overhead $OVERHEAD linklayer atm"
-			else
-				PARMS="overhead $OVERHEAD linklayer ethernet"
-			fi
-		else
-			PARMS=""
-		fi
 	fi # Auto Bandwidth check
 } # set_tc_variables
 
@@ -469,15 +500,8 @@ debug() {
 	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
 		printf "Downrates     : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownRate0" "$DownRate1" "$DownRate2" "$DownRate3" "$DownRate4" "$DownRate5" "$DownRate6" "$DownRate7"
 		printf "Downceils     : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownCeil0" "$DownCeil1" "$DownCeil2" "$DownCeil3" "$DownCeil4" "$DownCeil5" "$DownCeil6" "$DownCeil7"
-		printf "Downbursts    : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownBurst0" "$DownBurst1" "$DownBurst2" "$DownBurst3" "$DownBurst4" "$DownBurst5" "$DownBurst6" "$DownBurst7"
-		printf "DownCbursts   : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownCburst0" "$DownCburst1" "$DownCburst2" "$DownCburst3" "$DownCburst4" "$DownCburst5" "$DownCburst6" "$DownCburst7"
-		printf "DownQuantums  : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownQuantum0" "$DownQuantum1" "$DownQuantum2" "$DownQuantum3" "$DownQuantum4" "$DownQuantum5" "$DownQuantum6" "$DownQuantum7"
-		printf "***********\n"
 		printf "Uprates       : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpRate0" "$UpRate1" "$UpRate2" "$UpRate3" "$UpRate4" "$UpRate5" "$UpRate6" "$UpRate7"
 		printf "Upceils       : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpCeil0" "$UpCeil1" "$UpCeil2" "$UpCeil3" "$UpCeil4" "$UpCeil5" "$UpCeil6" "$UpCeil7"
-		printf "Upbursts      : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpBurst0" "$UpBurst1" "$UpBurst2" "$UpBurst3" "$UpBurst4" "$UpBurst5" "$UpBurst6" "$UpBurst7"
-		printf "UpCbursts     : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpCburst0" "$UpCburst1" "$UpCburst2" "$UpCburst3" "$UpCburst4" "$UpCburst5" "$UpCburst6" "$UpCburst7"
-		printf "UpQuantums    : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpQuantum0" "$UpQuantum1" "$UpQuantum2" "$UpQuantum3" "$UpQuantum4" "$UpQuantum5" "$UpQuantum6" "$UpQuantum7"
 		printf "***********\n"
 	else
 		printf "Custom rates disabled with Automatic Bandwidth mode!\n"
@@ -491,6 +515,7 @@ debug() {
 	printf "appdb rules: %s\n" "$(am_settings_get flexqos_appdb)"
 	true > /tmp/${SCRIPTNAME}_tcrules
 	write_appdb_rules
+	write_custom_rates
 	cat /tmp/${SCRIPTNAME}_tcrules
 	Green "[/CODE][/SPOILER]"
 	# Since these tmp files aren't being used to apply rules, we delete them to avoid confusion about the last known ruleset
