@@ -876,7 +876,7 @@ backup() {
 				printf "am_settings_set flexqos_iptables \"%s\"\n" "$(am_settings_get flexqos_iptables)"
 				printf "am_settings_set flexqos_iptables_names \"%s\"\n" "$(am_settings_get flexqos_iptables_names)"
 				printf "am_settings_set flexqos_appdb \"%s\"\n" "$(am_settings_get flexqos_appdb)"
-				printf "am_settings_set flexqos_bandwidth \"%s\"\n" "$(am_settings_get flexqos_bandwidth)"
+				printf "am_settings_set flexqos_bwrates \"%s\"\n" "$(am_settings_get flexqos_bwrates)"
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			Green "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			;;
