@@ -123,28 +123,6 @@ background-color: #2F3A3E;
 .autocomplete-active {
 background-color: #2F3A3E !important;
 }
-
-.loading_bar{
-	width:150px;
-}
-.loading_bar > div{
-	margin-left:5px;
-	background-color:black;
-	border-radius:15px;
-	padding:2px;
-}
-
-.status_bar{
-	height:12px;
-	border-radius:15px;
-}
-
-.status_bar{
--webkit-transition: all 0.5s ease-in-out;
--moz-transition: all 0.5s ease-in-out;
--o-transition: all 0.5s ease-in-out;
-transition: all 0.5s ease-in-out;
-}
 td.cat0{
 box-shadow: #B3645B 5px 0px 0px 0px inset;
 }
