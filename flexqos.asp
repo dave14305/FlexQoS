@@ -616,15 +616,15 @@ function get_devicenames()
 	// populate device["IP"].name from device["IP"].mac saved in /jffs/nmp_cl_json.js
 	// clientlist = is data set from /jffs/nmp_cl_json.js
 	for (var i in device) {
-		if (typeof clientlist[device[i].mac] != "undefined")
+		if (typeof clientlist[device[i].mac.toUpperCase()] != "undefined")
 		{
-			if(clientlist[device[i].mac].nickName != "")
+			if(clientlist[device[i].mac.toUpperCase()].nickName != "")
 			{
-				device[i].name = clientlist[device[i].mac].nickName;
+				device[i].name = clientlist[device[i].mac.toUpperCase()].nickName;
 			}
-			else if(clientlist[device[i].mac].name != "")
+			else if(clientlist[device[i].mac.toUpperCase()].name != "")
 			{
-				device[i].name = clientlist[device[i].mac].name;
+				device[i].name = clientlist[device[i].mac.toUpperCase()].name;
 			}
 		}
 	}
