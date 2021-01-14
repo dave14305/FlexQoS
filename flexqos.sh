@@ -1763,11 +1763,11 @@ case "$arg1" in
 		;;
 	'flushct')
 		sed -i "/^${SCRIPTNAME}_conntrack /d" /jffs/addons/custom_settings.txt
-		echo "Enabled conntrack flushing."
+		Green "Enabled conntrack flushing."
 		;;
 	'noflushct')
 		am_settings_set "${SCRIPTNAME}_conntrack" "0"
-		echo "Disabled conntrack flushing."
+		Yellow "Disabled conntrack flushing."
 		;;
 	*)
 		show_help
