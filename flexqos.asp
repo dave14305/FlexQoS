@@ -152,15 +152,12 @@ box-shadow: #6C604F 5px 0px 0px 0px inset;
 <script>
 <% login_state_hook(); %>
 var custom_settings = <% get_custom_settings(); %>;
-var device = {};		// devices database --> device["IP"] = { mac: "AA:BB:CC:DD:EE:FF" , name:"name" }
-var clientlist = <% get_clientlist_from_json_database(); %>;		// data from /jffs/nmp_cl_json.js (used to correlate mac addresses to corresponding device names  )
 var tabledata;		//tabled of tracked connections after device-filtered
 var filter = Array(6);
 var sortdir = 0;
 var sortfield = 5;
 var dhcp_start = "<% nvram_get("dhcp_start"); %>";
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
-var ipv6prefix = "<% nvram_get("ipv6_prefix"); %>".replace(/::$/,":");
 
 const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7";
 const iptables_default_rulenames = "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads";
@@ -524,12 +521,16 @@ function table_sort(a, b){
 
 function updateTable()
 {
+	var clientObj, clientName;
 	//sort table data
 	if (sortfield < 5)
 		tabledata.sort(function(a,b) {return a[5].localeCompare(b[5])} );
 	else
 		tabledata.sort(function(a,b) {return a[1].localeCompare(b[1])} );
 	tabledata.sort(table_sort);
+
+	genClientList();
+	<% get_ipv6net_array(); %>
 
 	//generate table
 	var code = '<tr class="row_title">' +
@@ -544,11 +545,33 @@ function updateTable()
 		var qos_class = tabledata[i][5].split(">")[0];
 		var label = tabledata[i][5].split(">")[1];
 		var mark = (parseInt(tabledata[i][7]).toString(16).padStart(2,'0') + parseInt(tabledata[i][6]).toString(16).padStart(4,'0')).toUpperCase();
-		if (device[tabledata[i][1]]) {
-			srchost = (device[tabledata[i][1]].name == "") ? tabledata[i][1] : device[tabledata[i][1]].name;
-		} else {
-			srchost = tabledata[i][1];
+		// Retrieve hostname from networkmap
+		clientObj = clientFromIP(tabledata[i][1]);
+		if (clientObj) {
+			clientName = (clientObj.nickName == "") ? clientObj.name : clientObj.nickName;
+		} 
+		else if (tabledata[i][1].indexOf(":") >= 0) {		// IPv6 connection
+			for ( var element of ipv6clientarray) {			// Loop through IPv6 leases to find a IPv6 match
+				if ( element[2] ){
+					if( element[2].replace(/[0-9a-f]{2},|[0-9a-f]{2}$/g,"00").indexOf(tabledata[i][1]) >= 0 ) {		// replace last 2 chars with 00 due to TM bug. Multiple comma-separated entries can be present.
+						var clientMAC = element[1].toUpperCase(); // MAC address
+						if ( clientList[clientMAC] ) {
+							clientName = (clientList[clientMAC].nickName == "") ? clientList[clientMAC].name : clientList[clientMAC].nickName;
+							break;
+						}
+					}
+					else {		// No IPv6 lease match, so use raw IP
+						srchost = tabledata[i][1];
+						clientName = "";
+					}
+				}
+			};
 		}
+		else {
+			srchost = tabledata[i][1];
+			clientName = "";
+		}
+		srchost = (clientName == "") ? tabledata[i][1] : clientName;
 
 		code += '<tr>'
 		+ '<td>' + tabledata[i][0] + '</td>'
@@ -571,93 +594,6 @@ function updateTable()
 
 function comma(n) {
 	return n.toLocaleString();
-}
-
-function get_devicenames()
-{
-	// populate device["IP"].mac from nvram variable "dhcp_staticlist"
-	decodeURIComponent('<% nvram_char_to_ascii("", "dhcp_staticlist"); %>').split("<").forEach( element => {
-		if ( element.split(">")[1] ){
-			device[element.split(">")[1]] = { mac:element.split(">")[0].toUpperCase() , name:"*" };
-		}
-	});
-
-	// populate device["IP"].mac from arp table
-	[<% get_arp_table(); %>].forEach( element => {
-		if ( element[3] ){
-			device[element[0]] = { mac:element[3].toUpperCase() , name:element[4] };
-		}
-	 });
-
-	//instead temporarily populate device["IP"].name from dhcp table
-	// used as stopgap source of partial information on page load until complete information is later available from asynchronous code
-	// is NOT ideal since the names using this method do not reflect nicknames and sometimes return "*" instead of a device name
-	dhcpnamelist = <% IP_dhcpLeaseInfo(); %>
-	dhcpnamelist.forEach( element => {
-		if ( element[0] ){
-			if( device[element[0]] )
-				device[element[0]].name = element[1];
-			else
-				device[element[0]] = { mac:undefined , name:element[1]};
-		}
-	});
-
-	<% get_ipv6net_array(); %>
-
-	ipv6clientarray.forEach( element => {
-		if ( element[2] ){
-			if( device[element[2].replace(/[0-9a-f]{2}$/,"00")] )
-				device[element[2].replace(/[0-9a-f]{2}$/,"00")].name = element[0];
-			else
-				device[element[2].replace(/[0-9a-f]{2}$/,"00")] = { mac:element[1] , name:element[0]};
-		}
-	});
-
-	// populate device["IP"].name from device["IP"].mac saved in /jffs/nmp_cl_json.js
-	// clientlist = is data set from /jffs/nmp_cl_json.js
-	for (var i in device) {
-		if (typeof clientlist[device[i].mac.toUpperCase()] != "undefined")
-		{
-			if(clientlist[device[i].mac.toUpperCase()].nickName != "")
-			{
-				device[i].name = clientlist[device[i].mac.toUpperCase()].nickName;
-			}
-			else if(clientlist[device[i].mac.toUpperCase()].name != "")
-			{
-				device[i].name = clientlist[device[i].mac.toUpperCase()].name;
-			}
-		}
-	}
-}
-
-function update_devicenames(leasearray)
-{
-	// this code is after ajax call
-	leasearray.forEach( element => {
-		if ( element[1] ){
-
-			mac = element[1].toUpperCase();
-			ip = element[2];
-			name = element[3];
-
-			//update device["IP"].mac from DHCP table
-			//device[ip] = { mac:mac , name:"DEBUG: DHCP" };
-			device[ip] = { mac:mac , name:name };
-
-			//update device{"IP"].name from /jffs/nmp_cl_json.js
-			if (typeof clientlist[mac] != "undefined")
-			{
-				if(clientlist[mac].nickName != "")
-				{
-					device[ip].name = clientlist[mac].nickName;
-				}
-				else if(clientlist[mac].name != "")
-				{
-					device[ip].name = clientlist[mac].name;
-				}
-			}
-		}
-	});
 }
 
 function populate_classmenu(){
@@ -750,7 +686,6 @@ function initial() {
 	}
 	populate_bandwidth_table();
 	set_FlexQoS_mod_vars();
-	get_devicenames();
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
@@ -763,15 +698,6 @@ function initial() {
 	populate_class_dropdown();
 	// Setup appdb auto-complete menu
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
-	$.ajax({
-		url: "Main_DHCPStatus_Content.asp",
-		success: function(result){
-			result = result.match(/leasearray=([\s\S]*?);/);
-			if (result[1]){
-				update_devicenames(eval(result[1])); //regex data string into actual array
-			}
-		}
-	});
 }
 
 function get_qos_class(category, appid) {
