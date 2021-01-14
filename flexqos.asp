@@ -1980,6 +1980,11 @@ function set_FlexQoS_mod_vars()
 		document.form.flexqos_conntrack.value = "1";
 	else
 		document.form.flexqos_conntrack.value = custom_settings.flexqos_conntrack;
+
+	if ( custom_settings.flexqos_qdisc == undefined )		// disabled
+		document.form.flexqos_qdisc.value = "0";
+	else
+		document.form.flexqos_qdisc.value = custom_settings.flexqos_qdisc;
 }
 
 function FlexQoS_reset_iptables() {
@@ -2146,6 +2151,10 @@ function FlexQoS_mod_apply() {
 		if (document.form.flexqos_conntrack.value == 0)		// if disabled in the GUI
 			custom_settings.flexqos_conntrack = document.form.flexqos_conntrack.value;
 	}
+	if (document.form.flexqos_qdisc.value == 0)
+		delete custom_settings.flexqos_qdisc;
+	else
+		custom_settings.flexqos_qdisc = document.form.flexqos_qdisc.value;
 
 	/* Store object as a string in the amng_custom hidden input field */
 	if (JSON.stringify(custom_settings).length < 8192) {
@@ -2557,15 +2566,13 @@ function autocomplete(inp, arr) {
 			<td colspan="2">Options</td>
 		</tr>
 	</thead>
-<!--
 	<tr>
-		<th>Graph Units</th>
+		<th>Queue Discipline</th>
 		<td>
-			<input type="radio" name="rate_graph_units" class="input" value="0" onChange="change_chart_opts(this)">kb/s
-			<input type="radio" name="rate_graph_units" class="input" value="1" onChange="change_chart_opts(this)">Mb/s
+			<input type="radio" name="flexqos_qdisc" class="input" value="0">Default
+			<input type="radio" name="flexqos_qdisc" class="input" value="1">fq_codel
 		</td>
 	</tr>
--->
 	<tr>
 		<th>Graph Scale</th>
 		<td>

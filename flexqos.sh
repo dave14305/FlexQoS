@@ -536,6 +536,7 @@ debug() {
 	true > /tmp/${SCRIPTNAME}_tcrules
 	write_appdb_rules
 	write_custom_rates
+	write_custom_qdisc
 	cat /tmp/${SCRIPTNAME}_tcrules
 	Green "[/CODE][/SPOILER]"
 	# Since these tmp files aren't being used to apply rules, we delete them to avoid confusion about the last known ruleset
@@ -1449,6 +1450,19 @@ write_appdb_rules() {
 	IFS="$OLDIFS"		# Restore old field separator
 } # write_appdb_rules
 
+write_custom_qdisc() {
+	local i
+	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
+		{
+			for i in 0 1 2 3 4 5 6 7
+			do
+				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tclan" "$i"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tcwan" "$i"
+			done
+		} >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
+	fi
+} # write_custom_qdisc
+
 check_qos_tc() {
 	# Check the status of the existing tc class and filter setup by stock Adaptive QoS before custom settings applied.
 	# Only br0 interface is checked since we have not yet identified the tcwan interface name yet.
@@ -1557,6 +1571,8 @@ startup() {
 		else
 			logmsg "Bandwidth too low for custom rates. Skipping."
 		fi
+
+		write_custom_qdisc
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logmsg "Applying AppDB rules and TC rates"
