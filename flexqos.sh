@@ -1366,7 +1366,7 @@ get_config() {
 		am_settings_set "${SCRIPTNAME}_iptables_names" "$names"
 	fi
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
-		am_settings_set "${SCRIPTNAME}_appdb" "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5"
+		am_settings_set "${SCRIPTNAME}_appdb" "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4"
 	fi
 	appdb_rules="$(am_settings_get ${SCRIPTNAME}_appdb)"
 	if [ -z "$(am_settings_get ${SCRIPTNAME}_bwrates)" ]; then

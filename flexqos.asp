@@ -161,7 +161,7 @@ dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
 
 const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7";
 const iptables_default_rulenames = "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads";
-const appdb_default_rules = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4<1A****>5";
+const appdb_default_rules = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4";
 const bandwidth_default_rules = "<5>15>30>20>10>5>10>5<100>100>100>100>100>100>100>100<5>15>10>20>10>5>30>5<100>100>100>100>100>100>100>100";
 var iptables_rulelist_array="";
 var iptables_rulename_array="";
