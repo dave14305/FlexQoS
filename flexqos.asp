@@ -593,7 +593,7 @@ function updateTable()
 }
 
 function comma(n) {
-	return n.toLocaleString();
+	return parseInt(n).toLocaleString();
 }
 
 function populate_classmenu(){
