@@ -1456,11 +1456,11 @@ write_custom_qdisc() {
 		{
 			for i in 0 1 2 3 4 5 6 7
 			do
-				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tclan" "$i"
-				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tcwan" "$i"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024 noecn\n" "$tclan" "$i"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024 ecn\n" "$tcwan" "$i"
 			done
-			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tclan"
-			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tcwan"
+			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024 noecn\n" "$tclan"
+			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024 ecn\n" "$tcwan"
 		} >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
 	fi
 } # write_custom_qdisc
