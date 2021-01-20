@@ -1459,6 +1459,8 @@ write_custom_qdisc() {
 				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tclan" "$i"
 				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tcwan" "$i"
 			done
+			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tclan"
+			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tcwan"
 		} >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
 	fi
 } # write_custom_qdisc
