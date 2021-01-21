@@ -416,6 +416,7 @@ EOF
 
 appdb() {
 	# Search TrendMicro appdb file for matches to user-specified string. Return up to 25 matches
+	local line cat_decimal
 	/bin/grep -m 25 -i "$1" /tmp/bwdpi/bwdpi.app.db | while read -r line; do
 		echo "$line" | awk -F "," '{printf "  Application: %s\n         Mark: %02X%04X\nDefault Class: ", $4, $1, $2}'
 		cat_decimal=$(echo "$line" | cut -f 1 -d "," )
@@ -549,6 +550,7 @@ get_flowid() {
 	# Map class destination field from webui settings to the established class/flowid based on user priorities
 	# flowid will be one of 1:10 - 1:17, depending on the user priority sequencing in the QoS GUI
 	# Input: numeric class destination from iptables rule
+	local flowid
 	case "$1" in
 		0)	flowid="$Net_flow" ;;
 		1)	flowid="$Gaming_flow" ;;
@@ -582,7 +584,12 @@ parse_appdb_rule() {
 	#        $2 = Class destination
 	# Output: stdout is written directly to the /tmp/flexqos_appdb_rules file via redirect in write_appdb_rules(),
 	#         so don't add unnecessary output in this function.
-
+	local cat id
+	local DOWN_mark UP_mark
+	local flowid
+	local currmask
+	local prio currprio
+	local currhandledown currhandleup
 	# Only process if Mark is a valid format
 	if echo "$1" | Is_Valid_Mark; then
 		# Extract category and appid from mark
@@ -659,7 +666,13 @@ parse_iptablerule() {
 	#        $7 = class destination (e.g. 0-7)
 	# Output: stdout is written directly to the /tmp/flexqos_iprules file via redirect in write_iptables_rules(),
 	#         so don't add unnecessary output in this function.
-
+	local DOWN_Lip UP_Lip
+	local DOWN_Rip UP_Rip
+	local PROTO
+	local DOWN_Lport UP_Lport
+	local DOWN_Rport UP_Rport
+	local tmpMark DOWN_mark UP_mark
+	local DOWN_dst UP_dst
 	# local IP
 	# Check for acceptable IP format
 	if echo "$1" | Is_Valid_CIDR; then
@@ -923,7 +936,7 @@ download_file() {
 compare_remote_version() {
 	# Check version on Github and determine the difference with the installed version
 	# Outcomes: Version update, Hotfix (w/o version change), or no update
-
+	local remotever localmd5 remotemd5 localmd5asp remotemd5asp
 	# Fetch version of the shell script on Github
 	remotever="$(curl -fsN --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename $SCRIPTPATH)" | /bin/grep "^version=" | sed -e 's/version=//')"
 	if [ "${version//.}" -lt "${remotever//.}" ]; then		# strip the . from version string for numeric comparison
@@ -948,6 +961,7 @@ compare_remote_version() {
 update() {
 	# Check for, and optionally apply updates.
 	# Parameter options: check (do not update), silent (update without prompting)
+	local updatestatus yn
 	scriptinfo
 	printf "Checking for updates\n"
 	# Update the webui status thorugh detect_update.js ajax call.
@@ -1004,6 +1018,7 @@ prompt_restart() {
 	#  0: No restart needed (initialized in main)
 	#  1: Restart needed, but prompt user if interactive session
 	#  2: Restart needed, do not prompt (force)
+	local yn
 	if [ "$needrestart" -gt "0" ]; then
 		if [ "$mode" = "interactive" ]; then
 			if [ "$needrestart" = "1" ]; then
@@ -1023,6 +1038,7 @@ prompt_restart() {
 
 menu() {
 	# Minimal interactive, menu-driven interface for basic maintenance functions.
+	local yn
 	[ "$mode" = "interactive" ] || return
 	clear
 	sed -n '2,10p' "$0"		# display banner
@@ -1096,6 +1112,7 @@ menu() {
 } # menu
 
 remove_webui() {
+	local prev_webui_page
 	printf "Removing WebUI...\n"
 	prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_DISPLAY}\"\}\,$/\1/p" /tmp/menuTree.js 2>/dev/null)"
 	if [ -n "$prev_webui_page" ]; then
@@ -1121,6 +1138,7 @@ remove_webui() {
 } # remove_webui
 
 install_webui() {
+	local prev_webui_page
 	# if this is an install or update...otherwise it's a normal startup/mount
 	if [ -z "$1" ]; then
 		printf "Downloading WebUI files...\n"
@@ -1159,6 +1177,7 @@ install_webui() {
 
 Init_UserScript() {
 	# Properly setup an empty Merlin user script
+	local userscript
 	if [ -z "$1" ]; then
 		return
 	fi
@@ -1182,6 +1201,7 @@ Init_UserScript() {
 Auto_ServiceEventEnd() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
+	local cmdline
 	Init_UserScript "service-event-end"
 	# Delete existing lines related to this script
 	sed -i "\~$SCRIPTNAME_DISPLAY Addition~d" /jffs/scripts/service-event-end
@@ -1196,6 +1216,7 @@ Auto_ServiceEventEnd() {
 Auto_FirewallStart() {
 	# Borrowed from Adamm00
 	# https://github.com/Adamm00/IPSet_ASUS/blob/master/firewall.sh
+	local cmdline
 	Init_UserScript "firewall-start"
 	# Delete existing lines related to this script
 	sed -i "\~$SCRIPTNAME_DISPLAY Addition~d" /jffs/scripts/firewall-start
@@ -1213,6 +1234,7 @@ Auto_FirewallStart() {
 
 Auto_Crontab() {
 	# Setup cronjob for nightly check of QoS settings
+	local cmdline
 	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -check"
 	Init_UserScript "services-start"
 	sed -i "\~$SCRIPTNAME_DISPLAY Addition~d" /jffs/scripts/services-start
@@ -1222,6 +1244,7 @@ Auto_Crontab() {
 
 setup_aliases() {
 	# shortcuts to launching script
+	local cmdline
 	if [ -d /opt/bin ]; then
 		# Entware is installed, so setup link to /opt/bin
 		printf "Adding %s link in Entware /opt/bin...\n" "$SCRIPTNAME"
@@ -1303,6 +1326,7 @@ install() {
 } # install
 
 uninstall() {
+	local yn
 	printf "Removing entries from Merlin user scripts...\n"
 	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/firewall-start 2>/dev/null
 	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/service-event-end 2>/dev/null
@@ -1343,6 +1367,7 @@ uninstall() {
 } # uninstall
 
 get_config() {
+	local iptables_rules_defined 
 	local names n
 	local drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7
 	local dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7
@@ -1393,6 +1418,7 @@ EOF
 validate_iptables_rules() {
 	# Basic check to ensure the number of rules present in the iptables chain matches the number of expected rules
 	# Does not verify that the rules present match the rules in the config, since the config hasn't been parsed at this point.
+	local iptables_rules_defined iptables_rules_expected iptables_rulespresent
 	iptables_rules_defined="$(echo "$iptables_rules" | sed 's/</\n/g' | /bin/grep -vc "^$")"
 	iptables_rules_expected=$((iptables_rules_defined*2+1)) # 1 downlaod and upload rule per user rule, plus 1 for chain definition
 	iptables_rulespresent="$(iptables -t mangle -S $SCRIPTNAME_DISPLAY | wc -l)" # count rules in chain plus chain itself
@@ -1406,6 +1432,7 @@ validate_iptables_rules() {
 write_iptables_rules() {
 	# loop through iptables rules and write an iptables command to a temporary file for later execution
 	local OLDIFS
+	local localip remoteip proto lport rport mark class
 	{
 		printf "iptables -t mangle -F %s 2>/dev/null\n" "$SCRIPTNAME_DISPLAY"
 		if [ "$IPv6_enabled" != "disabled" ]; then
@@ -1430,7 +1457,7 @@ write_iptables_rules() {
 write_appdb_rules() {
 	# Write the user appdb rules to the existing tcrules file created during write_appdb_static_rules()
 	local OLDIFS
-
+	local mark class
 	# Save the current filter rules once to avoid repeated calls in parse_appdb_rule() to determine existing prios
 	$TC filter show dev $tclan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
 	$TC filter show dev $tcwan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
@@ -1454,18 +1481,19 @@ write_custom_qdisc() {
 	local i
 	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
 		{
+			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tclan"
+			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tcwan"
 			for i in 0 1 2 3 4 5 6 7
 			do
 				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tclan" "$i"
 				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tcwan" "$i"
 			done
-			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tclan"
-			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tcwan"
 		} >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
 	fi
 } # write_custom_qdisc
 
 check_qos_tc() {
+	local dlclasscnt dlfiltercnt
 	# Check the status of the existing tc class and filter setup by stock Adaptive QoS before custom settings applied.
 	# Only br0 interface is checked since we have not yet identified the tcwan interface name yet.
 	dlclasscnt="$($TC class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
@@ -1481,7 +1509,8 @@ check_qos_tc() {
 validate_tc_rules() {
 	# Check the existing tc filter rules against the user configuration. If any rule missing, force creation of all rules
 	# Must run after set_tc_variables() to ensure flowid can be determined
-	local OLDIFS
+	local OLDIFS filtermissing
+	local mark class flowid
 	{
 		# print a list of existing filters in the format of an appdb rule for easy comparison. Write to tmp file
 		$TC filter show dev "$tclan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
@@ -1519,6 +1548,7 @@ schedule_check_job() {
 } # schedule_check_job
 
 startup() {
+	local sleepdelay
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
 		logmsg "Adaptive QoS is not enabled. Skipping $SCRIPTNAME_DISPLAY startup."
 		return 1
