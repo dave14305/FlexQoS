@@ -1030,8 +1030,8 @@ prompt_restart() {
 				fi
 			fi
 		fi
-		printf "Restarting QoS...\n"
-		service restart_qos
+		printf "Restarting QoS and firewall...\n"
+		service "restart_qos;restart_firewall"
 		needrestart=0
 	fi
 } # prompt_restart
@@ -1205,8 +1205,8 @@ Auto_ServiceEventEnd() {
 	Init_UserScript "service-event-end"
 	# Delete existing lines related to this script
 	sed -i "\~$SCRIPTNAME_DISPLAY Addition~d" /jffs/scripts/service-event-end
-	# Add line to handle qos, wrs and sig_check events that require reapplying settings
-	cmdline="if [ \"\$2\" = \"qos\" ] || [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -start & } ; fi # $SCRIPTNAME_DISPLAY Addition"
+	# Add line to handle wrs and sig_check events that require reapplying settings
+	cmdline="if [ \"\$2\" = \"wrs\" ] || [ \"\$2\" = \"sig_check\" ]; then { sh ${SCRIPTPATH} -start & } ; fi # $SCRIPTNAME_DISPLAY Addition"
 	echo "$cmdline" >> /jffs/scripts/service-event-end
 	# Add line to handle other events triggered from webui
 	cmdline="if echo \"\$2\" | /bin/grep -q \"^${SCRIPTNAME}\"; then { sh ${SCRIPTPATH} \"\${2#${SCRIPTNAME}}\" & } ; fi # $SCRIPTNAME_DISPLAY Addition"
