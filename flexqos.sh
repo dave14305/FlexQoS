@@ -1584,7 +1584,7 @@ startup() {
 		if [ "$sleepdelay" -ge "300" ]; then
 			logmsg "TC Modification Delay reached maximum 300 seconds. Aborting startup!"
 			schedule_check_job
-			break
+			return 1
 		else
 			sleepdelay=$((sleepdelay+10))
 		fi
