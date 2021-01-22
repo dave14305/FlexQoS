@@ -13,7 +13,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>FlexQoS</title>
+<title>ASUS Wireless Router - FlexQoS</title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
@@ -2293,6 +2293,9 @@ function validate_percent(input)
 }
 
 function SetCurrentPage() {
+	var model = "<% nvram_get("odmpid"); %>";
+	if ( model == "" ) model = "<% nvram_get("productid"); %>";
+	document.title = "ASUS Wireless Router " + model + " - FlexQoS";
 	document.form.next_page.value = window.location.pathname.substring(1);
 	document.form.current_page.value = window.location.pathname.substring(1);
 }
