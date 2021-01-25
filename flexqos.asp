@@ -151,12 +151,12 @@ box-shadow: #6C604F 5px 0px 0px 0px inset;
 
 <script>
 <% login_state_hook(); %>
-var custom_settings = <% get_custom_settings(); %>;
+var custom_settings = '<% get_custom_settings(); %>';
 var tabledata;		//tabled of tracked connections after device-filtered
 var filter = Array(6);
 var sortdir = 0;
 var sortfield = 5;
-var dhcp_start = "<% nvram_get("dhcp_start"); %>";
+var dhcp_start = '<% nvram_get("dhcp_start"); %>';
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
 
 const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7";
@@ -171,15 +171,15 @@ var appdb_temp_array=[];
 var appdb_rulelist_array="";
 var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
-var qos_dlbw = "<% nvram_get("qos_ibw"); %>";		// download bandwidth set in QoS settings
-var qos_ulbw = "<% nvram_get("qos_obw"); %>";		// upload bandwidth set in QoS settings
+var qos_dlbw = '<% nvram_get("qos_ibw"); %>';		// download bandwidth set in QoS settings
+var qos_ulbw = '<% nvram_get("qos_obw"); %>';		// upload bandwidth set in QoS settings
 if (qos_dlbw > 0 && qos_ulbw > 0)
 	var qos_bwmode = 1;	// Manual
 else
 	var qos_bwmode = 0;	// Auto
 
-var qos_type = "<% nvram_get("qos_type"); %>";
-if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
+var qos_type = '<% nvram_get("qos_type"); %>';
+if ('<% nvram_get("qos_enable"); %>' == 0) { // QoS disabled
 	var qos_mode = 0;
 } else if (bwdpi_support && (qos_type == "1")) { // aQoS
 	var qos_mode = 2;
@@ -192,7 +192,7 @@ if ("<% nvram_get("qos_enable"); %>" == 0) { // QoS disabled
 }
 
 if (qos_mode == 2) {
-	var bwdpi_app_rulelist = "<% nvram_get("bwdpi_app_rulelist"); %>".replace(/&#60/g, "<");
+	var bwdpi_app_rulelist = '<% nvram_get("bwdpi_app_rulelist"); %>'.replace(/&#60/g, "<");
 	var bwdpi_app_rulelist_row = bwdpi_app_rulelist.split("<");
 	if (bwdpi_app_rulelist == "" || bwdpi_app_rulelist_row.length != 9) {
 		bwdpi_app_rulelist = "9,20<8<4<0,5,6,15,17<4,13<13,24<1,3,14<7,10,11,21,23<";
@@ -2293,8 +2293,8 @@ function validate_percent(input)
 }
 
 function SetCurrentPage() {
-	var model = "<% nvram_get("odmpid"); %>";
-	if ( model == "" ) model = "<% nvram_get("productid"); %>";
+	var model = '<% nvram_get("odmpid"); %>';
+	if ( model == "" ) model = '<% nvram_get("productid"); %>';
 	document.title = "ASUS Wireless Router " + model + " - FlexQoS";
 	document.form.next_page.value = window.location.pathname.substring(1);
 	document.form.current_page.value = window.location.pathname.substring(1);
