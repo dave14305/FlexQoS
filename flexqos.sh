@@ -857,7 +857,6 @@ About
    (Speedtest.net) -  Moved into Downloads
    (Google Play)   -  Moved into Downloads
    (Apple AppStore)-  Moved into Downloads
-   (Advertisement) -  Moved into Downloads
    (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted
    (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into Gaming
 
