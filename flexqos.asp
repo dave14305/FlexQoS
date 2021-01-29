@@ -151,7 +151,7 @@ box-shadow: #6C604F 5px 0px 0px 0px inset;
 
 <script>
 <% login_state_hook(); %>
-var custom_settings = '<% get_custom_settings(); %>';
+var custom_settings = <% get_custom_settings(); %>;
 var tabledata;		//tabled of tracked connections after device-filtered
 var filter = Array(6);
 var sortdir = 0;
@@ -602,6 +602,7 @@ function populate_classmenu(){
 	  code += '<option value="' + i + '">' + class_title[i] + "</option>\n";
 	}
 	document.getElementById('appdb_class_x').innerHTML=code;
+	document.getElementById('flexqos_outputcls').innerHTML=code;
 }
 
 function populate_class_dropdown() {
@@ -685,9 +686,9 @@ function initial() {
 		return;
 	}
 	populate_bandwidth_table();
+	populate_classmenu();
 	set_FlexQoS_mod_vars();
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
-	populate_classmenu();
 	refreshRate = document.getElementById('refreshrate').value;
 	initialize_charts();
 	get_data();
@@ -1981,10 +1982,15 @@ function set_FlexQoS_mod_vars()
 	else
 		document.form.flexqos_conntrack.value = custom_settings.flexqos_conntrack;
 
-	if ( custom_settings.flexqos_qdisc == undefined )		// disabled
+	if ( custom_settings.flexqos_qdisc == undefined )
 		document.form.flexqos_qdisc.value = "0";
 	else
 		document.form.flexqos_qdisc.value = custom_settings.flexqos_qdisc;
+
+	if ( custom_settings.flexqos_outputcls == undefined )
+		document.form.flexqos_outputcls.value = "5";
+	else
+		document.form.flexqos_outputcls.value = custom_settings.flexqos_outputcls;
 }
 
 function FlexQoS_reset_iptables() {
@@ -2155,6 +2161,11 @@ function FlexQoS_mod_apply() {
 		delete custom_settings.flexqos_qdisc;
 	else
 		custom_settings.flexqos_qdisc = document.form.flexqos_qdisc.value;
+
+	if (document.form.flexqos_outputcls.value == 5)
+		delete custom_settings.flexqos_outputcls;
+	else
+		custom_settings.flexqos_outputcls = document.form.flexqos_outputcls.value;
 
 	/* Store object as a string in the amng_custom hidden input field */
 	if (JSON.stringify(custom_settings).length < 8192) {
@@ -2588,6 +2599,13 @@ function autocomplete(inp, arr) {
 		<td>
 			<input type="radio" name="flexqos_conntrack" class="input" value="1">Yes
 			<input type="radio" name="flexqos_conntrack" class="input" value="0">No
+		</td>
+	</tr>
+	<tr>
+		<th>Router Outbound Traffic Class</th>
+		<td>
+			<select name="flexqos_outputcls" id="flexqos_outputcls" class="input_option">
+			</select>
 		</td>
 	</tr>
 	<tr>

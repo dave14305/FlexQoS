@@ -98,22 +98,44 @@ Yellow() {
 	printf -- '\033[1;33m%s\033[0m\n' "$1"
 }
 
+get_class_mark() {
+	local class
+	class=$1
+	case "$class" in
+		0) printf "%s\n" "$Net_mark" ;;
+		1) printf "%s\n" "$Gaming_mark" ;;
+		2) printf "%s\n" "$Streaming_mark" ;;
+		3) printf "%s\n" "$Work_mark" ;;
+		4) printf "%s\n" "$Web_mark" ;;
+		5) printf "%s\n" "$Downloads_mark" ;;
+		6) printf "%s\n" "$Others_mark" ;;
+		7) printf "%s\n" "$Learn_mark" ;;
+		*) printf "%s\n" ""	;;
+	esac
+}
+
 iptables_static_rules() {
+	local outputcls
+	outputcls="$(am_settings_get ${SCRIPTNAME}_outputcls)"
+	if [ -z "$outputcls" ]; then
+		outputcls="5"
+	fi
+	outputcls="$(get_class_mark $outputcls)"
 	printf "Applying iptables static rules\n"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
-	iptables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff
-	iptables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff
 	iptables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
 	iptables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	if [ "$IPv6_enabled" != "disabled" ]; then
 		printf "Applying ip6tables static rules\n"
-		ip6tables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff
-		ip6tables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff
 		ip6tables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
 		ip6tables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	fi
@@ -672,7 +694,7 @@ parse_iptablerule() {
 	local DOWN_Lport UP_Lport
 	local DOWN_Rport UP_Rport
 	local tmpMark DOWN_mark UP_mark
-	local DOWN_dst UP_dst
+	local DOWN_dst UP_dst Dst_mark
 	# local IP
 	# Check for acceptable IP format
 	if echo "$1" | Is_Valid_CIDR; then
@@ -759,44 +781,12 @@ parse_iptablerule() {
 
 	# destination mark
 	# numbers come from webui select options for class field
-	case "$7" in
-		0)
-			DOWN_dst="-j MARK --set-mark 0x80${Net_mark}ffff/0xc03fffff"
-			UP_dst="-j MARK --set-mark 0x40${Net_mark}ffff/0xc03fffff"
-			;;
-		1)
-			DOWN_dst="-j MARK --set-mark 0x80${Gaming_mark}ffff/0xc03fffff"
-			UP_dst="-j MARK --set-mark 0x40${Gaming_mark}ffff/0xc03fffff"
-			;;
-		2)
-			DOWN_dst="-j MARK --set-mark 0x80${Streaming_mark}ffff/0xc03fffff"
-			UP_dst="-j MARK --set-mark 0x40${Streaming_mark}ffff/0xc03fffff"
-			;;
-		3)
-			DOWN_dst="-j MARK --set-mark 0x80${Work_mark}ffff/0xc03fffff"
-			UP_dst="-j MARK --set-mark 0x40${Work_mark}ffff/0xc03fffff"
-			;;
-		4)
-			DOWN_dst="-j MARK --set-mark 0x80${Web_mark}ffff/0xc03fffff"
-			UP_dst="-j MARK --set-mark 0x40${Web_mark}ffff/0xc03fffff"
-			;;
-		5)
-			DOWN_dst="-j MARK --set-mark 0x80${Downloads_mark}ffff/0xc03fffff"
-			UP_dst="-j MARK --set-mark 0x40${Downloads_mark}ffff/0xc03fffff"
-			;;
-		6)
-			DOWN_dst="-j MARK --set-mark 0x80${Others_mark}ffff/0xc03fffff"
-			UP_dst="-j MARK --set-mark 0x40${Others_mark}ffff/0xc03fffff"
-			;;
-		7)
-			DOWN_dst="-j MARK --set-mark 0x80${Learn_mark}ffff/0xc03fffff"
-			UP_dst="-j MARK --set-mark 0x40${Learn_mark}ffff/0xc03fffff"
-			;;
-		*)
-			#if destination is empty stop processing rule
-			return
-			;;
-	esac
+	Dst_mark="$(get_class_mark $7)"
+	if [ -z "$Dst_mark" ]; then
+		return
+	fi
+	DOWN_dst="-j MARK --set-mark 0x80${Dst_mark}ffff/0xc03fffff"
+	UP_dst="-j MARK --set-mark 0x40${Dst_mark}ffff/0xc03fffff"
 
 	# This block is redirected to the /tmp/flexqos_iprules file, so no extraneous output, please
 	# If proto=both we have to create 2 statements, one for tcp and one for udp.
