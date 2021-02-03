@@ -325,17 +325,17 @@ EOF
 		case ${line} in
 		'0')
 			Work_flow="1:1${flowid}"
-			eval "Cat${flowid}DownBandPercent=$drp1"
-			eval "Cat${flowid}DownCeilPercent=$dcp1"
-			eval "Cat${flowid}UpBandPercent=$urp1"
-			eval "Cat${flowid}UpCeilPercent=$ucp1"
+			eval "Cat${flowid}DownBandPercent=$drp3"
+			eval "Cat${flowid}DownCeilPercent=$dcp3"
+			eval "Cat${flowid}UpBandPercent=$urp3"
+			eval "Cat${flowid}UpCeilPercent=$ucp3"
 			;;
 		'1')
 			Downloads_flow="1:1${flowid}"
-			eval "Cat${flowid}DownBandPercent=$drp7"
-			eval "Cat${flowid}DownCeilPercent=$dcp7"
-			eval "Cat${flowid}UpBandPercent=$urp7"
-			eval "Cat${flowid}UpCeilPercent=$ucp7"
+			eval "Cat${flowid}DownBandPercent=$drp5"
+			eval "Cat${flowid}DownCeilPercent=$dcp5"
+			eval "Cat${flowid}UpBandPercent=$urp5"
+			eval "Cat${flowid}UpCeilPercent=$ucp5"
 			;;
 		'4')
 			# Special handling for category 4 since it is duplicated between Streaming and Learn-From-Home.
@@ -346,47 +346,47 @@ EOF
 				# Learn-From-Home is higher priority than Streaming
 				if [ -z "$Learn_flow" ]; then
 					Learn_flow="1:1${flowid}"
-					eval "Cat${flowid}DownBandPercent=$drp6"
-					eval "Cat${flowid}DownCeilPercent=$dcp6"
-					eval "Cat${flowid}UpBandPercent=$urp6"
-					eval "Cat${flowid}UpCeilPercent=$ucp6"
+					eval "Cat${flowid}DownBandPercent=$drp7"
+					eval "Cat${flowid}DownCeilPercent=$dcp7"
+					eval "Cat${flowid}UpBandPercent=$urp7"
+					eval "Cat${flowid}UpCeilPercent=$ucp7"
 				else
 					Streaming_flow="1:1${flowid}"
-					eval "Cat${flowid}DownBandPercent=$drp5"
-					eval "Cat${flowid}DownCeilPercent=$dcp5"
-					eval "Cat${flowid}UpBandPercent=$urp5"
-					eval "Cat${flowid}UpCeilPercent=$ucp5"
+					eval "Cat${flowid}DownBandPercent=$drp2"
+					eval "Cat${flowid}DownCeilPercent=$dcp2"
+					eval "Cat${flowid}UpBandPercent=$urp2"
+					eval "Cat${flowid}UpCeilPercent=$ucp2"
 				fi
 			else
 				# Streaming is higher priority than Learn-From-Home
 				if [ -z "$Streaming_flow" ]; then
 					Streaming_flow="1:1${flowid}"
-					eval "Cat${flowid}DownBandPercent=$drp5"
-					eval "Cat${flowid}DownCeilPercent=$dcp5"
-					eval "Cat${flowid}UpBandPercent=$urp5"
-					eval "Cat${flowid}UpCeilPercent=$ucp5"
+					eval "Cat${flowid}DownBandPercent=$drp2"
+					eval "Cat${flowid}DownCeilPercent=$dcp2"
+					eval "Cat${flowid}UpBandPercent=$urp2"
+					eval "Cat${flowid}UpCeilPercent=$ucp2"
 				else
 					Learn_flow="1:1${flowid}"
-					eval "Cat${flowid}DownBandPercent=$drp6"
-					eval "Cat${flowid}DownCeilPercent=$dcp6"
-					eval "Cat${flowid}UpBandPercent=$urp6"
-					eval "Cat${flowid}UpCeilPercent=$ucp6"
+					eval "Cat${flowid}DownBandPercent=$drp7"
+					eval "Cat${flowid}DownCeilPercent=$dcp7"
+					eval "Cat${flowid}UpBandPercent=$urp7"
+					eval "Cat${flowid}UpCeilPercent=$ucp7"
 				fi
 			fi  # Check Learn-From-Home and Streaming priority order
 			;;
 		'7')
 			Others_flow="1:1${flowid}"
-			eval "Cat${flowid}DownBandPercent=$drp3"
-			eval "Cat${flowid}DownCeilPercent=$dcp3"
-			eval "Cat${flowid}UpBandPercent=$urp3"
-			eval "Cat${flowid}UpCeilPercent=$ucp3"
+			eval "Cat${flowid}DownBandPercent=$drp6"
+			eval "Cat${flowid}DownCeilPercent=$dcp6"
+			eval "Cat${flowid}UpBandPercent=$urp6"
+			eval "Cat${flowid}UpCeilPercent=$ucp6"
 			;;
 		'8')
 			Gaming_flow="1:1${flowid}"
-			eval "Cat${flowid}DownBandPercent=$drp2"
-			eval "Cat${flowid}DownCeilPercent=$dcp2"
-			eval "Cat${flowid}UpBandPercent=$urp2"
-			eval "Cat${flowid}UpCeilPercent=$ucp2"
+			eval "Cat${flowid}DownBandPercent=$drp1"
+			eval "Cat${flowid}DownCeilPercent=$dcp1"
+			eval "Cat${flowid}UpBandPercent=$urp1"
+			eval "Cat${flowid}UpCeilPercent=$ucp1"
 			;;
 		'9')
 			Net_flow="1:1${flowid}"
@@ -406,10 +406,10 @@ EOF
 			# This is how the old ASUS default category would appear, but this option will soon be deprecated
 			# when all supported models are using the new QoS Categories.
 			Learn_flow="1:1${flowid}"
-			eval "Cat${flowid}DownBandPercent=$drp6"
-			eval "Cat${flowid}DownCeilPercent=$dcp6"
-			eval "Cat${flowid}UpBandPercent=$urp6"
-			eval "Cat${flowid}UpCeilPercent=$ucp6"
+			eval "Cat${flowid}DownBandPercent=$drp7"
+			eval "Cat${flowid}DownCeilPercent=$dcp7"
+			eval "Cat${flowid}UpBandPercent=$urp7"
+			eval "Cat${flowid}UpCeilPercent=$ucp7"
 			;;
 		esac
 	done <<EOF
