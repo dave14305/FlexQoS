@@ -1391,14 +1391,14 @@ get_config() {
 		else
 			# Convert bandwidth to bwrates by reading existing values into the re-sorted order
 			read \
-				drp0 drp2 drp5 drp1 drp4 drp7 drp3 drp6 \
-				dcp0 dcp2 dcp5 dcp1 dcp4 dcp7 dcp3 dcp6 \
-				urp0 urp2 urp5 urp1 urp4 urp7 urp3 urp6 \
-				ucp0 ucp2 ucp5 ucp1 ucp4 ucp7 ucp3 ucp6 \
+				drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7 \
+				dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7 \
+				urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7 \
+				ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7 \
 <<EOF
 $(am_settings_get ${SCRIPTNAME}_bandwidth | sed 's/^<//g;s/[<>]/ /g')
 EOF
-			am_settings_set ${SCRIPTNAME}_bwrates "<${drp0}>${drp1}>${drp2}>${drp3}>${drp4}>${drp5}>${drp6}>${drp7}<${dcp0}>${dcp1}>${dcp2}>${dcp3}>${dcp4}>${dcp5}>${dcp6}>${dcp7}<${urp0}>${urp1}>${urp2}>${urp3}>${urp4}>${urp5}>${urp6}>${urp7}<${ucp0}>${ucp1}>${ucp2}>${ucp3}>${ucp4}>${ucp5}>${ucp6}>${ucp7}"
+			am_settings_set ${SCRIPTNAME}_bwrates "<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
 			sed -i "/^${SCRIPTNAME}_bandwidth /d" /jffs/addons/custom_settings.txt
 		fi
 	fi
