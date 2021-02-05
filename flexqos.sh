@@ -11,7 +11,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=1.1.1
-release=2021-01-07
+release=2021-02-04
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -1489,6 +1489,7 @@ check_qos_tc() {
 	dlfiltercnt="$($TC filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
 	# Check class count, filter count, and tcwan interface name defined with an htb qdisc
 	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$($TC qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
+		logmsg "QoS state: Classes=${dlclasscnt} | Filters=${dlfiltercnt} | HTB root qdiscs=$($TC qdisc ls | /bin/grep -cE "htb.*root")"
 		return 0
 	else
 		return 1
@@ -1570,9 +1571,10 @@ startup() {
 	do
 		[ "$sleepdelay" = "0" ] && logmsg "TC Modification Delayed Start"
 		sleep 10s
-		if [ "$sleepdelay" -ge "300" ]; then
-			logmsg "TC Modification Delay reached maximum 300 seconds. Aborting startup!"
-			schedule_check_job
+		if [ "$sleepdelay" -ge "180" ]; then
+			logmsg "TC Modification Delay reached maximum 180 seconds. Restarting QoS."
+			service "restart_qos;restart_firewall"
+#			schedule_check_job
 			return 1
 		else
 			sleepdelay=$((sleepdelay+10))
