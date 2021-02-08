@@ -30,10 +30,9 @@ fi
 readonly SCRIPTNAME_DISPLAY="FlexQoS"
 readonly SCRIPTNAME="$(echo $SCRIPTNAME_DISPLAY | tr A-Z a-z)"
 readonly GIT_REPO="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}"
-if [ "$(am_settings_get "${SCRIPTNAME}_branch")" != "develop" ]; then
+GIT_BRANCH="$(am_settings_get "${SCRIPTNAME}_branch")"
+if [ -z "$GIT_BRANCH" ]; then
 	GIT_BRANCH="master"
-else
-	GIT_BRANCH="$(am_settings_get "${SCRIPTNAME}_branch")"
 fi
 GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 
@@ -311,7 +310,7 @@ set_tc_variables() {
 		urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7 \
 		ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7 \
 <<EOF
-$(am_settings_get ${SCRIPTNAME}_bwrates | sed 's/^<//g;s/[<>]/ /g')
+$(echo $bwrates | sed 's/^<//g;s/[<>]/ /g')
 EOF
 
 	# read priority order of QoS categories as set by user on the QoS page of the GUI
@@ -511,7 +510,7 @@ scriptinfo() {
 } # scriptinfo
 
 debug() {
-	local RMODEL
+	local RMODEL ipt_debug appdb_debug
 	[ -z "$(nvram get odmpid)" ] && RMODEL="$(nvram get productid)" || RMODEL="$(nvram get odmpid)"
 	Green "[SPOILER=\"$SCRIPTNAME_DISPLAY Debug\"][CODE]"
 	scriptinfo
@@ -528,7 +527,7 @@ debug() {
 	printf "Undf Prio     : %s\n" "$undf_prio"
 	printf "Down Band     : %s\n" "$DownCeil"
 	printf "Up Band       : %s\n" "$UpCeil"
-	printf "***********\n"
+	printf "**************\n"
 	printf "Net Control   : %s\n" "$Net_flow"
 	printf "Work-From-Home: %s\n" "$Work_flow"
 	printf "Gaming        : %s\n" "$Gaming_flow"
@@ -537,24 +536,26 @@ debug() {
 	printf "Streaming     : %s\n" "$Streaming_flow"
 	printf "File Downloads: %s\n" "$Downloads_flow"
 	printf "Game Downloads: %s\n" "$Learn_flow"
-	printf "***********\n"
+	printf "**************\n"
 	# Only print custom rates if Manual Bandwidth setting is enabled on QoS page
 	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
 		printf "Downrates     : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownRate0" "$DownRate1" "$DownRate2" "$DownRate3" "$DownRate4" "$DownRate5" "$DownRate6" "$DownRate7"
 		printf "Downceils     : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$DownCeil0" "$DownCeil1" "$DownCeil2" "$DownCeil3" "$DownCeil4" "$DownCeil5" "$DownCeil6" "$DownCeil7"
 		printf "Uprates       : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpRate0" "$UpRate1" "$UpRate2" "$UpRate3" "$UpRate4" "$UpRate5" "$UpRate6" "$UpRate7"
 		printf "Upceils       : %7s, %7s, %7s, %7s, %7s, %7s, %7s, %7s\n" "$UpCeil0" "$UpCeil1" "$UpCeil2" "$UpCeil3" "$UpCeil4" "$UpCeil5" "$UpCeil6" "$UpCeil7"
-		printf "***********\n"
+		printf "**************\n"
 	else
 		printf "Custom rates disabled with Automatic Bandwidth mode!\n"
-		printf "***********\n"
+		printf "**************\n"
 	fi
-	printf "iptables settings: %s\n" "$(am_settings_get flexqos_iptables)"
+	ipt_debug="$(am_settings_get flexqos_iptables)"
+	printf "iptables settings: %s\n" "${ipt_debug:-Defaults}"
 	write_iptables_rules
 	# Remove superfluous commands from the output in order to focus on the parsed details
 	/bin/sed -E "/^ip[6]?tables -t mangle -F $SCRIPTNAME_DISPLAY/d; s/ip[6]?tables -t mangle -A $SCRIPTNAME_DISPLAY //g; s/[[:space:]]{2,}/ /g" /tmp/${SCRIPTNAME}_iprules
-	printf "***********\n"
-	printf "appdb rules: %s\n" "$(am_settings_get flexqos_appdb)"
+	printf "**************\n"
+	appdb_debug="$(am_settings_get flexqos_appdb)"
+	printf "appdb rules: %s\n" "${appdb_debug:-Defaults}"
 	true > /tmp/${SCRIPTNAME}_tcrules
 	write_appdb_rules
 	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
@@ -877,12 +878,18 @@ backup() {
 				printf "#!/bin/sh\n"
 				printf "# Backup date: %s\n" "$(date +'%Y-%m-%d %H:%M:%S%z')"
 				printf ". /usr/sbin/helper.sh\n"
-				printf "am_settings_set flexqos_iptables \"%s\"\n" "$(am_settings_get flexqos_iptables)"
-				printf "am_settings_set flexqos_iptables_names \"%s\"\n" "$(am_settings_get flexqos_iptables_names)"
-				printf "am_settings_set flexqos_appdb \"%s\"\n" "$(am_settings_get flexqos_appdb)"
-				printf "am_settings_set flexqos_bwrates \"%s\"\n" "$(am_settings_get flexqos_bwrates)"
+				[ -n "$(am_settings_get flexqos_iptables)" ]       && printf "am_settings_set flexqos_iptables \"%s\"\n" "$(am_settings_get flexqos_iptables)"
+				[ -n "$(am_settings_get flexqos_iptables_names)" ] && printf "am_settings_set flexqos_iptables_names \"%s\"\n" "$(am_settings_get flexqos_iptables_names)"
+				[ -n "$(am_settings_get flexqos_appdb)" ]          && printf "am_settings_set flexqos_appdb \"%s\"\n" "$(am_settings_get flexqos_appdb)"
+				[ -n "$(am_settings_get flexqos_bwrates)" ]        && printf "am_settings_set flexqos_bwrates \"%s\"\n" "$(am_settings_get flexqos_bwrates)"
+				[ -n "$(am_settings_get flexqos_qdisc)" ]          && printf "am_settings_set flexqos_qdisc \"%s\"\n" "$(am_settings_get flexqos_qdisc)"
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-			Green "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+			if /bin/grep -q "flexqos_" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"; then
+				Green "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+			else
+				rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
+				Yellow "Backup cancelled. All settings using default values."
+			fi
 			;;
 		'restore')
 			if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
@@ -1365,30 +1372,20 @@ get_config() {
 	local ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7
 
 	# Read settings from Addon API config file. If not defined, set default values
-	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables)" ]; then
-		am_settings_set "${SCRIPTNAME}_iptables" "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
-		am_settings_set "${SCRIPTNAME}_iptables_names" "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads"
-	fi
 	iptables_rules="$(am_settings_get ${SCRIPTNAME}_iptables)"
-	if [ -z "$(am_settings_get ${SCRIPTNAME}_iptables_names)" ]; then
-		iptables_rules_defined="$(echo "$iptables_rules" | sed 's/</\n/g' | /bin/grep -vc "^$")"
-		n=1
-		names=""
-		while [ "$n" -le "$iptables_rules_defined" ]; do
-			names="${names}<Rule%20${n}"
-			n="$((n+1))"
-		done
-		am_settings_set "${SCRIPTNAME}_iptables_names" "$names"
-	fi
-	if [ -z "$(am_settings_get ${SCRIPTNAME}_appdb)" ]; then
-		am_settings_set "${SCRIPTNAME}_appdb" "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4"
+	if [ -z "$iptables_rules" ]; then
+		iptables_rules="<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
 	fi
 	appdb_rules="$(am_settings_get ${SCRIPTNAME}_appdb)"
-	if [ -z "$(am_settings_get ${SCRIPTNAME}_bwrates)" ]; then
+	if [ -z "$appdb_rules" ]; then
+		appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4"
+	fi
+	bwrates="$(am_settings_get ${SCRIPTNAME}_bwrates)"
+	if [ -z "$bwrates" ]; then
 		# New settings not set
 		if [ -z "$(am_settings_get ${SCRIPTNAME}_bandwidth)" ]; then
 			# Old settings not set either, so set the defaults
-			am_settings_set "${SCRIPTNAME}_bwrates" "<5>15>30>20>10>5>10>5<100>100>100>100>100>100>100>100<5>15>10>20>10>5>30>5<100>100>100>100>100>100>100>100"
+			bwrates="<5>15>30>20>10>5>10>5<100>100>100>100>100>100>100>100<5>15>10>20>10>5>30>5<100>100>100>100>100>100>100>100"
 		else
 			# Convert bandwidth to bwrates by reading existing values into the re-sorted order
 			read \
@@ -1400,6 +1397,10 @@ get_config() {
 $(am_settings_get ${SCRIPTNAME}_bandwidth | sed 's/^<//g;s/[<>]/ /g')
 EOF
 			am_settings_set ${SCRIPTNAME}_bwrates "<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
+			bwrates="<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
+			if [ "$bwrates" != "<5>15>30>20>10>5>10>5<100>100>100>100>100>100>100>100<5>15>10>20>10>5>30>5<100>100>100>100>100>100>100>100" ]; then
+				am_settings_set ${SCRIPTNAME}_bwrates "<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
+			fi
 			sed -i "/^${SCRIPTNAME}_bandwidth /d" /jffs/addons/custom_settings.txt
 		fi
 	fi

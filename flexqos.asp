@@ -2145,10 +2145,21 @@ function FlexQoS_mod_apply() {
 		alert("Total AppDB rules exceeds 2999 bytes! Please delete or consolidate!");
 		return
 	}
-	custom_settings.flexqos_iptables = iptables_rulelist_array;
-	custom_settings.flexqos_iptables_names = iptables_rulename_array;
-	custom_settings.flexqos_appdb = appdb_rulelist_array;
-	custom_settings.flexqos_bwrates = bandwidth;
+	if (iptables_rulelist_array == iptables_default_rules && iptables_rulename_array == iptables_default_rulenames) {
+		delete custom_settings.flexqos_iptables;
+		delete custom_settings.flexqos_iptables_names;
+	} else {
+		custom_settings.flexqos_iptables = iptables_rulelist_array;
+		custom_settings.flexqos_iptables_names = iptables_rulename_array;
+	}
+	if (appdb_rulelist_array == appdb_default_rules)
+		delete custom_settings.flexqos_appdb;
+	else
+		custom_settings.flexqos_appdb = appdb_rulelist_array;
+	if (bandwidth == bandwidth_default_rules)
+		delete custom_settings.flexqos_bwrates;
+	else
+		custom_settings.flexqos_bwrates = bandwidth;
 	if (custom_settings.flexqos_conntrack) {					// already saved so assume enabled
 		if (document.form.flexqos_conntrack.value == 1)		// if enabled in the GUI
 			delete custom_settings.flexqos_conntrack;
