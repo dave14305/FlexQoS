@@ -10,8 +10,8 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.1.1
-release=2021-02-04
+version=1.2.0
+release=2021-02-07
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -254,7 +254,7 @@ get_custom_rate_rule() {
 	PRIO=$2
 	RATE=$3
 	CEIL=$4
-	DURATION=1000
+	DURATION=1000	# 1000 microseconds = 1 ms
 
 	printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %sb cburst %sb quantum %s\n" \
 			"$IFACE" "$PRIO" "$(get_overhead)" "$PRIO" "$RATE" "$CEIL" "$(get_burst $CEIL $DURATION)" "$(get_cburst $CEIL)" "$(get_quantum $RATE)"
@@ -1356,7 +1356,7 @@ uninstall() {
 } # uninstall
 
 get_config() {
-	local iptables_rules_defined 
+	local iptables_rules_defined
 	local names n
 	local drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7
 	local dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7
@@ -1574,7 +1574,6 @@ startup() {
 		if [ "$sleepdelay" -ge "180" ]; then
 			logmsg "TC Modification Delay reached maximum 180 seconds. Restarting QoS."
 			service "restart_qos;restart_firewall"
-#			schedule_check_job
 			return 1
 		else
 			sleepdelay=$((sleepdelay+10))

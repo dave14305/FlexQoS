@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.1.0 released 2020-12-13
+FlexQoS v1.2.0 released 2021-02-07
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -549,7 +549,7 @@ function updateTable()
 		clientObj = clientFromIP(tabledata[i][1]);
 		if (clientObj) {
 			clientName = (clientObj.nickName == "") ? clientObj.name : clientObj.nickName;
-		} 
+		}
 		else if (tabledata[i][1].indexOf(":") >= 0) {		// IPv6 connection
 			for ( var element of ipv6clientarray) {			// Loop through IPv6 leases to find a IPv6 match
 				if ( element[2] ){
