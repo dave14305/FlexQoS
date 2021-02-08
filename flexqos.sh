@@ -558,7 +558,9 @@ debug() {
 	printf "appdb rules: %s\n" "$(am_settings_get flexqos_appdb)"
 	true > /tmp/${SCRIPTNAME}_tcrules
 	write_appdb_rules
-	write_custom_rates
+	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
+		write_custom_rates
+	fi
 	write_custom_qdisc
 	cat /tmp/${SCRIPTNAME}_tcrules
 	Green "[/CODE][/SPOILER]"
