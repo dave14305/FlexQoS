@@ -41,7 +41,6 @@ readonly ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 readonly WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 readonly SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
 IPv6_enabled="$(nvram get ipv6_service)"
-WANMTU="$(nvram get wan_mtu)"
 
 # Update version number in custom_settings.txt for reading in WebUI
 if [ "$(am_settings_get flexqos_ver)" != "$version" ]; then
@@ -1740,6 +1739,7 @@ if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* #
 fi
 
 wan="$(get_wanif)"
+WANMTU="$(cat /sys/devices/virtual/net/${wan}/mtu)"
 lan="$(nvram get lan_ifname)"
 needrestart=0		# initialize variable used in prompt_restart()
 
