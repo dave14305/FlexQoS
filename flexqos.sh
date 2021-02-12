@@ -10,8 +10,8 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
-version=1.2.0
-release=2021-02-07
+version=1.2.1
+release=2021-02-12
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -1483,14 +1483,12 @@ write_custom_qdisc() {
 } # write_custom_qdisc
 
 check_qos_tc() {
-	local dlclasscnt dlfiltercnt
 	# Check the status of the existing tc class and filter setup by stock Adaptive QoS before custom settings applied.
 	# Only br0 interface is checked since we have not yet identified the tcwan interface name yet.
 	dlclasscnt="$($TC class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
 	dlfiltercnt="$($TC filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
 	# Check class count, filter count, and tcwan interface name defined with an htb qdisc
 	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$($TC qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
-		logmsg "QoS state: Classes=${dlclasscnt} | Filters=${dlfiltercnt} | HTB root qdiscs=$($TC qdisc ls | /bin/grep -cE "htb.*root")"
 		return 0
 	else
 		return 1
@@ -1573,6 +1571,7 @@ startup() {
 		[ "$sleepdelay" = "0" ] && logmsg "TC Modification Delayed Start"
 		sleep 10s
 		if [ "$sleepdelay" -ge "180" ]; then
+			logmsg "QoS state: Classes=${dlclasscnt} | Filters=${dlfiltercnt} | HTB root qdiscs=$($TC qdisc ls | /bin/grep -cE "htb.*root")"
 			logmsg "TC Modification Delay reached maximum 180 seconds. Restarting QoS."
 			service "restart_qos;restart_firewall"
 			return 1
