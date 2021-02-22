@@ -220,6 +220,16 @@ if (qos_mode == 2) {
 	var category_title = ["", "Highest", "High", "Medium", "Low", "Lowest"];
 }
 
+/* ATM, overhead, label */
+var overhead_presets = [
+	["0", "4", "Ethernet VLAN"],
+	["0", "18", "Cable (DOCSIS)"],
+	["0", "27", "PPPoE VDSL"],
+	["0", "19", "Bridged/IPoE VDSL"],
+	["1", "32", "RFC2684/RFC1483 Bridged LLC/Snap"],
+	["1", "32", "PPPoE VC/Mux"],
+	["1", "40", "PPPoE LLC/Snap"]];
+
 var line_obj_ul, line_obj_dl;
 var refreshRate;
 var timedEvent = 0;
@@ -699,7 +709,38 @@ function initial() {
 	populate_class_dropdown();
 	// Setup appdb auto-complete menu
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
+	build_overhead_presets();
 }
+
+function build_overhead_presets(){
+	var code = "";
+	for(var i = 0; i < overhead_presets.length; i++) {
+		code += '<a><div onclick="set_overhead(' + i +');">' + overhead_presets[i][2] + '</div></a>';
+	}
+	document.getElementById("overhead_presets_list").innerHTML += code;
+	$(".ovh_pull_arrow").show();
+} // build_overhead_presets
+
+function pullOverheadList(_this) {
+	event.stopPropagation();
+	var $element = $("#overhead_presets_list");
+	var isMenuopen = $element[0].offsetWidth > 0 || $element[0].offsetHeight > 0;
+	if(isMenuopen == 0) {
+		$(_this).attr("src","/images/arrow-top.gif");
+		$element.show();
+	}
+	else {
+		$(_this).attr("src","/images/arrow-down.gif");
+		$element.hide();
+	}
+} // pullOverheadList
+
+function set_overhead(entry){
+	document.getElementById('qos_overhead').value = overhead_presets[entry][1];
+	document.getElementById('qos_atm_x').checked = (overhead_presets[entry][0] == "1" ? true : false);
+	document.getElementById("ovh_pull_arrow").src = "/images/arrow-down.gif";
+	document.getElementById('overhead_presets_list').style.display='none';
+} // set_overhead
 
 function get_qos_class(category, appid) {
 	var i, j, catlist, rules;
@@ -2178,6 +2219,8 @@ function FlexQoS_mod_apply() {
 	else
 		custom_settings.flexqos_outputcls = document.form.flexqos_outputcls.value;
 
+	document.getElementById('qos_atm').value = (document.getElementById('qos_atm_x').checked ? 1 : 0);
+
 	/* Store object as a string in the amng_custom hidden input field */
 	if (JSON.stringify(custom_settings).length < 8192) {
 		document.getElementById('amng_custom').value = JSON.stringify(custom_settings);
@@ -2560,6 +2603,7 @@ function autocomplete(inp, arr) {
 <input type="hidden" name="action_wait" value="30">
 <input type="hidden" name="flag" value="">
 <input type="hidden" name="amng_custom" id="amng_custom" value="">
+<input type="hidden" name="qos_atm" id="qos_atm">
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 <tr>
 <td width="17">&nbsp;</td>
@@ -2597,6 +2641,15 @@ function autocomplete(inp, arr) {
 		<td>
 			<input type="radio" name="flexqos_qdisc" class="input" value="0">Default
 			<input type="radio" name="flexqos_qdisc" class="input" value="1">fq_codel
+		</td>
+	</tr>
+	<tr>
+		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(50, 28);">WAN packet overhead</a></th>
+		<td>
+			<input type="text" maxlength="4" class="input_6_table" name="qos_overhead" id="qos_overhead" onKeyPress="return validator.isNumber(this,event);" onblur="validator.numberRange(this, -127, 128);" value="<% nvram_get("qos_overhead"); %>" style="float:left;">
+			<img id="ovh_pull_arrow" class="pull_arrow" height="14px;" src="/images/arrow-down.gif" onclick="pullOverheadList(this);">
+			<div id="overhead_presets_list" style="height:auto;" class="dns_server_list_dropdown"></div>
+			<input style="margin-left:40px;" type="checkbox" name="qos_atm_x" id="qos_atm_x" <% nvram_match("qos_atm", "1", "checked"); %>>ATM</input>
 		</td>
 	</tr>
 	<tr>
