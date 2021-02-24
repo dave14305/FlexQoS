@@ -182,7 +182,11 @@ get_burst() {
 	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
 	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
 	if [ $BURST -lt 3200 ]; then
-		BURST=3200
+		if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
+			BURST=1600
+		else
+			BURST=3200
+		fi
 	fi
 
 	printf "%s" $BURST
@@ -199,7 +203,11 @@ get_cburst() {
 	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
 	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
 	if [ $BURST -lt 3200 ]; then
-		BURST=3200
+		if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
+			BURST=1600
+		else
+			BURST=3200
+		fi
 	fi
 
 	printf "%s" $BURST
@@ -1468,16 +1476,25 @@ write_appdb_rules() {
 	IFS="$OLDIFS"		# Restore old field separator
 } # write_appdb_rules
 
+get_fq_quantum() {
+	local BANDWIDTH
+	BANDWIDTH="$1"
+
+	if [ "$BANDWIDTH" -lt "51200" ]; then
+		printf "quantum 300\n"
+	fi
+} # get_fq_quantum
+
 write_custom_qdisc() {
 	local i
 	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
 		{
-			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tclan"
-			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1024\n" "$tcwan"
+			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1000 noecn\n" "$tclan"
+			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1000 noecn\n" "$tcwan"
 			for i in 0 1 2 3 4 5 6 7
 			do
-				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tclan" "$i"
-				printf "qdisc replace dev %s parent 1:1%s fq_codel limit 1024\n" "$tcwan" "$i"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000\n" "$tclan" "$i" "$(get_fq_quantum $DownCeil)"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000 noecn\n" "$tcwan" "$i" "$(get_fq_quantum $UpCeil)"
 			done
 		} >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
 	fi
