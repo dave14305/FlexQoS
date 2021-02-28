@@ -180,12 +180,13 @@ get_burst() {
 
 	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
 	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
-	if [ $BURST -lt 3200 ]; then
-		if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
+	# If using fq_codel option, use 1600 as a minimum burst.
+	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
+		if [ $BURST -lt 1600 ]; then
 			BURST=1600
-		else
-			BURST=3200
 		fi
+	elif [ $BURST -lt 3200 ]; then
+		BURST=3200
 	fi
 
 	printf "%s" $BURST
@@ -226,7 +227,7 @@ get_quantum() {
 	fi
 
 	printf "%s" $QUANTUM
-} # get_burst
+} # get_quantum
 
 get_overhead() {
 	local NVRAM_OVERHEAD
@@ -1484,6 +1485,23 @@ get_fq_quantum() {
 	fi
 } # get_fq_quantum
 
+get_fq_target() {
+	# Adapted from sqm-scripts adapt_target_to_slow_link() and adapt_interval_to_slow_link().
+	# https://github.com/tohojo/sqm-scripts/blob/master/src/functions.sh
+	local BANDWIDTH
+	local TARGET INTERVAL
+	BANDWIDTH="$1"
+
+	# for ATM the worst case expansion including overhead seems to be 33 cells of 53 bytes each
+	# MAX DELAY = 1000 * 1000 * 33 * 53 * 8 / 1000  max delay in microseconds at 1kbps
+	TARGET=$(/usr/bin/awk -vBANDWIDTH=$BANDWIDTH 'BEGIN { print int( 1000 * 1000 * 33 * 53 * 8 / 1000 / BANDWIDTH ) }')
+	if [ "$TARGET" -gt "5000" ]; then
+		# Increase interval by the same amonut that target got increased
+		INTERVAL=$(( (100 - 5) * 1000 + TARGET ))
+		printf "target %sus interval %sus\n" "$TARGET" "$INTERVAL"
+	fi
+} # get_fq_target
+
 write_custom_qdisc() {
 	local i
 	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
@@ -1492,8 +1510,8 @@ write_custom_qdisc() {
 			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1000 noecn\n" "$tcwan"
 			for i in 0 1 2 3 4 5 6 7
 			do
-				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000\n" "$tclan" "$i" "$(get_fq_quantum $DownCeil)"
-				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000 noecn\n" "$tcwan" "$i" "$(get_fq_quantum $UpCeil)"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000 %s\n" "$tclan" "$i" "$(get_fq_quantum $DownCeil)" "$(get_fq_target $DownCeil)"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000 %s noecn\n" "$tcwan" "$i" "$(get_fq_quantum $UpCeil)" "$(get_fq_target $UpCeil)"
 			done
 		} >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
 	fi
