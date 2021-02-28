@@ -268,16 +268,18 @@ get_custom_rate_rule() {
 
 write_custom_rates() {
 	local i
-	# For all 8 classes (0-7), write the tc commands needed to modify the bandwidth rates and related parameters
-	# that get assigned in set_tc_variables().
-	# File is appended (>>) because it is initially created in write_appdb_static_rules().
-	{
-		for i in 0 1 2 3 4 5 6 7
-		do
-			eval get_custom_rate_rule "$tclan" $i \$DownRate$i \$DownCeil$i
-			eval get_custom_rate_rule "$tcwan" $i \$UpRate$i \$UpCeil$i
-		done
-	} >> /tmp/${SCRIPTNAME}_tcrules
+	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
+		# For all 8 classes (0-7), write the tc commands needed to modify the bandwidth rates and related parameters
+		# that get assigned in set_tc_variables().
+		# File is appended (>>) because it is initially created in write_appdb_static_rules().
+		{
+			for i in 0 1 2 3 4 5 6 7
+			do
+				eval get_custom_rate_rule "$tclan" $i \$DownRate$i \$DownCeil$i
+				eval get_custom_rate_rule "$tcwan" $i \$UpRate$i \$UpCeil$i
+			done
+		} >> /tmp/${SCRIPTNAME}_tcrules
+	fi
 } # write_custom_rates
 
 set_tc_variables() {
@@ -566,9 +568,7 @@ debug() {
 	printf "appdb rules: %s\n" "${appdb_debug:-Defaults}"
 	true > /tmp/${SCRIPTNAME}_tcrules
 	write_appdb_rules
-	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
-		write_custom_rates
-	fi
+	write_custom_rates
 	write_custom_qdisc
 	cat /tmp/${SCRIPTNAME}_tcrules
 	Green "[/CODE][/SPOILER]"
@@ -1496,7 +1496,7 @@ get_fq_target() {
 	# MAX DELAY = 1000 * 1000 * 33 * 53 * 8 / 1000  max delay in microseconds at 1kbps
 	TARGET=$(/usr/bin/awk -vBANDWIDTH=$BANDWIDTH 'BEGIN { print int( 1000 * 1000 * 33 * 53 * 8 / 1000 / BANDWIDTH ) }')
 	if [ "$TARGET" -gt "5000" ]; then
-		# Increase interval by the same amonut that target got increased
+		# Increase interval by the same amount that target got increased
 		INTERVAL=$(( (100 - 5) * 1000 + TARGET ))
 		printf "target %sus interval %sus\n" "$TARGET" "$INTERVAL"
 	fi
@@ -1622,13 +1622,7 @@ startup() {
 	if ! validate_tc_rules; then
 		write_appdb_static_rules
 		write_appdb_rules
-
-		if [ "$DownCeil" -gt "500" ] && [ "$UpCeil" -gt "500" ]; then
-			write_custom_rates
-		else
-			logmsg "Bandwidth too low for custom rates. Skipping."
-		fi
-
+		write_custom_rates
 		write_custom_qdisc
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
