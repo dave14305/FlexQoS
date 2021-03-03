@@ -440,6 +440,9 @@ function draw_conntrack_table() {
 						if (filter[j].charAt(0)=="!") {
 							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j].replace("!", "")) >= 0)
 								filtered = 1;
+						} else if (filter[j].charAt(filter[j].length-1)=="$") {
+							if (bwdpi_conntrack[i][j].toLowerCase() != filter[j].replace("$", "").toLowerCase())
+								filtered = 1;
 						} else {
 							if (bwdpi_conntrack[i][j].toLowerCase().indexOf(filter[j]) < 0)
 								filtered = 1;
@@ -2414,7 +2417,7 @@ function version_update() {
 }
 
 function setClientIP(ipaddr){
-	document.form.lipfilter_x.value = ipaddr;
+	document.form.lipfilter_x.value = ipaddr + "$";
 	hideClients_Block();
 	set_filter(1, document.form.lipfilter_x);
 }
