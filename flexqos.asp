@@ -1691,8 +1691,8 @@ function show_iptables_rules(){
 	var tableStruct = {
 		data: iptables_temp_array,
 		container: "iptables_rules_block",
-		title: "iptables Rules<small style='float:right; font-weight:normal; margin-right:10px; cursor:pointer;' onclick='FlexQoS_reset_iptables()'>&nbsp;Reset</small>",
-		titieHint: "Edit existing rules by clicking in the table below.",
+		title: "iptables Rules",
+		titieHint: "Edit existing rules by clicking in the table below.<small style='float:right; font-weight:normal; color:white; margin-right:10px; cursor:pointer;' onclick='FlexQoS_reset_iptables()'>&nbsp;Reset</small>",
 		capability: {
 			add: true,
 			del: true,
