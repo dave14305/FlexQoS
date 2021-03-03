@@ -220,15 +220,19 @@ if (qos_mode == 2) {
 	var category_title = ["", "Highest", "High", "Medium", "Low", "Lowest"];
 }
 
-/* ATM, overhead, label */
+/* ATM, overhead, pmu, label */
 var overhead_presets = [
-	["0", "4", "Ethernet VLAN"],
-	["0", "18", "Cable (DOCSIS)"],
-	["0", "27", "PPPoE VDSL"],
-	["0", "19", "Bridged/IPoE VDSL"],
-	["1", "32", "RFC2684/RFC1483 Bridged LLC/Snap"],
-	["1", "32", "PPPoE VC/Mux"],
-	["1", "40", "PPPoE LLC/Snap"]];
+	["1", "48", "0", "Conservative default"],
+	["0", "42", "84", "Ethernet with VLAN"],
+	["0", "18", "64", "Cable (DOCSIS)"],
+	["0", "27", "0", "PPPoE VDSL"],
+	["1", "32", "0", "RFC2684/RFC1483 Bridged LLC/Snap"],
+	["1", "32", "0", "ADSL PPPoE VC/Mux"],
+	["1", "40", "0", "ADSL PPPoE LLC/Snap"],
+	["0", "19", "0", "VDSL Bridged/IPoE"],
+	["2", "30", "0", "VDSL2 PPPoE PTM"],
+	["2", "22", "0", "VDSL2 Bridged PTM"]
+	];
 
 var line_obj_ul, line_obj_dl;
 var refreshRate;
@@ -718,7 +722,7 @@ function initial() {
 function build_overhead_presets(){
 	var code = "";
 	for(var i = 0; i < overhead_presets.length; i++) {
-		code += '<a><div onclick="set_overhead(' + i +');">' + overhead_presets[i][2] + '</div></a>';
+		code += '<a><div onclick="set_overhead(' + i +');">' + overhead_presets[i][3] + '</div></a>';
 	}
 	document.getElementById("overhead_presets_list").innerHTML += code;
 	$(".ovh_pull_arrow").show();
@@ -739,8 +743,11 @@ function pullOverheadList(_this) {
 } // pullOverheadList
 
 function set_overhead(entry){
+	var framing = overhead_presets[entry][0];
 	document.getElementById('qos_overhead').value = overhead_presets[entry][1];
-	document.getElementById('qos_atm_x').checked = (overhead_presets[entry][0] == "1" ? true : false);
+	if (framing == 2)
+		framing = 0;	// fq_codel does not support ptm compensation
+	document.getElementById('qos_atm_x').checked = (framing == "1" ? true : false);
 	document.getElementById("ovh_pull_arrow").src = "/images/arrow-down.gif";
 	document.getElementById('overhead_presets_list').style.display='none';
 } // set_overhead
@@ -2651,7 +2658,7 @@ function autocomplete(inp, arr) {
 		<td>
 			<input type="text" maxlength="4" class="input_6_table" name="qos_overhead" id="qos_overhead" onKeyPress="return validator.isNumber(this,event);" onblur="validator.numberRange(this, -127, 128);" value="<% nvram_get("qos_overhead"); %>" style="float:left;">
 			<img id="ovh_pull_arrow" class="pull_arrow" height="14px;" src="/images/arrow-down.gif" onclick="pullOverheadList(this);">
-			<div id="overhead_presets_list" style="height:auto;" class="dns_server_list_dropdown"></div>
+			<div id="overhead_presets_list" style="margin-top:25px;height:auto;" class="dns_server_list_dropdown"></div>
 			<input style="margin-left:40px;" type="checkbox" name="qos_atm_x" id="qos_atm_x" <% nvram_match("qos_atm", "1", "checked"); %>>ATM</input>
 		</td>
 	</tr>
