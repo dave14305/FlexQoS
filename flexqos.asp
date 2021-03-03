@@ -26,6 +26,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <script type="text/javascript" src="/general.js"></script>
 <script type="text/javascript" src="/popup.js"></script>
 <script type="text/javascript" src="/client_function.js"></script>
+<script type="text/javascript" src="/validator.js"></script>
 <script type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/js/table/table.js"></script>
 <script type="text/javascript" src="/ext/flexqos/flexqos_arrays.js"></script>
@@ -1692,7 +1693,7 @@ function show_iptables_rules(){
 		data: iptables_temp_array,
 		container: "iptables_rules_block",
 		title: "iptables Rules",
-		titieHint: "Edit existing rules by clicking in the table below.<small style='float:right; font-weight:normal; color:white; margin-right:10px; cursor:pointer;' onclick='FlexQoS_reset_iptables()'>&nbsp;Reset</small>",
+		titieHint: "Edit existing rules by clicking in the table below.<small style='float:right; font-weight:normal; color:white; margin-right:10px; cursor:pointer;' onclick='FlexQoS_reset_iptables()'>Reset</small>",
 		capability: {
 			add: true,
 			del: true,
