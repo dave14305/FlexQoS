@@ -2447,57 +2447,63 @@ function pullLANIPList(obj) {
 }
 
 function well_known_rules(){
+	var code = "";
+	var wellKnownRule = new Array();
 //		[ "Rule Name", "Local IP", "Remote IP", "Proto", "Local Port", "Remote Port", "Mark", "Class"],
 	wItem = [
 		[ "Facetime", "", "", "udp", "16384:16415", "", "", "3"],
 		[ "Game Downloads", "", "", "tcp", "", "80,443", "08****", "7"],
-		[ "Gaming Rule", "", "", "both", "", "!80,443", "000000", "1"],
+		[ "Gaming Rule", "login_ip_str", "", "both", "", "!80,443", "000000", "1"],
 		[ "Google Meet", "", "", "udp", "", "19302:19309", "", "3"],
 		[ "Skype/Teams", "", "", "udp", "", "3478:3481", "000000", "3"],
 		[ "Usenet", "", "", "tcp", "", "119,563", "", "5"],
 		[ "WiFi Calling", "", "", "udp", "", "500,4500", "", "3"],
 		[ "Zoom", "", "", "udp", "", "8801:8810", "000000", "3"]
 	];
-	free_options(document.form.WellKnownRules);
-	add_option(document.form.WellKnownRules, "Please select", "User Defined", 1);
-	for (i = 0; i < wItem.length; i++){
-		add_option(document.form.WellKnownRules, wItem[i][0], wItem[i][0], 0);
+
+	code += '<option value="User Defined">Please select</option>';
+	code += '<optgroup label="Pre-defined rules">';
+	for (var i = 0; i < wItem.length; i++){
+		code += '<option value="' + i + '">' + wItem[i][0] + '</option>';
 	}
+	var tmpCount=wItem.length;
+	for (i=0;i<iptables_temp_array.length; i++) {
+		if (i==0)
+			code += '<optgroup label="User-defined rules">';
+		code += '<option value="' + ( tmpCount + i ) + '">' + iptables_temp_array[i][0] + '</option>';
+		wItem.push(iptables_temp_array[i]);
+	}
+	document.form.WellKnownRules.innerHTML = code;
 } // well_known_rules
 
 function change_wizard(o){
-	for(var i = 0; i < wItem.length; i++){
-		if(wItem[i][0] != null){
-			if(o.value == wItem[i][0]){
-				var wellKnownRule = new Array();
-				wellKnownRule.push(wItem[i][0]);
-				if (o.value == "Gaming Rule")
-					wellKnownRule.push(login_ip_str());
-				else
-					wellKnownRule.push(wItem[i][1]);
-				wellKnownRule.push(wItem[i][2]);
-				wellKnownRule.push(wItem[i][3]);
-				wellKnownRule.push(wItem[i][4]);
-				wellKnownRule.push(wItem[i][5]);
-				wellKnownRule.push(wItem[i][6]);
-				wellKnownRule.push(wItem[i][7]);
-				var validDuplicateFlag = true;
-				if(tableApi._attr.hasOwnProperty("ruleDuplicateValidation")) {
-					var currentEditRuleArray = wellKnownRule;
-					var filterCurrentEditRuleArray = iptables_temp_array;
-					validDuplicateFlag = tableRuleDuplicateValidation[tableApi._attr.ruleDuplicateValidation](currentEditRuleArray, filterCurrentEditRuleArray);
-					if(!validDuplicateFlag) {
-						document.form.WellKnownRules.selectedIndex = 0;
-						alert("This rule already exists.");
-						return false;
-					}
-					iptables_temp_array.push(currentEditRuleArray);
-					show_iptables_rules();
-				}
-				break;
-			}
+	var i = o.value;
+	var wellKnownRule = new Array();
+	wellKnownRule.push(wItem[i][0]);
+	if (wItem[i][1] == "login_ip_str")
+		wellKnownRule.push(login_ip_str());
+	else
+		wellKnownRule.push(wItem[i][1]);
+	wellKnownRule.push(wItem[i][2]);
+	wellKnownRule.push(wItem[i][3]);
+	wellKnownRule.push(wItem[i][4]);
+	wellKnownRule.push(wItem[i][5]);
+	wellKnownRule.push(wItem[i][6]);
+	wellKnownRule.push(wItem[i][7]);
+
+	var validDuplicateFlag = true;
+	if(tableApi._attr.hasOwnProperty("ruleDuplicateValidation")) {
+		var currentEditRuleArray = wellKnownRule;
+		var filterCurrentEditRuleArray = iptables_temp_array;
+		validDuplicateFlag = tableRuleDuplicateValidation[tableApi._attr.ruleDuplicateValidation](currentEditRuleArray, filterCurrentEditRuleArray);
+		if(!validDuplicateFlag) {
+			document.form.WellKnownRules.selectedIndex = 0;
+			alert("This rule already exists.");
+			return false;
 		}
-	}
+		iptables_temp_array.push(currentEditRuleArray);
+		show_iptables_rules();
+		}
 	document.form.WellKnownRules.selectedIndex = 0;
 } // change_wizard
 
