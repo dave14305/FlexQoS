@@ -1118,10 +1118,15 @@ menu() {
 
 remove_webui() {
 	local prev_webui_page
+	local LOCKFILE FD
 	printf "Removing WebUI...\n"
 	prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_DISPLAY}\"\}\,$/\1/p" /tmp/menuTree.js 2>/dev/null)"
 	if [ -n "$prev_webui_page" ]; then
 		# Remove page from the UI menu system
+		LOCKFILE=/tmp/addonwebui.lock
+		FD=386
+		eval exec "$FD>$LOCKFILE"
+		/usr/bin/flock -x "$FD"
 		umount /www/require/modules/menuTree.js 2>/dev/null
 		sed -i "\~tabName: \"${SCRIPTNAME_DISPLAY}\"},~d" /tmp/menuTree.js
 		if diff -q /tmp/menuTree.js /www/require/modules/menuTree.js >/dev/null 2>&1; then
@@ -1131,6 +1136,7 @@ remove_webui() {
 			# Still some modifications from another script so remount
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
+		/usr/bin/flock -u "$FD"
 		# Remove last mounted asp page
 		rm -f /www/user/"$prev_webui_page" 2>/dev/null
 		# Look for previously mounted asp pages that are orphaned now and delete them
@@ -1144,6 +1150,7 @@ remove_webui() {
 
 install_webui() {
 	local prev_webui_page
+	local LOCKFILE FD
 	# if this is an install or update...otherwise it's a normal startup/mount
 	if [ -z "$1" ]; then
 		printf "Downloading WebUI files...\n"
@@ -1166,6 +1173,10 @@ install_webui() {
 		logmsg "No API slots available to install web page"
 	else
 		cp -p "$WEBUIPATH" /www/user/"$am_webui_page"
+		LOCKFILE=/tmp/addonwebui.lock
+		FD=386
+		eval exec "$FD>$LOCKFILE"
+		/usr/bin/flock -x "$FD"
 		if [ ! -f /tmp/menuTree.js ]; then
 			cp /www/require/modules/menuTree.js /tmp/
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
@@ -1176,6 +1187,7 @@ install_webui() {
 			sed -i "/url: \"QoS_Stats.asp\", tabName:/a {url: \"$am_webui_page\", tabName: \"${SCRIPTNAME_DISPLAY}\"}," /tmp/menuTree.js
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
+		/usr/bin/flock -u "$FD"
 	fi
 	[ ! -d "/www/ext/${SCRIPTNAME}" ] && mkdir -p "/www/ext/${SCRIPTNAME}"
 }
