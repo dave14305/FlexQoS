@@ -2668,7 +2668,7 @@ function autocomplete(inp, arr) {
 		<td>
 			<input type="text" maxlength="4" class="input_6_table" name="qos_overhead" id="qos_overhead" onKeyPress="return validator.isNumber(this,event);" onblur="validator.numberRange(this, -127, 128);" value="<% nvram_get("qos_overhead"); %>" style="float:left;">
 			<img id="ovh_pull_arrow" class="pull_arrow" height="14px;" src="/images/arrow-down.gif" onclick="pullOverheadList(this);">
-			<div id="overhead_presets_list" style="margin-top:25px;height:auto;" class="dns_server_list_dropdown"></div>
+			<div id="overhead_presets_list" style="margin-left:2px;margin-top:25px;height:auto;" class="clientlist_dropdown"></div>
 			<input style="margin-left:40px;" type="checkbox" name="qos_atm_x" id="qos_atm_x" <% nvram_match("qos_atm", "1", "checked"); %>>ATM</input>
 		</td>
 	</tr>
