@@ -1097,6 +1097,7 @@ function get_data() {
 		clearTimeout(timedEvent);
 		timedEvent = 0;
 	}
+	if (refreshRate == 0) return;
 	$.ajax({
 		url: '/ajax_gettcdata.asp',
 		dataType: 'script',
@@ -1106,8 +1107,7 @@ function get_data() {
 		success: function(response) {
 			redraw();
 			draw_conntrack_table();
-			if (refreshRate > 0)
-				timedEvent = setTimeout("get_data();", refreshRate * 1000);
+			timedEvent = setTimeout("get_data();", refreshRate * 1000);
 		}
 	});
 }
