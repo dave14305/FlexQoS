@@ -157,7 +157,7 @@ var sortfield = 5;
 var dhcp_start = '<% nvram_get("dhcp_start"); %>';
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
 
-const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7";
+const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>5";
 const iptables_default_rulenames = "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads";
 const appdb_default_rules = "<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4";
 const bandwidth_default_rules = "<5>15>30>20>10>5>10>5<100>100>100>100>100>100>100>100<5>15>10>20>10>5>30>5<100>100>100>100>100>100>100>100";
@@ -196,8 +196,8 @@ if (qos_mode == 2) {
 		bwdpi_app_rulelist = "9,20<8<4<0,5,6,15,17<4,13<13,24<1,3,14<7,10,11,21,23<";
 		bwdpi_app_rulelist_row = bwdpi_app_rulelist.split("<");
 	}
-	var category_title = ["Net Control Packets", "Gaming", "Video and Audio Streaming", "Work-From-Home", "Web Surfing", "File Transferring", "Others", "Game Transferring"];
-	var class_title = ["Net Control", "Gaming", "Streaming", "Work-From-Home", "Web Surfing", "File Downloads", "Others", "Game Downloads"];
+	var category_title = ["Net Control Packets", "Gaming", "Video and Audio Streaming", "Work-From-Home", "Web Surfing", "File Transferring", "Others", "Learn-From-Home"];
+	var class_title = ["Net Control", "Gaming", "Streaming", "Work-From-Home", "Web Surfing", "File Transfers", "Others", "Learn-From-Home"];
 	var cat_id_array = [
 		[9, 20],
 		[8],
@@ -1787,7 +1787,7 @@ function show_iptables_rules(){
 				{
 					"editMode" : "select",
 					"title" : "Class",
-					"option" : {"Net Control" : "0", "Gaming" : "1", "Streaming" : "2", "Work-From-Home" : "3", "Web Surfing" : "4", "File Downloads" : "5", "Others" : "6", "Game Downloads" : "7" }
+					"option" : {"Net Control" : "0", "Gaming" : "1", "Streaming" : "2", "Work-From-Home" : "3", "Web Surfing" : "4", "File Transfers" : "5", "Others" : "6", "Learn-From-Home" : "7" }
 				}
 			],
 			maximum: 24
@@ -1836,7 +1836,7 @@ function show_iptables_rules(){
 				},
 				{
 					"editMode" : "select",
-					"option" : {"Net Control" : "0", "Gaming" : "1", "Streaming" : "2", "Work-From-Home" : "3", "Web Surfing" : "4", "File Downloads" : "5", "Others" : "6", "Game Downloads" : "7" }
+					"option" : {"Net Control" : "0", "Gaming" : "1", "Streaming" : "2", "Work-From-Home" : "3", "Web Surfing" : "4", "File Transfers" : "5", "Others" : "6", "Learn-From-Home" : "7" }
 				}
 			]
 		},
@@ -2450,7 +2450,7 @@ function well_known_rules(){
 //		[ "Rule Name", "Local IP", "Remote IP", "Proto", "Local Port", "Remote Port", "Mark", "Class"],
 	wItem = [
 		[ "Facetime", "", "", "udp", "16384:16415", "", "", "3"],
-		[ "Game Downloads", "", "", "tcp", "", "80,443", "08****", "7"],
+		[ "Game Downloads", "", "", "tcp", "", "80,443", "08****", "5"],
 		[ "Gaming Rule", "login_ip_str", "", "both", "", "!80,443", "000000", "1"],
 		[ "Google Meet", "", "", "udp", "", "19302:19309", "", "3"],
 		[ "Skype/Teams", "", "", "udp", "", "3478:3481", "000000", "3"],

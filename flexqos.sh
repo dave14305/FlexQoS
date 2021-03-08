@@ -544,8 +544,8 @@ debug() {
 	printf "Others        : %s\n" "$Others_flow"
 	printf "Web Surfing   : %s\n" "$Web_flow"
 	printf "Streaming     : %s\n" "$Streaming_flow"
-	printf "File Downloads: %s\n" "$Downloads_flow"
-	printf "Game Downloads: %s\n" "$Learn_flow"
+	printf "File Transfers: %s\n" "$Downloads_flow"
+	printf "Learn-From-Home: %s\n" "$Learn_flow"
 	printf "**************\n"
 	# Only print custom rates if Manual Bandwidth setting is enabled on QoS page
 	if [ "$DownCeil" -gt "0" ] && [ "$UpCeil" -gt "0" ]; then
@@ -847,17 +847,16 @@ About
   Script Changes Unidentified traffic destination away from Work-From-Home into Others
   Script Changes HTTPS traffic destination away from Net Control into Web Surfing
   Script Changes Guaranteed Bandwidth per QoS category into logical percentages of upload and download.
-  Script Repurposes Learn-From-Home to contain Game Downloads
   Script includes misc default rules
    (Wifi Calling)  -  UDP traffic on remote ports 500 & 4500 moved into Work-From-Home
    (Facetime)      -  UDP traffic on local  ports 16384 - 16415 moved into Work-From-Home
-   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into Downloads
-   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into Game Downloads.
+   (Usenet)        -  TCP traffic on remote ports 119 & 563 moved into File Transfers
+   (Gaming)        -  Gaming TCP traffic from remote ports 80 & 443 moved into File Transfers.
    (Snapchat)      -  Moved into Others
-   (Speedtest.net) -  Moved into Downloads
-   (Google Play)   -  Moved into Downloads
-   (Apple AppStore)-  Moved into Downloads
-   (VPN Fix)       -  Router VPN Client upload traffic moved into Downloads instead of whitelisted
+   (Speedtest.net) -  Moved into File Transfers
+   (Google Play)   -  Moved into File Transfers
+   (Apple AppStore)-  Moved into File Transfers
+   (VPN Fix)       -  Router VPN Client upload traffic moved into File Transfers instead of whitelisted
    (Gaming Manual) -  Unidentified traffic for specified devices, not originating from ports 80/443, moved into Gaming
 
 Gaming Rule Note
@@ -1394,7 +1393,7 @@ get_config() {
 	# Read settings from Addon API config file. If not defined, set default values
 	iptables_rules="$(am_settings_get ${SCRIPTNAME}_iptables)"
 	if [ -z "$iptables_rules" ]; then
-		iptables_rules="<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>7"
+		iptables_rules="<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>5"
 	fi
 	appdb_rules="$(am_settings_get ${SCRIPTNAME}_appdb)"
 	if [ -z "$appdb_rules" ]; then
