@@ -452,7 +452,7 @@ appdb() {
 		cat_decimal=$(echo "$line" | cut -f 1 -d "," )
 		case "$cat_decimal" in
 		'9'|'18'|'19'|'20')
-			printf "Net Control"
+			printf "Net Control Packets"
 			;;
 		'0'|'5'|'6'|'15'|'17')
 			printf "Work-From-Home"
@@ -464,13 +464,13 @@ appdb() {
 			printf "Others"
 			;;
 		'13'|'24')
-			printf "Web"
+			printf "Web Surfing"
 			;;
 		'4')
-			printf "Streaming"
+			printf "Video and Audio Streaming"
 			;;
 		'1'|'3'|'14')
-			printf "Downloads"
+			printf "File Transferring"
 			;;
 		*)
 			printf "Unknown"
