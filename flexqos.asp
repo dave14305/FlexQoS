@@ -494,7 +494,6 @@ function setsort(newfield) {
 function table_sort(a, b){
 	var aa, bb;
 	switch (sortfield) {
-		case 0:		// Proto
 		case 1:		// Source IP
 		case 3:		// Destination IP
 			if (sortdir) {
@@ -518,6 +517,7 @@ function table_sort(a, b){
 			else
 				return parseInt(a[sortfield]) - parseInt(b[sortfield]);
 			break;
+		case 0:		// Proto
 		case 5:		// Label
 			aa = a[sortfield].toLowerCase();
 			bb = b[sortfield].toLowerCase();
