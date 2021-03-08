@@ -1928,7 +1928,7 @@ function convert_BW_settings(settings) {
 function set_FlexQoS_mod_vars()
 {
 	if ( custom_settings.flexqos_ver != undefined )
-		document.getElementById("flexqos_version").innerText = " - v" + custom_settings.flexqos_ver;
+		document.getElementById("flexqos_version").innerText = "v" + custom_settings.flexqos_ver;
 	if ( custom_settings.flexqos_branch != undefined )
 		document.getElementById("flexqos_version").innerText += " Dev";
 
@@ -2630,10 +2630,8 @@ function autocomplete(inp, arr) {
 <tbody bgcolor="#4D595D">
 <tr>
 <td valign="top">
-<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS<span id="flexqos_version" style="font-size: 85%"></span><img id="ver_update_scan" style="display:none;max-height:16px;" src="images/InternetScan.gif"><span id="versionStatus" style="font-size:85%;color:#FC0;display:none;"></span></div>
+<div class="formfonttitle" style="margin:10px 0px 10px 5px; display:inline-block;">FlexQoS</div>
 <div id="FlexQoS_mod_toggle" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="FlexQoS_mod_toggle();"><span style="padding:0 0 0" align="center">Customize</span></div>
-<div id="ver_check" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold;" class="titlebtn" onclick="version_check();"><span style="padding:0 0 0" align="center">Check for Update</span></div>
-<div id="ver_update" style="margin:10px 0px 0px 0px; padding:0 0 0 0; height:22px; width:136px; float:right; font-weight:bold; display:none;" class="titlebtn" onclick="version_update();"><span style="padding:0 0 0" align="center">Update</span></div>
 <div style="margin-bottom:10px" class="splitLine"></div>
 
 <!-- FlexQoS UI Start-->
@@ -2646,6 +2644,18 @@ function autocomplete(inp, arr) {
 			<td colspan="2">Options</td>
 		</tr>
 	</thead>
+	<tr>
+		<th>Version</th>
+		<td>
+			<span id="flexqos_version" style="color:#FFFFFF;"></span>
+			&nbsp;&nbsp;&nbsp;
+			<input type="button" id="ver_check" class="button_gen" style="width:131px;height:24px;" onclick="version_check();" value="Check for Update">
+			<input type="button" id="ver_update" class="button_gen" style="display:none;width:131px;height:24px;" onclick="version_update();" value="Update">
+			&nbsp;&nbsp;&nbsp;
+			<img id="ver_update_scan" style="display:none;vertical-align:middle;" src="images/InternetScan.gif">
+			<span id="versionStatus" style="color:#FC0;display:none;"></span>
+		</td>
+	</tr>
 	<tr>
 		<th>Queue Discipline</th>
 		<td>
