@@ -478,7 +478,7 @@ function draw_conntrack_table() {
 		tabledata.push(bwdpi_conntrack[i]);
 	}
 	//draw table
-	document.getElementById('tracked_connections_total').innerHTML = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
+	document.getElementById('tracked_connections_total').innerText = "Tracked connections (total: " + tracklen + (shownlen < tracklen ? ", shown: " + shownlen : "") + ")";
 	updateTable();
 }
 
@@ -695,7 +695,7 @@ function initial() {
 		document.getElementById('tracked_connections').style.display = "none";
 		document.getElementById('refreshrate').value = "0";
 		var element = document.getElementById('FlexQoS_mod_toggle');
-		element.innerHTML="A.QoS Disabled";
+		element.innerText="A.QoS Disabled";
 		element.setAttribute("onclick","location.href='QoS_EZQoS.asp';");
 		refreshRate = 0;
 		return;
@@ -1274,7 +1274,7 @@ function rate2kbs(rate)
 function check_duplicate(){
 	var rule_num = document.getElementById('appdb_rulelist_table').rows.length;
 	for(i=0; i<rule_num; i++){
-		if(document.getElementById('appdb_rulelist_table').rows[i].cells[1].innerHTML == document.form.appdb_mark_x.value) {
+		if(document.getElementById('appdb_rulelist_table').rows[i].cells[1].innerText == document.form.appdb_mark_x.value) {
 			alert("A rule for this mark already exists.");
 			return true;
 		}
@@ -1328,9 +1328,9 @@ function del_appdb_Row(r){
 			else if (j == 2)
 				appdb_rulelist_value += ">";
 			if(j == 2)
-				appdb_rulelist_value += class_title.indexOf(document.getElementById('appdb_rulelist_table').rows[k].cells[j].innerHTML);
+				appdb_rulelist_value += class_title.indexOf(document.getElementById('appdb_rulelist_table').rows[k].cells[j].innerText);
 			else if (j == 1)
-				appdb_rulelist_value += document.getElementById('appdb_rulelist_table').rows[k].cells[j].innerHTML;
+				appdb_rulelist_value += document.getElementById('appdb_rulelist_table').rows[k].cells[j].innerText;
 		}
 	}
 	appdb_rulelist_array = appdb_rulelist_value;
@@ -1340,9 +1340,9 @@ function del_appdb_Row(r){
 
 function edit_appdb_Row(r){
 	var i=r.parentNode.parentNode.rowIndex;
-	document.form.appdb_desc_x.value = document.getElementById('appdb_rulelist_table').rows[i].cells[0].innerHTML;
-	document.form.appdb_mark_x.value = document.getElementById('appdb_rulelist_table').rows[i].cells[1].innerHTML;
-	document.form.appdb_class_x.value = class_title.indexOf(document.getElementById('appdb_rulelist_table').rows[i].cells[2].innerHTML);
+	document.form.appdb_desc_x.value = document.getElementById('appdb_rulelist_table').rows[i].cells[0].innerText;
+	document.form.appdb_mark_x.value = document.getElementById('appdb_rulelist_table').rows[i].cells[1].innerText;
+	document.form.appdb_class_x.value = class_title.indexOf(document.getElementById('appdb_rulelist_table').rows[i].cells[2].innerText);
 	del_appdb_Row(r);
 }
 
@@ -1880,12 +1880,12 @@ function FlexQoS_mod_toggle()
 	if (FlexQoS_div.style.display == "none")
 	{
 		FlexQoS_div.style.display = "block";
-		FlexQoS_toggle.innerHTML = "Close";
+		FlexQoS_toggle.innerText = "Close";
 	}
 	else
 	{
 		FlexQoS_div.style.display = "none";
-		FlexQoS_toggle.innerHTML = "Customize";
+		FlexQoS_toggle.innerText = "Customize";
 	}
 }
 
@@ -1932,9 +1932,9 @@ function convert_BW_settings(settings) {
 function set_FlexQoS_mod_vars()
 {
 	if ( custom_settings.flexqos_ver != undefined )
-		document.getElementById("flexqos_version").innerHTML = " - v" + custom_settings.flexqos_ver;
+		document.getElementById("flexqos_version").innerText = " - v" + custom_settings.flexqos_ver;
 	if ( custom_settings.flexqos_branch != undefined )
-		document.getElementById("flexqos_version").innerHTML += " Dev";
+		document.getElementById("flexqos_version").innerText += " Dev";
 
 	if ( custom_settings.flexqos_iptables == undefined )  // rules not yet converted to API format
 		{
@@ -2329,12 +2329,12 @@ function check_bandwidth() {
 		urptot += parseInt(urp.value);
 		if ( qos_bwmode == 1 ) {
 			// Manual
-			dp_desc.innerHTML=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
-			up_desc.innerHTML=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+			dp_desc.innerText=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
+			up_desc.innerText=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
 		} else {
 			// Auto
-			dp_desc.innerHTML="Automatic BW mode";
-			up_desc.innerHTML="Automatic BW mode";
+			dp_desc.innerText="Automatic BW mode";
+			up_desc.innerText="Automatic BW mode";
 		}
 	}
 	if ( drptot > 100 )
@@ -2388,17 +2388,17 @@ function update_status(){
 				document.getElementById("ver_check").disabled = false;
 				document.getElementById("ver_update_scan").style.display = "none";
 				if ( verUpdateStatus == "NoUpdate" ) {
-					document.getElementById("versionStatus").innerHTML = " You have the latest version.";
+					document.getElementById("versionStatus").innerText = " You have the latest version.";
 					document.getElementById("versionStatus").style.display = "";
 					}
 				else if ( verUpdateStatus == "Error" ) {
-					document.getElementById("versionStatus").innerHTML = " Error getting remote version.";
+					document.getElementById("versionStatus").innerText = " Error getting remote version.";
 					document.getElementById("versionStatus").style.display = "";
 					}
 				else {
 					/* version update or hotfix available */
 					/* toggle update button */
-					document.getElementById("versionStatus").innerHTML = " " + verUpdateStatus + " available!";
+					document.getElementById("versionStatus").innerText = " " + verUpdateStatus + " available!";
 					document.getElementById("versionStatus").style.display = "";
 					document.getElementById("ver_check").style.display = "none";
 					document.getElementById("ver_update").style.display = "";
