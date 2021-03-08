@@ -82,9 +82,6 @@ display:none;
 td.t_item:active span.t_mark{
 display:inline;
 }
-.addRuleText small{
-display:none;
-}
 /*the container must be positioned relative:*/
 .autocomplete {
 position: relative;
