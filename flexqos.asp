@@ -169,6 +169,7 @@ var appdb_temp_array=[];
 var appdb_rulelist_array="";
 var iptables_rules = [];	// array for iptables rules
 var appdb_rules = [];	// array for appdb rules
+var tableClassMenuCode = {};		// this object is used in the show_iptables_rules tableStruct
 var qos_dlbw = '<% nvram_get("qos_ibw"); %>';		// download bandwidth set in QoS settings
 var qos_ulbw = '<% nvram_get("qos_obw"); %>';		// upload bandwidth set in QoS settings
 if (qos_dlbw > 0 && qos_ulbw > 0)
@@ -611,17 +612,9 @@ function comma(n) {
 	return parseInt(n).toLocaleString();
 }
 
-function populate_classmenu(){
-	var code = "";
-	for (i = 0; i < class_title.length; i++) {
-	  code += '<option value="' + i + '">' + class_title[i] + "</option>\n";
-	}
-	document.getElementById('appdb_class_x').innerHTML=code;
-	document.getElementById('flexqos_outputcls').innerHTML=code;
-}
-
-function populate_class_dropdown() {
-	var code = "";
+function populate_class_menus(){
+	var selectCode = "";
+	var dropdownCode = "";
 	for (i=0;i<bwdpi_app_rulelist_row.length-1;i++) {
 		for (j=0;j<cat_id_array.length;j++) {
 			if (cat_id_array[j] == bwdpi_app_rulelist_row[i]) {
@@ -629,10 +622,14 @@ function populate_class_dropdown() {
 				break;
 			}
 		}
-		code += '<a><div onclick="setApplicationClass(' + i + ');">' + class_title[index] + '</div></a>';
+		selectCode += '<option value="' + index + '">' + class_title[index] + "</option>\n";
+		dropdownCode += '<a><div onclick="setApplicationClass(' + i + ');">' + class_title[index] + '</div></a>';
+		tableClassMenuCode[class_title[index]] = index;		// this object is used in the show_iptables_rules tableStruct
 	}
-	document.getElementById('QoS_Class_List').innerHTML=code;
-} // populate_class_dropdown
+	document.getElementById('appdb_class_x').innerHTML=selectCode;
+	document.getElementById('flexqos_outputcls').innerHTML=selectCode;
+	document.getElementById('QoS_Class_List').innerHTML=dropdownCode;
+} // populate_class_menus
 
 function populate_bandwidth_table() {
 	var code = "";
@@ -701,7 +698,7 @@ function initial() {
 		return;
 	}
 	populate_bandwidth_table();
-	populate_classmenu();
+	populate_class_menus();
 	set_FlexQoS_mod_vars();
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	refreshRate = document.getElementById('refreshrate').value;
@@ -711,7 +708,6 @@ function initial() {
 	show_appdb_rules();
 	check_bandwidth();
 	well_known_rules();
-	populate_class_dropdown();
 	// Setup appdb auto-complete menu
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
 	build_overhead_presets();
@@ -1787,7 +1783,7 @@ function show_iptables_rules(){
 				{
 					"editMode" : "select",
 					"title" : "Class",
-					"option" : {"Net Control" : "0", "Gaming" : "1", "Streaming" : "2", "Work-From-Home" : "3", "Web Surfing" : "4", "File Transfers" : "5", "Others" : "6", "Learn-From-Home" : "7" }
+					"option" : tableClassMenuCode
 				}
 			],
 			maximum: 24
@@ -1836,7 +1832,7 @@ function show_iptables_rules(){
 				},
 				{
 					"editMode" : "select",
-					"option" : {"Net Control" : "0", "Gaming" : "1", "Streaming" : "2", "Work-From-Home" : "3", "Web Surfing" : "4", "File Transfers" : "5", "Others" : "6", "Learn-From-Home" : "7" }
+					"option" : tableClassMenuCode
 				}
 			]
 		},
@@ -1859,7 +1855,7 @@ function show_appdb_rules() {
 			var appdb_rulelist_col = appdb_rulelist_row[i].split('>');
 			for(var j = 0; j < appdb_rulelist_col.length; j++){
 				if (j==1){
-					code +='<td width="20%">'+ class_title[appdb_rulelist_col[j]] +'</td>';
+					code +='<td width="21%">'+ class_title[appdb_rulelist_col[j]] +'</td>';
 				} else {
 					code +='<td width="auto">'+ catdb_label_array[catdb_mark_array.indexOf(appdb_rulelist_col[j])] +'</td>';
 					code +='<td width="10%">'+ appdb_rulelist_col[j] +'</td>';
@@ -2708,7 +2704,7 @@ function autocomplete(inp, arr) {
 	<tr>
 		<th width="auto"><div class="table_text">Application</div></th>
 		<th width="10%"><div class="table_text">Mark</div></th>
-		<th width="20%"><div class="table_text">Class</div></th>
+		<th width="21%"><div class="table_text">Class</div></th>
 		<th width="15%">Edit</th>
 	</tr>
 	<tr>
@@ -2720,7 +2716,7 @@ function autocomplete(inp, arr) {
 		<td width="10%">
 			<input type="text" maxlength="6" class="input_6_table" name="appdb_mark_x" onfocusout='validate_mark(this.value) ? this.style.removeProperty("background-color") : this.style.backgroundColor="#A86262"' autocomplete="off" autocorrect="off" autocapitalize="off">
 		</td>
-		<td width="20%">
+		<td width="21%">
 			<select name="appdb_class_x" id="appdb_class_x" class="input_option">
 			</select>
 		</td>
