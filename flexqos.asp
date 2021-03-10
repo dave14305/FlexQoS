@@ -2687,8 +2687,8 @@ function DelCookie(cookiename){
 		<td>
 			<span id="flexqos_version" style="color:#FFFFFF;"></span>
 			&nbsp;&nbsp;&nbsp;
-			<input type="button" id="ver_check" class="button_gen" style="width:131px;height:24px;" onclick="version_check();" value="Check for Update">
-			<input type="button" id="ver_update" class="button_gen" style="display:none;width:131px;height:24px;" onclick="version_update();" value="Update">
+			<input type="button" id="ver_check" class="button_gen" style="width:135px;height:24px;" onclick="version_check();" value="Check for Update">
+			<input type="button" id="ver_update" class="button_gen" style="display:none;width:135px;height:24px;" onclick="version_update();" value="Update">
 			&nbsp;&nbsp;&nbsp;
 			<img id="ver_update_scan" style="display:none;vertical-align:middle;" src="images/InternetScan.gif">
 			<span id="versionStatus" style="color:#FC0;display:none;"></span>
@@ -2711,13 +2711,6 @@ function DelCookie(cookiename){
 		</td>
 	</tr>
 	<tr>
-		<th>Graph Scale</th>
-		<td>
-			<input type="radio" name="rate_graph_scale" class="input" value="0" onChange="change_chart_scale(this.value)">Linear
-			<input type="radio" name="rate_graph_scale" class="input" value="1" onChange="change_chart_scale(this.value)">Logarithmic
-		</td>
-	</tr>
-	<tr>
 		<th>Enable Conntrack Flushing</th>
 		<td>
 			<input type="radio" name="flexqos_conntrack" class="input" value="1">Yes
@@ -2725,7 +2718,7 @@ function DelCookie(cookiename){
 		</td>
 	</tr>
 	<tr>
-		<th>Router Outbound Traffic Class</th>
+		<th>Router/VPN Client Outbound Traffic Class</th>
 		<td>
 			<select name="flexqos_outputcls" id="flexqos_outputcls" class="input_option">
 			</select>
@@ -2810,6 +2803,13 @@ function DelCookie(cookiename){
 <option value="10">10 seconds</option>
 </select>
 <span id="toomanyconns" style="display:none; color:#FFCC00;">Disabled - too many tracked connections.</span>
+</td>
+</tr>
+<tr>
+<th>Graph Scale:</th>
+<td>
+	<input type="radio" name="rate_graph_scale" class="input" value="0" onChange="change_chart_scale(this.value)">Linear
+	<input type="radio" name="rate_graph_scale" class="input" value="1" onChange="change_chart_scale(this.value)">Logarithmic
 </td>
 </tr>
 </table>
