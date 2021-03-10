@@ -373,11 +373,26 @@ function cidr_end(addr) {
 
 function set_filter(field, o) {
 	if (o.value != "!") {
+		SetCookie("filter"+field,o.value);
 		if (field == 5 && o.value.search(/^!?Class:[0-7]$/) >= 0)
 			filter[field] = o.value.replace(/Class:/,"") + '>';
 		else
 			filter[field] = o.value.toLowerCase();
 		draw_conntrack_table();
+	}
+}
+
+function populate_filters() {
+	var filterVal="";
+	for (var i=0;i<6;i++) {
+		filterVal=GetCookie("filter"+i,"string");
+		if (filterVal) {
+			document.getElementById('filter'+i).value=filterVal;
+			if (i == 5 && filterVal.search(/^!?Class:[0-7]$/) >= 0)
+				filter[i] = filterVal.replace(/Class:/,"") + '>';
+			else
+				filter[i] = filterVal.toLowerCase();
+		}
 	}
 }
 
@@ -674,7 +689,7 @@ function pullClassList(obj) {
 	if(isMenuopen == 0) {
 		obj.src = "/images/arrow-top.gif"
 		element.style.display = 'block';
-		document.form.appfilter.focus();
+		document.form.appfilter_x.focus();
 	}
 	else
 		hideClasses_Block();
@@ -702,6 +717,7 @@ function initial() {
 	set_FlexQoS_mod_vars();
 	setTimeout("showDropdownClientList('setClientIP', 'ip', 'all', 'ClientList_Block_PC', 'lip_pull_arrow', 'all');", 1000);
 	refreshRate = document.getElementById('refreshrate').value;
+	populate_filters();
 	initialize_charts();
 	get_data();
 	show_iptables_rules();
@@ -2063,13 +2079,11 @@ function FlexQoS_reset_appdb() {
 } // FlexQoS_reset_appdb
 
 function FlexQoS_reset_filter() {
-	document.getElementById('protfilter').value="";
-	document.getElementById('lipfilter').value="";
-	document.getElementById('lportfilter').value="";
-	document.getElementById('ripfilter').value="";
-	document.getElementById('rportfilter').value="";
-	document.getElementById('appfilter').value="";
-	for (var i=0;i<6;i++) filter[i]="";
+	for (var i=0;i<6;i++) {
+		document.getElementById('filter'+i).value="";
+		filter[i]="";
+		DelCookie('filter'+i);
+	}
 	draw_conntrack_table();
 } // FlexQoS_reset_filter
 
@@ -2597,6 +2611,30 @@ function autocomplete(inp, arr) {
 		closeAllLists(e.target);
 	});
 }
+
+function GetCookie(cookiename,returntype){
+	var s;
+	if((s = cookie.get("flexqos_"+cookiename)) != null){
+		return cookie.get("flexqos_"+cookiename);
+	}
+	else{
+		if(returntype == "string"){
+			return "";
+		}
+		else if(returntype == "number"){
+			return 0;
+		}
+	}
+}
+
+function SetCookie(cookiename,cookievalue){
+	cookie.set("flexqos_"+cookiename, cookievalue, 31);
+}
+
+function DelCookie(cookiename){
+	cookie.set("flexqos_"+cookiename, "", -1);
+}
+
 </script>
 </head>
 <body onload="initial();" class="bg">
@@ -2807,21 +2845,21 @@ function autocomplete(inp, arr) {
 		<th width="27%">Application</th>
 	</tr>
 	<tr>
-		<td><select id="protfilter" class="input_option" onchange="set_filter(0, this);">
+		<td><select id="filter0" class="input_option" onchange="set_filter(0, this);">
 			<option value="">any</option>
 			<option value="tcp">tcp</option>
 			<option value="udp">udp</option>
 		</select></td>
 		<td style="text-align:left;">
-			<input id="lipfilter" type="text" class="input_18_table" style="width:140px;" maxlength="40" name="lipfilter_x" oninput="set_filter(1, this);" onClick="hideClients_Block();">
+			<input id="filter1" type="text" class="input_18_table" style="width:140px;" maxlength="40" name="lipfilter_x" oninput="set_filter(1, this);" onClick="hideClients_Block();">
 			<img id="lip_pull_arrow" height="14px;" src="/images/arrow-down.gif" class="pull_arrow" style="position:absolute;" onclick="pullLANIPList(this);" title="Select the Local Client">
 			<div id="ClientList_Block_PC" class="clientlist_dropdown" style="margin-left:2px;width:200px;"></div>
 		</td>
-		<td><input id="lportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(2, this);"></td>
-		<td><input id="ripfilter" type="text" class="input_18_table" maxlength="40" oninput="set_filter(3, this);"></td>
-		<td><input id="rportfilter" type="text" class="input_6_table" maxlength="6" oninput="set_filter(4, this);"></td>
+		<td><input id="filter2" type="text" class="input_6_table" maxlength="6" oninput="set_filter(2, this);"></td>
+		<td><input id="filter3" type="text" class="input_18_table" maxlength="40" oninput="set_filter(3, this);"></td>
+		<td><input id="filter4" type="text" class="input_6_table" maxlength="6" oninput="set_filter(4, this);"></td>
 		<td style="text-align:left;">
-			<input id="appfilter" type="text" class="input_18_table" style="width:140px;" maxlength="49" name="appfilter_x" oninput="set_filter(5, this);" onClick="hideClasses_Block();">
+			<input id="filter5" type="text" class="input_18_table" style="width:140px;" maxlength="49" name="appfilter_x" oninput="set_filter(5, this);" onClick="hideClasses_Block();">
 			<img id="class_pull_arrow" height="14px;" src="/images/arrow-down.gif" class="pull_arrow" style="position:absolute;" onclick="pullClassList(this);" title="Select the QoS Class">
 			<div id="QoS_Class_List" class="clientlist_dropdown" style="margin-left:2px;width:165px;"></div>
 		</td>
