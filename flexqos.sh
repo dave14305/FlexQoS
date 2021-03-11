@@ -181,12 +181,12 @@ get_burst() {
 	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
 	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
 	# If using fq_codel option, use 1600 as a minimum burst.
-	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
-		if [ $BURST -lt 1600 ]; then
-			BURST=1600
+	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "0" ]; then
+		if [ $BURST -lt 3200 ]; then
+			BURST=3200
 		fi
-	elif [ $BURST -lt 3200 ]; then
-		BURST=3200
+	elif [ $BURST -lt 1600 ]; then
+		BURST=1600
 	fi
 
 	printf "%s" $BURST
@@ -1515,7 +1515,7 @@ get_fq_target() {
 
 write_custom_qdisc() {
 	local i
-	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
+	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" != "0" ]; then
 		{
 			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1000 noecn\n" "$tclan"
 			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1000 noecn\n" "$tcwan"

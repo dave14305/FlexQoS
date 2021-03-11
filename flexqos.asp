@@ -2071,7 +2071,7 @@ function set_FlexQoS_mod_vars()
 		document.form.flexqos_conntrack.value = custom_settings.flexqos_conntrack;
 
 	if ( custom_settings.flexqos_qdisc == undefined )
-		document.form.flexqos_qdisc.value = "0";
+		document.form.flexqos_qdisc.value = "1";
 	else
 		document.form.flexqos_qdisc.value = custom_settings.flexqos_qdisc;
 
@@ -2254,7 +2254,7 @@ function FlexQoS_mod_apply() {
 		if (document.form.flexqos_conntrack.value == 0)		// if disabled in the GUI
 			custom_settings.flexqos_conntrack = document.form.flexqos_conntrack.value;
 	}
-	if (document.form.flexqos_qdisc.value == 0)
+	if (document.form.flexqos_qdisc.value == 1)
 		delete custom_settings.flexqos_qdisc;
 	else
 		custom_settings.flexqos_qdisc = document.form.flexqos_qdisc.value;
@@ -2712,7 +2712,7 @@ function DelCookie(cookiename){
 	<tr>
 		<th>Version</th>
 		<td>
-			<span id="flexqos_version" style="color:#FFFFFF;"></span>
+			<span id="flexqos_version" style="margin-left:4px; color:#FFFFFF;"></span>
 			&nbsp;&nbsp;&nbsp;
 			<input type="button" id="ver_check" class="button_gen" style="width:135px;height:24px;" onclick="version_check();" value="Check for Update">
 			<input type="button" id="ver_update" class="button_gen" style="display:none;width:135px;height:24px;" onclick="version_update();" value="Update">
@@ -2722,10 +2722,10 @@ function DelCookie(cookiename){
 		</td>
 	</tr>
 	<tr>
-		<th>Queue Discipline</th>
+		<th>QoS Mode</th>
 		<td>
-			<input type="radio" name="flexqos_qdisc" class="input" value="0">Default
 			<input type="radio" name="flexqos_qdisc" class="input" value="1">fq_codel
+			<input type="radio" name="flexqos_qdisc" class="input" value="0">ASUS
 		</td>
 	</tr>
 	<tr>
