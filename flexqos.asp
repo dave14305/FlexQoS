@@ -156,6 +156,7 @@ var sortdir = 0;
 var sortfield = 5;
 var dhcp_start = '<% nvram_get("dhcp_start"); %>';
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
+<% get_ipv6net_array(); %>
 
 const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>5";
 const iptables_default_rulenames = "<WiFi%20Calling<Facetime<Usenet<Game%20Downloads";
@@ -588,7 +589,6 @@ function updateTable()
 	tabledata.sort(table_sort);
 
 	genClientList();
-	<% get_ipv6net_array(); %>
 
 	//generate table
 	var code = '<tr class="row_title">' +
