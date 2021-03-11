@@ -2870,7 +2870,7 @@ function DelCookie(cookiename){
 	<tr>
 		<td colspan="6">Filter connections
 			<input style="margin-left:25px; vertical-align:middle;" type="checkbox" name="savefilter" id="savefilter" onChange="save_filter();">
-			<label for="savefilter"><small style="font-weight:normal;">Save Filter</small></label>
+			<label for="savefilter"><small style="font-weight:normal;">Remember</small></label>
 			<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_reset_filter()">Reset</small>
 		</td>
 	</tr>
