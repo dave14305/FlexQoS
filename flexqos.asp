@@ -373,7 +373,8 @@ function cidr_end(addr) {
 
 function set_filter(field, o) {
 	if (o.value != "!") {
-		SetCookie("filter"+field,o.value);
+		if ( document.form.savefilter.checked )
+			SetCookie("filter"+field,o.value);
 		if (field == 5 && o.value.search(/^!?Class:[0-7]$/) >= 0)
 			filter[field] = o.value.replace(/Class:/,"") + '>';
 		else
