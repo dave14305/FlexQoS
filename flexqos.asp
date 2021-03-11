@@ -384,6 +384,14 @@ function set_filter(field, o) {
 
 function populate_filters() {
 	var filterVal="";
+	var saveFilter = GetCookie("savefilter","number");
+	if ( saveFilter == "1" )
+		document.form.savefilter.checked = true;
+	else {
+		document.form.savefilter.checked = false;
+		return;	// don't load filters
+	}
+
 	for (var i=0;i<6;i++) {
 		filterVal=GetCookie("filter"+i,"string");
 		if (filterVal) {
@@ -393,6 +401,24 @@ function populate_filters() {
 			else
 				filter[i] = filterVal.toLowerCase();
 		}
+	}
+}
+
+function save_filter() {
+	var saveFilter = document.form.savefilter.checked;
+	if ( saveFilter ) {
+		SetCookie("savefilter",1);
+		for (var i=0;i<6;i++) {
+			if ( document.getElementById('filter'+i).value )
+				SetCookie('filter'+i,document.getElementById('filter'+i).value);
+			else
+				DelCookie('filter'+i);
+		}
+	}
+	else {
+		SetCookie("savefilter",0);
+		for (var i=0;i<6;i++)
+			DelCookie('filter'+i);
 	}
 }
 
@@ -2836,7 +2862,16 @@ function DelCookie(cookiename){
 <br>
 <!-- FlexQoS Connection Table Start-->
 
-<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;"><thead><tr><td colspan="6">Filter connections<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_reset_filter()">Reset</small></td></tr></thead>
+<table cellpadding="4" class="FormTable_table" id="tracked_filters" style="display:none;">
+<thead>
+	<tr>
+		<td colspan="6">Filter connections
+			<input style="margin-left:25px; vertical-align:middle;" type="checkbox" name="savefilter" id="savefilter" onChange="save_filter();">
+			<label for="savefilter"><small style="font-weight:normal;">Save Filter</small></label>
+			<small style="float:right; font-weight:normal; margin-right:10px; cursor:pointer;" onclick="FlexQoS_reset_filter()">Reset</small>
+		</td>
+	</tr>
+</thead>
 	<tr>
 		<th width="5%">Proto</th>
 		<th width="28%">Local IP</th>
