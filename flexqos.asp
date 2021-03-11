@@ -2111,6 +2111,8 @@ function FlexQoS_reset_filter() {
 		filter[i]="";
 		DelCookie('filter'+i);
 	}
+	document.form.savefilter.checked=false;
+	DelCookie('savefilter');
 	draw_conntrack_table();
 } // FlexQoS_reset_filter
 
