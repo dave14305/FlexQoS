@@ -1533,8 +1533,9 @@ check_qos_tc() {
 	# Only br0 interface is checked since we have not yet identified the tcwan interface name yet.
 	dlclasscnt="$($TC class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
 	dlfiltercnt="$($TC filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
-	# Check class count, filter count, and tcwan interface name defined with an htb qdisc
-	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$($TC qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
+	qdisccnt="$($TC qdisc ls | /bin/grep -cE "qdisc htb 1[0-7]?: ")" # should be 18
+	# Check class count, filter count, qdisc count, and tcwan interface name defined with an htb qdisc
+	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ "$qdisccnt" -lt "18" ] || [ -z "$($TC qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
 		return 0
 	else
 		return 1
@@ -1617,15 +1618,22 @@ startup() {
 		[ "$sleepdelay" = "0" ] && logmsg "TC Modification Delayed Start"
 		sleep 10s
 		if [ "$sleepdelay" -ge "180" ]; then
-			logmsg "QoS state: Classes=${dlclasscnt} | Filters=${dlfiltercnt} | HTB root qdiscs=$($TC qdisc ls | /bin/grep -cE "htb.*root")"
-			logmsg "TC Modification Delay reached maximum 180 seconds. Restarting QoS."
-			service "restart_qos;restart_firewall"
+			logmsg "QoS state: Classes=${dlclasscnt} | Filters=${dlfiltercnt} | HTB qdiscs=$($TC qdisc ls | /bin/grep -cE "qdisc htb 1[0-7]?: ")"
+			if [ ! -f /tmp/${SCRIPTNAME}_restartonce ]; then
+				touch /tmp/${SCRIPTNAME}_restartonce
+				logmsg "TC Modification Delay reached maximum 180 seconds. Restarting QoS."
+				service "restart_qos;restart_firewall"
+			else
+				logmsg "TC Modification Delay reached maximum 180 seconds again. Canceling startup!"
+				rm /tmp/${SCRIPTNAME}_restartonce 2>/dev/null
+			fi
 			return 1
 		else
 			sleepdelay=$((sleepdelay+10))
 		fi
 	done
 	[ "$sleepdelay" -gt "0" ] && logmsg "TC Modification delayed for $sleepdelay seconds"
+	rm /tmp/${SCRIPTNAME}_restartonce 2>/dev/null
 
 	set_tc_variables
 
