@@ -172,9 +172,18 @@ get_burst() {
 	local RATE
 	local DURATION
 	local BURST
+	local MIN_BURST
 
 	RATE=$1
 	DURATION=$2	# acceptable added latency in microseconds (1ms)
+
+	# https://github.com/tohojo/sqm-scripts/blob/master/src/functions.sh
+	# let's assume ATM/AAL5 to be the worst case encapsulation
+	# and 48 Bytes a reasonable worst case per packet overhead
+	MIN_BURST=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  ovehead
+	MIN_BURST=$(( MIN_BURST + 47 ))		# now do ceil(Min_BURST / 48) * 53 in shell integer arithmic
+	MIN_BURST=$(( MIN_BURST / 48 ))
+	MIN_BURST=$(( MIN_BURST * 53 ))		# for MTU 1489 to 1536 this will result in MIN_BURST = 1749 Bytes
 
 	BURST=$((DURATION*RATE/8000))
 
@@ -185,8 +194,8 @@ get_burst() {
 		if [ $BURST -lt 3200 ]; then
 			BURST=3200
 		fi
-	elif [ $BURST -lt 1600 ]; then
-		BURST=1600
+	elif [ "$BURST" -lt "$MIN_BURST" ]; then
+		BURST="$MIN_BURST"
 	fi
 
 	printf "%s" $BURST
@@ -195,18 +204,27 @@ get_burst() {
 get_cburst() {
 	local RATE
 	local BURST
+	local MIN_BURST
 
 	RATE=$1
+
+	# https://github.com/tohojo/sqm-scripts/blob/master/src/functions.sh
+	# let's assume ATM/AAL5 to be the worst case encapsulation
+	# and 48 Bytes a reasonable worst case per packet overhead
+	MIN_BURST=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  ovehead
+	MIN_BURST=$(( MIN_BURST + 47 ))		# now do ceil(Min_BURST / 48) * 53 in shell integer arithmic
+	MIN_BURST=$(( MIN_BURST / 48 ))
+	MIN_BURST=$(( MIN_BURST * 53 ))		# for MTU 1489 to 1536 this will result in MIN_BURST = 1749 Bytes
 
 	BURST=$((RATE*1000/1280000*1600))
 
 	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
 	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
 	if [ $BURST -lt 3200 ]; then
-		if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "1" ]; then
-			BURST=1600
-		else
+		if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "0" ]; then
 			BURST=3200
+		else
+			BURST="$MIN_BURST"
 		fi
 	fi
 
@@ -216,14 +234,23 @@ get_cburst() {
 get_quantum() {
 	local RATE
 	local QUANTUM
+	local MIN_QUANTUM
 
 	RATE=$1
+
+	# https://github.com/tohojo/sqm-scripts/blob/master/src/functions.sh
+	# let's assume ATM/AAL5 to be the worst case encapsulation
+	# and 48 Bytes a reasonable worst case per packet overhead
+	MIN_QUANTUM=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  ovehead
+	MIN_QUANTUM=$(( MIN_QUANTUM + 47 ))		# now do ceil(Min_BURST / 48) * 53 in shell integer arithmic
+	MIN_QUANTUM=$(( MIN_QUANTUM / 48 ))
+	MIN_QUANTUM=$(( MIN_QUANTUM * 53 ))		# for MTU 1489 to 1536 this will result in MIN_BURST = 1749 Bytes
 
 	QUANTUM=$((RATE*1000/8/10))
 
 	# If the calculated quantum is less than the MTU, use MTU+14 as the quantum
-	if [ $QUANTUM -lt "$((WANMTU+14))" ]; then
-		QUANTUM="$((WANMTU+14))"
+	if [ $QUANTUM -lt "$MIN_QUANTUM" ]; then
+		QUANTUM="$MIN_QUANTUM"
 	fi
 
 	printf "%s" $QUANTUM
