@@ -1533,8 +1533,9 @@ check_qos_tc() {
 	# Only br0 interface is checked since we have not yet identified the tcwan interface name yet.
 	dlclasscnt="$($TC class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
 	dlfiltercnt="$($TC filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+	dlqdisccnt="$($TC qdisc show dev br0 | /bin/grep -c " parent 1:1[0-7] ")" # should be 8
 	# Check class count, filter count, qdisc count, and tcwan interface name defined with an htb qdisc
-	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ -z "$($TC qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
+	if [ "$dlclasscnt" -lt "8" ] || [ "$dlfiltercnt" -lt "39" ] || [ "$dlqdisccnt" -lt "8" ] || [ -z "$($TC qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
 		return 0
 	else
 		return 1
@@ -1617,7 +1618,7 @@ startup() {
 		[ "$sleepdelay" = "0" ] && logmsg "TC Modification Delayed Start"
 		sleep 10s
 		if [ "$sleepdelay" -ge "180" ]; then
-			logmsg "QoS state: Classes=${dlclasscnt} | Filters=${dlfiltercnt} | HTB qdiscs=$($TC qdisc ls | /bin/grep -cE "qdisc htb 1[0-7]?: ")"
+			logmsg "QoS state: Classes=${dlclasscnt} | Filters=${dlfiltercnt} | qdiscs=${dlqdisccnt}"
 			if [ ! -f /tmp/${SCRIPTNAME}_restartonce ]; then
 				touch /tmp/${SCRIPTNAME}_restartonce
 				logmsg "TC Modification Delay reached maximum 180 seconds. Restarting QoS."
