@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.2.3 released 2021-03-07
+FlexQoS v1.2.4 released 2021-03-21
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -997,6 +997,29 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 			else if ((iptables_rules[i][0] & 15) == "8" )						//if port rule is ONLY a remote multiport match
 			{
 				var match=false;
+				for (var j = 0; j < iptables_rules[i][9].length; j++) {
+				  if(iptables_rules[i][9][j] == CRport) 	match=true;
+				}
+				if (iptables_rules[i][6]) 				match=!(match);
+				if (match == false)
+				{
+				  // console.log("remote multiport mismatch");
+				  continue;
+				}
+			}
+			else if ((iptables_rules[i][0] & 15) == "12" )						//if port rule is both a local and remote multiport match
+			{
+				var match=false;
+				for (var j = 0; j < iptables_rules[i][5].length; j++) {
+					if(iptables_rules[i][5][j] == CLport) 	match=true;
+				}
+				if (iptables_rules[i][2]) 					match=!(match);
+				if (match == false)
+				{
+				  // console.log("local multiport mismatch");
+				  continue;
+				}
+				match=false;
 				for (var j = 0; j < iptables_rules[i][9].length; j++) {
 				  if(iptables_rules[i][9][j] == CRport) 	match=true;
 				}
