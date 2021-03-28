@@ -1186,6 +1186,10 @@ install_webui() {
 		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
 		[ -f "${ADDON_DIR}/${SCRIPTNAME}_arrays.js" ] && rm "${ADDON_DIR}/${SCRIPTNAME}_arrays.js"
 	fi
+	LOCKFILE=/tmp/addonwebui.lock
+	FD=386
+	eval exec "$FD>$LOCKFILE"
+	/usr/bin/flock -x "$FD"
 	# Check if the webpage is already mounted in the GUI and reuse that page
 	prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_DISPLAY}\"\}\,$/\1/p" /tmp/menuTree.js 2>/dev/null)"
 	if [ -n "$prev_webui_page" ]; then
@@ -1199,10 +1203,6 @@ install_webui() {
 		logmsg "No API slots available to install web page"
 	else
 		cp -p "$WEBUIPATH" /www/user/"$am_webui_page"
-		LOCKFILE=/tmp/addonwebui.lock
-		FD=386
-		eval exec "$FD>$LOCKFILE"
-		/usr/bin/flock -x "$FD"
 		if [ ! -f /tmp/menuTree.js ]; then
 			cp /www/require/modules/menuTree.js /tmp/
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
@@ -1213,8 +1213,8 @@ install_webui() {
 			sed -i "/url: \"QoS_Stats.asp\", tabName:/i {url: \"$am_webui_page\", tabName: \"${SCRIPTNAME_DISPLAY}\"}," /tmp/menuTree.js
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
-		/usr/bin/flock -u "$FD"
 	fi
+	/usr/bin/flock -u "$FD"
 	[ ! -d "/www/ext/${SCRIPTNAME}" ] && mkdir -p "/www/ext/${SCRIPTNAME}"
 }
 
