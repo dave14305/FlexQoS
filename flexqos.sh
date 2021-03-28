@@ -1209,7 +1209,7 @@ install_webui() {
 		fi
 		if ! /bin/grep -q "{url: \"$am_webui_page\", tabName: \"${SCRIPTNAME_DISPLAY}\"}," /tmp/menuTree.js; then
 			umount /www/require/modules/menuTree.js 2>/dev/null
-			sed -i "\~tabName: \"${SCRIPTNAME_DISPLAY}\"},~d" /tmp/menuTree.js
+			sed -i "\~{url: \"$am_webui_page\"~d; \~tabName: \"${SCRIPTNAME_DISPLAY}\"},~d" /tmp/menuTree.js
 			sed -i "/url: \"QoS_Stats.asp\", tabName:/i {url: \"$am_webui_page\", tabName: \"${SCRIPTNAME_DISPLAY}\"}," /tmp/menuTree.js
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		fi
