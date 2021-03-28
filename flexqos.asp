@@ -968,72 +968,37 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 		//if rule has local/remote ports specified
 		if (iptables_rules[i][0] & 15)
 		{
-			if ((iptables_rules[i][0] & 15) <= 3 )							//if port rule is NOT a multiport match
-			{
-				if ( (iptables_rules[i][0] & 1) && !((CLport >= iptables_rules[i][3] && CLport <= iptables_rules[i][4])^(iptables_rules[i][2])) )
-				{
-					// console.log("local port mismatch");
-					continue;
-				}
-				if ( (iptables_rules[i][0] & 2) && !((CRport >= iptables_rules[i][7] && CRport <= iptables_rules[i][8])^(iptables_rules[i][6])) )
-				{
-					// console.log("remote port mismatch");
-					continue;
-				}
-			}
-			else if ((iptables_rules[i][0] & 15) == "4" )						//if port rule is ONLY a local multiport match
+			if ( (iptables_rules[i][0] & 1) && !((CLport >= iptables_rules[i][3] && CLport <= iptables_rules[i][4])^(iptables_rules[i][2])) )
+				// local port mismatch (single or range)
+				continue;
+			else if ( iptables_rules[i][0] & 4 )		// if port rule has a local comma-separated multiport match
 			{
 				var match=false;
 				for (var j = 0; j < iptables_rules[i][5].length; j++) {
-					if(iptables_rules[i][5][j] == CLport) 	match=true;
+					if(iptables_rules[i][5][j] == CLport)
+						match=true;
 				}
-				if (iptables_rules[i][2]) 					match=!(match);
+				if (iptables_rules[i][2])		// invert !
+					match=!(match);
 				if (match == false)
-				{
-				  // console.log("local multiport mismatch");
-				  continue;
-				}
+					// local multiport mismatch
+					continue;
 			}
-			else if ((iptables_rules[i][0] & 15) == "8" )						//if port rule is ONLY a remote multiport match
+			if ( (iptables_rules[i][0] & 2) && !((CRport >= iptables_rules[i][7] && CRport <= iptables_rules[i][8])^(iptables_rules[i][6])) )
+				// remote port mismatch (single or range)
+				continue;
+			else if ( iptables_rules[i][0] & 8 )		//if port rule has a remote comma-separated multiport match
 			{
 				var match=false;
 				for (var j = 0; j < iptables_rules[i][9].length; j++) {
-				  if(iptables_rules[i][9][j] == CRport) 	match=true;
+					if(iptables_rules[i][9][j] == CRport)
+						match=true;
 				}
-				if (iptables_rules[i][6]) 				match=!(match);
+				if (iptables_rules[i][6])		// invert !
+					match=!(match);
 				if (match == false)
-				{
-				  // console.log("remote multiport mismatch");
-				  continue;
-				}
-			}
-			else if ((iptables_rules[i][0] & 15) == "12" )						//if port rule is both a local and remote multiport match
-			{
-				var match=false;
-				for (var j = 0; j < iptables_rules[i][5].length; j++) {
-					if(iptables_rules[i][5][j] == CLport) 	match=true;
-				}
-				if (iptables_rules[i][2]) 					match=!(match);
-				if (match == false)
-				{
-				  // console.log("local multiport mismatch");
-				  continue;
-				}
-				match=false;
-				for (var j = 0; j < iptables_rules[i][9].length; j++) {
-				  if(iptables_rules[i][9][j] == CRport) 	match=true;
-				}
-				if (iptables_rules[i][6]) 				match=!(match);
-				if (match == false)
-				{
-				  // console.log("remote multiport mismatch");
-				  continue;
-				}
-			}
-			else
-			{
-				//console.log("improper configuration of port rule");
-				continue;		//false since multiport match cannot be simultanously used with other port match
+					// remote multiport mismatch
+					continue;
 			}
 		}
 
