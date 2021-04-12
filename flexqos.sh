@@ -11,7 +11,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 version=1.2.4
-release=2021-03-21
+release=2021-04-11
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
