@@ -40,7 +40,7 @@ GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 readonly ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 readonly WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 readonly SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
-readonly LOCKFILE=/tmp/"$SCRIPTNAME".lock
+readonly LOCKFILE=/tmp/addonwebui.lock
 IPv6_enabled="$(nvram get ipv6_service)"
 
 # Update version number in custom_settings.txt for reading in WebUI
@@ -763,7 +763,7 @@ parse_iptablerule() {
 		PROTOS="$3"
 	elif [ "${#4}" -gt "1" ] || [ "${#5}" -gt "1" ]; then
 		# proto=both & ports are defined
-		PROTOS="tcp>udp"		# separated by > because IFS is currently set to > in parent function. TODO Fix Me
+		PROTOS="tcp>udp"		# separated by > because IFS will be temporarily set to '>' by calling function. TODO Fix Me
 	else
 		# neither proto nor ports defined
 		PROTOS="all"
@@ -1464,7 +1464,6 @@ write_iptables_rules() {
 			printf "ip6tables -t mangle -F %s 2>/dev/null\n" "$SCRIPTNAME_DISPLAY"
 		fi
 	} > /tmp/"$SCRIPTNAME"_iprules
-	echo "write_iptables_rules IFS=$IFS"
 	OLDIFS="$IFS"		# Save existing field separator
 	IFS=">"				# Set custom field separator to match rule format
 	# read the rules, 1 per line and break into separate fields
@@ -1738,19 +1737,19 @@ PressEnter(){
 }
 
 Kill_Lock() {
-	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)" ]; then
-		logmsg "[*] Killing Delayed Process (pid=$(sed -n '1p' /tmp/"$SCRIPTNAME".lock))"
-		logmsg "[*] $(ps | awk -v pid="$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)" '$1 == pid')"
-		kill "$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)"
+	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' "/tmp/${SCRIPTNAME}.lock")" ]; then
+		logmsg "[*] Killing Delayed Process (pid=$(sed -n '1p' "/tmp/${SCRIPTNAME}.lock"))"
+		logmsg "[*] $(ps | awk -v pid="$(sed -n '1p' "/tmp/${SCRIPTNAME}.lock")" '$1 == pid')"
+		kill "$(sed -n '1p' "/tmp/${SCRIPTNAME}.lock")"
 	fi
-	rm -rf /tmp/"$SCRIPTNAME".lock
+	rm -rf "/tmp/${SCRIPTNAME}.lock"
 } # Kill_Lock
 
 Check_Lock() {
-	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)" ] && [ "$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)" != "$$" ]; then
+	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' "/tmp/${SCRIPTNAME}.lock")" ] && [ "$(sed -n '1p' "/tmp/${SCRIPTNAME}.lock")" != "$$" ]; then
 		Kill_Lock
 	fi
-	printf "%s\n" "$$" > /tmp/"$SCRIPTNAME".lock
+	printf "%s\n" "$$" > "/tmp/${SCRIPTNAME}.lock"
 	lock="true"
 } # Check_Lock
 
