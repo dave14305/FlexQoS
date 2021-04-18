@@ -10,6 +10,7 @@
 ###########################################################
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
+# shellcheck disable=SC1090,SC1091,SC2154,SC3043
 version=1.2.4
 release=2021-04-11
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
@@ -28,7 +29,7 @@ fi
 
 # Global variables
 readonly SCRIPTNAME_DISPLAY="FlexQoS"
-readonly SCRIPTNAME="$(echo $SCRIPTNAME_DISPLAY | tr A-Z a-z)"
+readonly SCRIPTNAME="flexqos"
 readonly GIT_REPO="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}"
 GIT_BRANCH="$(am_settings_get "${SCRIPTNAME}_branch")"
 if [ -z "$GIT_BRANCH" ]; then
@@ -39,11 +40,12 @@ GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
 readonly ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 readonly WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 readonly SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
+readonly LOCKFILE=/tmp/"$SCRIPTNAME".lock
 IPv6_enabled="$(nvram get ipv6_service)"
 
 # Update version number in custom_settings.txt for reading in WebUI
-if [ "$(am_settings_get flexqos_ver)" != "$version" ]; then
-	am_settings_set flexqos_ver "$version"
+if [ "$(am_settings_get "$SCRIPTNAME"_ver)" != "$version" ]; then
+	am_settings_set "$SCRIPTNAME"_ver "$version"
 fi
 
 # If Merlin fq_codel patch is active, use original tc binary for passing commands
@@ -114,7 +116,7 @@ get_class_mark() {
 
 iptables_static_rules() {
 	local outputcls
-	outputcls="$(am_settings_get ${SCRIPTNAME}_outputcls)"
+	outputcls="$(am_settings_get "$SCRIPTNAME"_outputcls)"
 	if [ -z "$outputcls" ]; then
 		outputcls="5"
 	fi
@@ -122,17 +124,17 @@ iptables_static_rules() {
 	printf "Applying iptables static rules\n"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
-	iptables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff
-	iptables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-	iptables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"$outputcls"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"$outputcls"ffff/0xc03fffff
+	iptables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"$outputcls"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"$outputcls"ffff/0xc03fffff
 	iptables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
 	iptables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	if [ "$IPv6_enabled" != "disabled" ]; then
-		ip6tables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff
-		ip6tables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,123,853 -j MARK --set-mark 0x40${outputcls}ffff/0xc03fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"$outputcls"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"$outputcls"ffff/0xc03fffff
+		ip6tables -t mangle -D OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"$outputcls"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "$wan" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"$outputcls"ffff/0xc03fffff
 		ip6tables -t mangle -N "$SCRIPTNAME_DISPLAY" 2>/dev/null
 		ip6tables -t mangle -A POSTROUTING -j "$SCRIPTNAME_DISPLAY"
 	fi
@@ -165,7 +167,7 @@ write_appdb_static_rules() {
 		get_static_filter "$Streaming_mark" "$Streaming_flow"
 		get_static_filter "$Downloads_mark" "$Downloads_flow"
 		get_static_filter "$Learn_mark" "$Learn_flow"
-	} > /tmp/${SCRIPTNAME}_tcrules
+	} > /tmp/"$SCRIPTNAME"_tcrules
 } # write_appdb_static_rules
 
 get_burst() {
@@ -190,7 +192,7 @@ get_burst() {
 	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
 	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
 	# If using fq_codel option, use 1600 as a minimum burst.
-	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "0" ]; then
+	if [ "$(am_settings_get "$SCRIPTNAME"_qdisc)" = "0" ]; then
 		if [ $BURST -lt 3200 ]; then
 			BURST=3200
 		fi
@@ -216,12 +218,13 @@ get_cburst() {
 	MIN_BURST=$(( MIN_BURST / 48 ))
 	MIN_BURST=$(( MIN_BURST * 53 ))		# for MTU 1489 to 1536 this will result in MIN_BURST = 1749 Bytes
 
-	BURST=$((RATE*1000/1280000*1600))
+	BURST=$((RATE*1000/1280000))
+	BURST=$((BURST*1600))
 
 	# If the calculated burst is less than ASUS' minimum value of 3200, use 3200
 	# to avoid problems with child and leaf classes outside of FlexQoS scope that use 3200.
 	if [ $BURST -lt 3200 ]; then
-		if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" = "0" ]; then
+		if [ "$(am_settings_get "$SCRIPTNAME"_qdisc)" = "0" ]; then
 			BURST=3200
 		else
 			BURST="$MIN_BURST"
@@ -290,7 +293,7 @@ get_custom_rate_rule() {
 	DURATION=1000	# 1000 microseconds = 1 ms
 
 	printf "class change dev %s parent 1:1 classid 1:1%s htb %s prio %s rate %sKbit ceil %sKbit burst %sb cburst %sb quantum %s\n" \
-			"$IFACE" "$PRIO" "$(get_overhead)" "$PRIO" "$RATE" "$CEIL" "$(get_burst $CEIL $DURATION)" "$(get_cburst $CEIL)" "$(get_quantum $RATE)"
+			"$IFACE" "$PRIO" "$(get_overhead)" "$PRIO" "$RATE" "$CEIL" "$(get_burst "$CEIL" "$DURATION")" "$(get_cburst "$CEIL")" "$(get_quantum "$RATE")"
 } # get_custom_rate_rule
 
 write_custom_rates() {
@@ -305,7 +308,7 @@ write_custom_rates() {
 				eval get_custom_rate_rule "$tclan" $i \$DownRate$i \$DownCeil$i
 				eval get_custom_rate_rule "$tcwan" $i \$UpRate$i \$UpCeil$i
 			done
-		} >> /tmp/${SCRIPTNAME}_tcrules
+		} >> /tmp/"$SCRIPTNAME"_tcrules
 	fi
 } # write_custom_rates
 
@@ -341,23 +344,23 @@ set_tc_variables() {
 		undf_prio="$((undf_prio-1))"
 	fi
 
-	read \
+	read -r \
 		drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7 \
 		dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7 \
 		urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7 \
 		ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7 \
 <<EOF
-$(echo $bwrates | sed 's/^<//g;s/[<>]/ /g')
+$(echo "$bwrates" | sed 's/^<//g;s/[<>]/ /g')
 EOF
 
 	# read priority order of QoS categories as set by user on the QoS page of the GUI
 	flowid=0
 	while read -r line;
 	do
-		if [ "${line:0:1}" = '[' ]; then
-			flowid="${line:1:1}"
+		if [ "$(echo "$line" | cut -c 1)" = '[' ]; then
+			flowid="$(echo "$line" | cut -c 2)"
 		fi
-		case ${line} in
+		case "$line" in
 		'0')
 			Work_flow="1:1${flowid}"
 			eval "Cat${flowid}DownBandPercent=$drp3"
@@ -585,22 +588,22 @@ debug() {
 		printf "Custom rates disabled with Automatic Bandwidth mode!\n"
 		printf "**************\n"
 	fi
-	ipt_debug="$(am_settings_get flexqos_iptables)"
+	ipt_debug="$(am_settings_get "$SCRIPTNAME"_iptables)"
 	printf "iptables settings: %s\n" "${ipt_debug:-Defaults}"
 	write_iptables_rules
 	# Remove superfluous commands from the output in order to focus on the parsed details
-	/bin/sed -E "/^ip[6]?tables -t mangle -F $SCRIPTNAME_DISPLAY/d; s/ip[6]?tables -t mangle -A $SCRIPTNAME_DISPLAY //g; s/[[:space:]]{2,}/ /g" /tmp/${SCRIPTNAME}_iprules
+	/bin/sed -E "/^ip[6]?tables -t mangle -F $SCRIPTNAME_DISPLAY/d; s/ip[6]?tables -t mangle -A $SCRIPTNAME_DISPLAY //g; s/[[:space:]]{2,}/ /g" /tmp/"$SCRIPTNAME"_iprules
 	printf "**************\n"
-	appdb_debug="$(am_settings_get flexqos_appdb)"
+	appdb_debug="$(am_settings_get "$SCRIPTNAME"_appdb)"
 	printf "appdb rules: %s\n" "${appdb_debug:-Defaults}"
-	true > /tmp/${SCRIPTNAME}_tcrules
+	true > /tmp/"$SCRIPTNAME"_tcrules
 	write_appdb_rules
 	write_custom_rates
 	write_custom_qdisc
-	cat /tmp/${SCRIPTNAME}_tcrules
+	cat /tmp/"$SCRIPTNAME"_tcrules
 	Green "[/CODE][/SPOILER]"
 	# Since these tmp files aren't being used to apply rules, we delete them to avoid confusion about the last known ruleset
-	rm /tmp/${SCRIPTNAME}_iprules /tmp/${SCRIPTNAME}_tcrules
+	rm /tmp/"$SCRIPTNAME"_iprules /tmp/"$SCRIPTNAME"_tcrules
 	printf "\n"
 	Yellow "Copy the text from [SPOILER] to [/SPOILER] and paste into a forum post at snbforums.com"
 } # debug
@@ -652,14 +655,14 @@ parse_appdb_rule() {
 	# Only process if Mark is a valid format
 	if echo "$1" | Is_Valid_Mark; then
 		# Extract category and appid from mark
-		cat="${1:0:2}"
-		id="${1:2:4}"
+		cat="$(echo "$1" | cut -c 1-2)"
+		id="$(echo "$1" | cut -c 3-6)"
 		# check if wildcard mark
 		if [ "$id" = "****" ]; then
 			# Replace asterisks with zeros and use category mask
 			# This mark and mask
-			DOWN_mark="0x80${1//\*/0} 0xc03f0000"
-			UP_mark="0x40${1//\*/0} 0xc03f0000"
+			DOWN_mark="0x80${cat}0000 0xc03f0000"
+			UP_mark="0x40${cat}0000 0xc03f0000"
 		elif [ "$1" = "000000" ]; then
 			# unidentified traffic needs a special mask
 			DOWN_mark="0x80${1} 0xc000ffff"
@@ -684,7 +687,7 @@ parse_appdb_rule() {
 		# search the tc filter temp file we made in write_appdb_rules() for the existing priority of the
 		# category we are going to override with a custom appdb filter rule.
 		# e.g. If we are going to make a rule for appdb mark 1400C5, we need to find the current priority of category 14.
-		prio="$(/bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterdown | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
+		prio="$(/bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" /tmp/"$SCRIPTNAME"_tmp_tcfilterdown | sed -nE 's/.* pref ([0-9]+) .*/\1/p')"
 		currprio="$prio"
 
 		# If there is no existing filter for the category, use the undf_prio defined in set_tc_variables().
@@ -699,11 +702,11 @@ parse_appdb_rule() {
 		# Build and echo the tc filter commands based on the possible actions required:
 		# 1. Change an existing filter to point to a new flowid (mostly relevant for wildcard appdb rules).
 		# 2. Insert a new filter at a higher priority than the existing filter that would otherwise match this mark.
-		if [ "$id" = "****" -o "$1" = "000000" ] && [ -n "$currprio" ]; then
+		if { [ "$id" = "****" ] || [ "$1" = "000000" ]; } && [ -n "$currprio" ]; then
 			# change existing rule for wildcard marks and Untracked mark only if current priority already determined.
 			# Need to get handle of existing filter for proper tc filter change syntax.
-			currhandledown="$(/bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterdown | sed -nE 's/.* fh ([0-9a-f:]+) .*/\1/p')"
-			currhandleup="$(/bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" /tmp/${SCRIPTNAME}_tmp_tcfilterup | sed -nE 's/.* fh ([0-9a-f:]+) .*/\1/p')"
+			currhandledown="$(/bin/grep -i -m 1 -B1 "0x80${cat}0000 ${currmask}" /tmp/"$SCRIPTNAME"_tmp_tcfilterdown | sed -nE 's/.* fh ([0-9a-f:]+) .*/\1/p')"
+			currhandleup="$(/bin/grep -i -m 1 -B1 "0x40${cat}0000 ${currmask}" /tmp/"$SCRIPTNAME"_tmp_tcfilterup | sed -nE 's/.* fh ([0-9a-f:]+) .*/\1/p')"
 			printf "filter change dev %s prio %s protocol all handle %s u32 flowid %s\n" "$tclan" "$currprio" "$currhandledown" "$flowid"
 			printf "filter change dev %s prio %s protocol all handle %s u32 flowid %s\n" "$tcwan" "$currprio" "$currhandleup" "$flowid"
 		else
@@ -727,7 +730,7 @@ parse_iptablerule() {
 	#         so don't add unnecessary output in this function.
 	local DOWN_Lip UP_Lip
 	local DOWN_Rip UP_Rip
-	local PROTO
+	local PROTOS proto
 	local DOWN_Lport UP_Lport
 	local DOWN_Rport UP_Rport
 	local tmpMark DOWN_mark UP_mark
@@ -736,8 +739,8 @@ parse_iptablerule() {
 	# Check for acceptable IP format
 	if echo "$1" | Is_Valid_CIDR; then
 		# print ! (if present) and remaining CIDR
-		DOWN_Lip="${1//[^!]*/} -d ${1//!/}"
-		UP_Lip="${1//[^!]*/} -s ${1//!/}"
+		DOWN_Lip="$(echo "$1" | sed -E 's/^([!])?/\1 -d /')"
+		UP_Lip="$(echo "$1" | sed -E 's/^([!])?/\1 -s /')"
 	else
 		DOWN_Lip=""
 		UP_Lip=""
@@ -747,8 +750,8 @@ parse_iptablerule() {
 	# Check for acceptable IP format
 	if echo "$2" | Is_Valid_CIDR; then
 		# print ! (if present) and remaining CIDR
-		DOWN_Rip="${2//[^!]*/} -s ${2//!/}"
-		UP_Rip="${2//[^!]*/} -d ${2//!/}"
+		DOWN_Rip="$(echo "$2" | sed -E 's/^([!])?/\1 -s /')"
+		UP_Rip="$(echo "$2" | sed -E 's/^([!])?/\1 -d /')"
 	else
 		DOWN_Rip=""
 		UP_Rip=""
@@ -757,21 +760,21 @@ parse_iptablerule() {
 	# protocol (required when port specified)
 	if [ "$3" = "tcp" ] || [ "$3" = "udp" ]; then
 		# print protocol directly
-		PROTO="-p ${3}"
+		PROTOS="$3"
 	elif [ "${#4}" -gt "1" ] || [ "${#5}" -gt "1" ]; then
 		# proto=both & ports are defined
-		PROTO="-p both"		# "both" gets replaced with individual tcp & udp statements later on
+		PROTOS="tcp>udp"		# separated by > because IFS is currently set to > in parent function. TODO Fix Me
 	else
 		# neither proto nor ports defined
-		PROTO=""
+		PROTOS="all"
 	fi
 
 	# local port
 	if echo "$4" | Is_Valid_Port; then
 		# Use multiport to specify any port specification:
 		# single port, multiple ports, port range
-		DOWN_Lport="-m multiport ${4//[^!]*/} --dports ${4//!/}"
-		UP_Lport="-m multiport ${4//[^!]*/} --sports ${4//!/}"
+		DOWN_Lport="-m multiport $(echo "$4" | sed -E 's/^([!])?/\1 --dports /')"
+		UP_Lport="-m multiport $(echo "$4" | sed -E 's/^([!])?/\1 --sports /')"
 	else
 		DOWN_Lport=""
 		UP_Lport=""
@@ -781,8 +784,8 @@ parse_iptablerule() {
 	if echo "$5" | Is_Valid_Port; then
 		# Use multiport to specify any port specification:
 		# single port, multiple ports, port range
-		DOWN_Rport="-m multiport ${5//[^!]*/} --sports ${5//!/}"
-		UP_Rport="-m multiport ${5//[^!]*/} --dports ${5//!/}"
+		DOWN_Rport="-m multiport $(echo "$5" | sed -E 's/^([!])?/\1 --sports /')"
+		UP_Rport="-m multiport $(echo "$5" | sed -E 's/^([!])?/\1 --dports /')"
 	else
 		DOWN_Rport=""
 		UP_Rport=""
@@ -793,15 +796,19 @@ parse_iptablerule() {
 		tmpMark="$6"		# Use a tmp variable since we have to manipulate the contents for ! and ****
 		DOWN_mark="-m mark"
 		UP_mark="-m mark"
-		if [ "${6:0:1}" = "!" ]; then		# first char is !
+		if [ "$(echo "$tmpMark" | cut -c 1)" = "!" ]; then		# first char is !
 			DOWN_mark="${DOWN_mark} !"
 			UP_mark="${UP_mark} !"
-			tmpMark="${tmpMark//!/}"		# strip the !
+			tmpMark="$(echo "$tmpMark" | sed -E 's/^!//')"		# strip the !
 		fi
-		if [ "${tmpMark:2:4}" = "****" ]; then		# wildcard mark
-			# replace **** with 0000 and use special mask
-			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark//\*/0}/0xc03f0000"
-			UP_mark="${UP_mark} --mark 0x40${tmpMark//\*/0}/0xc03f0000"
+		# Extract category and appid from mark
+		cat="$(echo "$tmpMark" | cut -c 1-2)"
+		id="$(echo "$tmpMark" | cut -c 3-6)"
+		# check if wildcard mark
+		if [ "$id" = "****" ]; then
+			# replace **** with 0000 and use category mask
+			DOWN_mark="${DOWN_mark} --mark 0x80${cat}0000/0xc03f0000"
+			UP_mark="${UP_mark} --mark 0x40${cat}0000/0xc03f0000"
 		else
 			DOWN_mark="${DOWN_mark} --mark 0x80${tmpMark}/0xc03fffff"
 			UP_mark="${UP_mark} --mark 0x40${tmpMark}/0xc03fffff"
@@ -818,7 +825,7 @@ parse_iptablerule() {
 
 	# destination mark
 	# numbers come from webui select options for class field
-	Dst_mark="$(get_class_mark $7)"
+	Dst_mark="$(get_class_mark "$7")"
 	if [ -z "$Dst_mark" ]; then
 		return
 	fi
@@ -828,35 +835,19 @@ parse_iptablerule() {
 	# This block is redirected to the /tmp/flexqos_iprules file, so no extraneous output, please
 	# If proto=both we have to create 2 statements, one for tcp and one for udp.
 	# This is done by parameter expansion search and replace ${PROTO//both/tcp} ${PROTO//both/udp}
-	if [ "$PROTO" = "-p both" ]; then
+	for proto in $PROTOS; do
 		# download ipv4
-		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s -p %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "$proto" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
 		# upload ipv4
-		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+		printf "iptables -t mangle -A %s -o %s %s %s -p %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "$proto" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
 		# If rule contains no IPv4 local or remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
-		if [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ] && [ "$IPv6_enabled" != "disabled" ]; then
+		if [ "$IPv6_enabled" != "disabled" ] && [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ]; then
 			# download ipv6
-			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "${PROTO//both/tcp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "${PROTO//both/udp}" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
+			printf "ip6tables -t mangle -A %s -o %s -p %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$proto" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
 			# upload ipv6
-			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/tcp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "${PROTO//both/udp}" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
+			printf "ip6tables -t mangle -A %s -o %s -p %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$proto" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
 		fi
-	else
-		# download ipv4
-		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$DOWN_Lip" "$DOWN_Rip" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-		# upload ipv4
-		printf "iptables -t mangle -A %s -o %s %s %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$UP_Lip" "$UP_Rip" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-		# If rule contains no local or remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
-		if [ -z "$DOWN_Lip" ] && [ -z "$DOWN_Rip" ] && [ "$IPv6_enabled" != "disabled" ]; then
-			# download ipv6
-			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$lan" "$PROTO" "$DOWN_Lport" "$DOWN_Rport" "$DOWN_mark" "$DOWN_dst"
-			# upload ipv6
-			printf "ip6tables -t mangle -A %s -o %s %s %s %s %s %s\n" "$SCRIPTNAME_DISPLAY" "$wan" "$PROTO" "$UP_Lport" "$UP_Rport" "$UP_mark" "$UP_dst"
-		fi
-	fi
+	done
 } # parse_iptablerule
 
 about() {
@@ -912,13 +903,13 @@ backup() {
 				printf "#!/bin/sh\n"
 				printf "# Backup date: %s\n" "$(date +'%Y-%m-%d %H:%M:%S%z')"
 				printf ". /usr/sbin/helper.sh\n"
-				[ -n "$(am_settings_get flexqos_iptables)" ]       && printf "am_settings_set flexqos_iptables \"%s\"\n" "$(am_settings_get flexqos_iptables)"
-				[ -n "$(am_settings_get flexqos_iptables_names)" ] && printf "am_settings_set flexqos_iptables_names \"%s\"\n" "$(am_settings_get flexqos_iptables_names)"
-				[ -n "$(am_settings_get flexqos_appdb)" ]          && printf "am_settings_set flexqos_appdb \"%s\"\n" "$(am_settings_get flexqos_appdb)"
-				[ -n "$(am_settings_get flexqos_bwrates)" ]        && printf "am_settings_set flexqos_bwrates \"%s\"\n" "$(am_settings_get flexqos_bwrates)"
-				[ -n "$(am_settings_get flexqos_qdisc)" ]          && printf "am_settings_set flexqos_qdisc \"%s\"\n" "$(am_settings_get flexqos_qdisc)"
+				[ -n "$(am_settings_get "$SCRIPTNAME"_iptables)" ]       && printf "am_settings_set %s_iptables \"%s\"\n" "$SCRIPTNAME" "$(am_settings_get "$SCRIPTNAME"_iptables)"
+				[ -n "$(am_settings_get "$SCRIPTNAME"_iptables_names)" ] && printf "am_settings_set %s_iptables_names \"%s\"\n" "$SCRIPTNAME" "$(am_settings_get "$SCRIPTNAME"_iptables_names)"
+				[ -n "$(am_settings_get "$SCRIPTNAME"_appdb)" ]          && printf "am_settings_set %s_appdb \"%s\"\n" "$SCRIPTNAME" "$(am_settings_get "$SCRIPTNAME"_appdb)"
+				[ -n "$(am_settings_get "$SCRIPTNAME"_bwrates)" ]        && printf "am_settings_set %s_bwrates \"%s\"\n" "$SCRIPTNAME" "$(am_settings_get "$SCRIPTNAME"_bwrates)"
+				[ -n "$(am_settings_get "$SCRIPTNAME"_qdisc)" ]          && printf "am_settings_set %s_qdisc \"%s\"\n" "$SCRIPTNAME" "$(am_settings_get "$SCRIPTNAME"_qdisc)"
 			} > "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
-			if /bin/grep -q "flexqos_" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"; then
+			if /bin/grep -q "${SCRIPTNAME}_" "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"; then
 				Green "Backup done to ${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
 			else
 				rm "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh"
@@ -969,17 +960,17 @@ compare_remote_version() {
 	# Outcomes: Version update, Hotfix (w/o version change), or no update
 	local remotever localmd5 remotemd5 localmd5asp remotemd5asp
 	# Fetch version of the shell script on Github
-	remotever="$(curl -fsN --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename $SCRIPTPATH)" | /bin/grep "^version=" | sed -e 's/version=//')"
-	if [ "${version//.}" -lt "${remotever//.}" ]; then		# strip the . from version string for numeric comparison
+	remotever="$(curl -fsN --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename "$SCRIPTPATH")" | /bin/grep "^version=" | sed -e 's/version=//')"
+	if [ "$( echo "$version" | sed 's/\.//g' )" -lt "$( echo "$remotever" | sed 's/\.//g' )" ]; then		# strip the . from version string for numeric comparison
 		# version upgrade
 		echo "$remotever"
 	else
 		# If no version change, calculate md5sum of local and remote files
 		# to determine if a hotfix has been published
 		localmd5="$(md5sum "$0" | awk '{print $1}')"
-		remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename $SCRIPTPATH)" | md5sum | awk '{print $1}')"
+		remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename "$SCRIPTPATH")" | md5sum | awk '{print $1}')"
 		localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
-		remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename $WEBUIPATH)" | md5sum | awk '{print $1}')"
+		remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename "$WEBUIPATH")" | md5sum | awk '{print $1}')"
 		if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
 			# hotfix
 			printf "Hotfix\n"
@@ -996,14 +987,14 @@ update() {
 	scriptinfo
 	printf "Checking for updates\n"
 	# Update the webui status thorugh detect_update.js ajax call.
-	printf "var verUpdateStatus = \"%s\";\n" "InProgress" > /www/ext/${SCRIPTNAME}/detect_update.js
+	printf "var verUpdateStatus = \"%s\";\n" "InProgress" > /www/ext/"$SCRIPTNAME"/detect_update.js
 	updatestatus="$(compare_remote_version)"
 	# Check to make sure we got back a valid status from compare_remote_version(). If not, indicate Error.
 	case "$updatestatus" in
 		'NoUpdate'|'Hotfix'|[0-9].[0-9].[0-9]) ;;
 		*) updatestatus="Error"
 	esac
-	printf "var verUpdateStatus = \"%s\";\n" "$updatestatus" > /www/ext/${SCRIPTNAME}/detect_update.js
+	printf "var verUpdateStatus = \"%s\";\n" "$updatestatus" > /www/ext/"$SCRIPTNAME"/detect_update.js
 
 	if [ "$1" = "check" ]; then
 		# Do not proceed with any updating if check function requested
@@ -1038,7 +1029,7 @@ update() {
 		fi
 	fi
 	printf "Installing: %s...\n\n" "$SCRIPTNAME_DISPLAY"
-	download_file "$(basename $SCRIPTPATH)" "$SCRIPTPATH"
+	download_file "$(basename "$SCRIPTPATH")" "$SCRIPTPATH"
 	exec sh "$SCRIPTPATH" -install "$1"
 	exit
 } # update
@@ -1124,7 +1115,7 @@ menu() {
 			read -r yn
 			if [ "$yn" = "1" ]; then
 				printf "\n"
-				sh ${SCRIPTPATH} -uninstall
+				sh "$SCRIPTPATH" -uninstall
 				printf "\n"
 				exit
 			fi
@@ -1144,12 +1135,11 @@ menu() {
 
 remove_webui() {
 	local prev_webui_page
-	local LOCKFILE FD
+	local FD
 	printf "Removing WebUI...\n"
 	prev_webui_page="$(sed -nE "s/^\{url\: \"(user[0-9]+\.asp)\"\, tabName\: \"${SCRIPTNAME_DISPLAY}\"\}\,$/\1/p" /tmp/menuTree.js 2>/dev/null)"
 	if [ -n "$prev_webui_page" ]; then
 		# Remove page from the UI menu system
-		LOCKFILE=/tmp/addonwebui.lock
 		FD=386
 		eval exec "$FD>$LOCKFILE"
 		/usr/bin/flock -x "$FD"
@@ -1171,22 +1161,21 @@ remove_webui() {
 			rm "$oldfile"
 		done
 	fi
-	rm -rf /www/ext/${SCRIPTNAME} 2>/dev/null		# remove js helper scripts
+	rm -rf /www/ext/"$SCRIPTNAME" 2>/dev/null		# remove js helper scripts
 } # remove_webui
 
 install_webui() {
 	local prev_webui_page
-	local LOCKFILE FD
+	local FD
 	# if this is an install or update...otherwise it's a normal startup/mount
 	if [ -z "$1" ]; then
 		printf "Downloading WebUI files...\n"
-		download_file "$(basename $WEBUIPATH)" "$WEBUIPATH"
+		download_file "$(basename "$WEBUIPATH")" "$WEBUIPATH"
 		# cleanup obsolete files from previous versions
 		[ -L "/www/ext/${SCRIPTNAME}" ] && rm "/www/ext/${SCRIPTNAME}" 2>/dev/null
 		[ -d "${ADDON_DIR}/table" ] && rm -r "${ADDON_DIR}/table"
 		[ -f "${ADDON_DIR}/${SCRIPTNAME}_arrays.js" ] && rm "${ADDON_DIR}/${SCRIPTNAME}_arrays.js"
 	fi
-	LOCKFILE=/tmp/addonwebui.lock
 	FD=386
 	eval exec "$FD>$LOCKFILE"
 	/usr/bin/flock -x "$FD"
@@ -1278,7 +1267,7 @@ Auto_FirewallStart() {
 Auto_Crontab() {
 	# Setup cronjob for nightly check of QoS settings
 	local cmdline
-	cru a ${SCRIPTNAME} "30 3 * * * ${SCRIPTPATH} -check"
+	cru a "$SCRIPTNAME" "30 3 * * * ${SCRIPTPATH} -check"
 	Init_UserScript "services-start"
 	sed -i "\~$SCRIPTNAME_DISPLAY Addition~d" /jffs/scripts/services-start
 	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # $SCRIPTNAME_DISPLAY Addition"
@@ -1291,7 +1280,7 @@ setup_aliases() {
 	if [ -d /opt/bin ]; then
 		# Entware is installed, so setup link to /opt/bin
 		printf "Adding %s link in Entware /opt/bin...\n" "$SCRIPTNAME"
-		ln -sf "$SCRIPTPATH" /opt/bin/${SCRIPTNAME}
+		ln -sf "$SCRIPTPATH" /opt/bin/"$SCRIPTNAME"
 	else
 		# Setup shell alias
 		printf "Adding %s alias in profile.add...\n" "$SCRIPTNAME"
@@ -1400,7 +1389,7 @@ uninstall() {
 	sed -i "/^${SCRIPTNAME}_/d" /jffs/addons/custom_settings.txt
 	if [ -f "${ADDON_DIR}/restore_${SCRIPTNAME}_settings.sh" ]; then
 		printf "Deleting %s folder contents except Backup file...\n" "$SCRIPTNAME_DISPLAY"
-		/usr/bin/find ${ADDON_DIR} ! -name restore_${SCRIPTNAME}_settings.sh ! -exec test -d {} \; -a -exec rm {} +
+		/usr/bin/find "$ADDON_DIR" ! -name restore_"$SCRIPTNAME"_settings.sh ! -exec test -d {} \; -a -exec rm {} +
 	else
 		printf "Deleting %s directory...\n" "$SCRIPTNAME_DISPLAY"
 		rm -rf "$ADDON_DIR"
@@ -1411,41 +1400,40 @@ uninstall() {
 
 get_config() {
 	local iptables_rules_defined
-	local names n
 	local drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7
 	local dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7
 	local urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7
 	local ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7
 
 	# Read settings from Addon API config file. If not defined, set default values
-	iptables_rules="$(am_settings_get ${SCRIPTNAME}_iptables)"
+	iptables_rules="$(am_settings_get "$SCRIPTNAME"_iptables)"
 	if [ -z "$iptables_rules" ]; then
 		iptables_rules="<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>5"
 	fi
-	appdb_rules="$(am_settings_get ${SCRIPTNAME}_appdb)"
+	appdb_rules="$(am_settings_get "$SCRIPTNAME"_appdb)"
 	if [ -z "$appdb_rules" ]; then
 		appdb_rules="<000000>6<00006B>6<0D0007>5<0D0086>5<0D00A0>5<12003F>4<13****>4<14****>4"
 	fi
-	bwrates="$(am_settings_get ${SCRIPTNAME}_bwrates)"
+	bwrates="$(am_settings_get "$SCRIPTNAME"_bwrates)"
 	if [ -z "$bwrates" ]; then
 		# New settings not set
-		if [ -z "$(am_settings_get ${SCRIPTNAME}_bandwidth)" ]; then
+		if [ -z "$(am_settings_get "$SCRIPTNAME"_bandwidth)" ]; then
 			# Old settings not set either, so set the defaults
 			bwrates="<5>15>30>20>10>5>10>5<100>100>100>100>100>100>100>100<5>15>10>20>10>5>30>5<100>100>100>100>100>100>100>100"
 		else
 			# Convert bandwidth to bwrates by reading existing values into the re-sorted order
-			read \
+			read -r \
 				drp0 drp1 drp2 drp3 drp4 drp5 drp6 drp7 \
 				dcp0 dcp1 dcp2 dcp3 dcp4 dcp5 dcp6 dcp7 \
 				urp0 urp1 urp2 urp3 urp4 urp5 urp6 urp7 \
 				ucp0 ucp1 ucp2 ucp3 ucp4 ucp5 ucp6 ucp7 \
 <<EOF
-$(am_settings_get ${SCRIPTNAME}_bandwidth | sed 's/^<//g;s/[<>]/ /g')
+$(am_settings_get "$SCRIPTNAME"_bandwidth | sed 's/^<//g;s/[<>]/ /g')
 EOF
-			am_settings_set ${SCRIPTNAME}_bwrates "<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
+			am_settings_set "$SCRIPTNAME"_bwrates "<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
 			bwrates="<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
 			if [ "$bwrates" != "<5>15>30>20>10>5>10>5<100>100>100>100>100>100>100>100<5>15>10>20>10>5>30>5<100>100>100>100>100>100>100>100" ]; then
-				am_settings_set ${SCRIPTNAME}_bwrates "<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
+				am_settings_set "$SCRIPTNAME"_bwrates "<${drp0}>${drp2}>${drp5}>${drp1}>${drp4}>${drp7}>${drp3}>${drp6}<${dcp0}>${dcp2}>${dcp5}>${dcp1}>${dcp4}>${dcp7}>${dcp3}>${dcp6}<${urp0}>${urp2}>${urp5}>${urp1}>${urp4}>${urp7}>${urp3}>${urp6}<${ucp0}>${ucp2}>${ucp5}>${ucp1}>${ucp4}>${ucp7}>${ucp3}>${ucp6}"
 			fi
 			sed -i "/^${SCRIPTNAME}_bandwidth /d" /jffs/addons/custom_settings.txt
 		fi
@@ -1475,8 +1463,8 @@ write_iptables_rules() {
 		if [ "$IPv6_enabled" != "disabled" ]; then
 			printf "ip6tables -t mangle -F %s 2>/dev/null\n" "$SCRIPTNAME_DISPLAY"
 		fi
-	} > "/tmp/${SCRIPTNAME}_iprules"
-
+	} > /tmp/"$SCRIPTNAME"_iprules
+	echo "write_iptables_rules IFS=$IFS"
 	OLDIFS="$IFS"		# Save existing field separator
 	IFS=">"				# Set custom field separator to match rule format
 	# read the rules, 1 per line and break into separate fields
@@ -1485,7 +1473,7 @@ write_iptables_rules() {
 		# Ensure at least one criteria field is populated
 		if [ -n "${localip}${remoteip}${proto}${lport}${rport}${mark}" ]; then
 			# Process the rule and the stdout containing the resulting rule gets saved to the temporary script file
-			parse_iptablerule "$localip" "$remoteip" "$proto" "$lport" "$rport" "$mark" "$class" >> /tmp/${SCRIPTNAME}_iprules 2>/dev/null
+			parse_iptablerule "$localip" "$remoteip" "$proto" "$lport" "$rport" "$mark" "$class" >> /tmp/"$SCRIPTNAME"_iprules 2>/dev/null
 		fi
 	done
 	IFS="$OLDIFS"		# Restore saved field separator
@@ -1496,8 +1484,8 @@ write_appdb_rules() {
 	local OLDIFS
 	local mark class
 	# Save the current filter rules once to avoid repeated calls in parse_appdb_rule() to determine existing prios
-	$TC filter show dev $tclan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterdown
-	$TC filter show dev $tcwan parent 1: > /tmp/${SCRIPTNAME}_tmp_tcfilterup
+	$TC filter show dev $tclan parent 1: > /tmp/"$SCRIPTNAME"_tmp_tcfilterdown
+	$TC filter show dev $tcwan parent 1: > /tmp/"$SCRIPTNAME"_tmp_tcfilterup
 
 	# loop through appdb rules and write a tc command to a temporary script file
 	OLDIFS="$IFS"		# Save existing field separator
@@ -1508,7 +1496,7 @@ write_appdb_rules() {
 	do
 		# Ensure the appdb mark is populated
 		if [ -n "$mark" ]; then
-			parse_appdb_rule "$mark" "$class" >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
+			parse_appdb_rule "$mark" "$class" >> /tmp/"$SCRIPTNAME"_tcrules 2>/dev/null
 		fi
 	done
 	IFS="$OLDIFS"		# Restore old field separator
@@ -1532,7 +1520,7 @@ get_fq_target() {
 
 	# for ATM the worst case expansion including overhead seems to be 33 cells of 53 bytes each
 	# MAX DELAY = 1000 * 1000 * 33 * 53 * 8 / 1000  max delay in microseconds at 1kbps
-	TARGET=$(/usr/bin/awk -vBANDWIDTH=$BANDWIDTH 'BEGIN { print int( 1000 * 1000 * 33 * 53 * 8 / 1000 / BANDWIDTH ) }')
+	TARGET=$(/usr/bin/awk -vBANDWIDTH="$BANDWIDTH" 'BEGIN { print int( 1000 * 1000 * 33 * 53 * 8 / 1000 / BANDWIDTH ) }')
 	if [ "$TARGET" -gt "5000" ]; then
 		# Increase interval by the same amount that target got increased
 		INTERVAL=$(( (100 - 5) * 1000 + TARGET ))
@@ -1542,16 +1530,16 @@ get_fq_target() {
 
 write_custom_qdisc() {
 	local i
-	if [ "$(am_settings_get ${SCRIPTNAME}_qdisc)" != "0" ]; then
+	if [ "$(am_settings_get "$SCRIPTNAME"_qdisc)" != "0" ]; then
 		{
 			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1000 noecn\n" "$tclan"
 			printf "qdisc replace dev %s parent 1:2 fq_codel limit 1000 noecn\n" "$tcwan"
 			for i in 0 1 2 3 4 5 6 7
 			do
-				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000 %s\n" "$tclan" "$i" "$(get_fq_quantum $DownCeil)" "$(get_fq_target $DownCeil)"
-				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000 %s noecn\n" "$tcwan" "$i" "$(get_fq_quantum $UpCeil)" "$(get_fq_target $UpCeil)"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000 %s\n" "$tclan" "$i" "$(get_fq_quantum "$DownCeil")" "$(get_fq_target "$DownCeil")"
+				printf "qdisc replace dev %s parent 1:1%s fq_codel %s limit 1000 %s noecn\n" "$tcwan" "$i" "$(get_fq_quantum "$UpCeil")" "$(get_fq_target "$UpCeil")"
 			done
-		} >> /tmp/${SCRIPTNAME}_tcrules 2>/dev/null
+		} >> /tmp/"$SCRIPTNAME"_tcrules 2>/dev/null
 	fi
 } # write_custom_qdisc
 
@@ -1578,7 +1566,7 @@ validate_tc_rules() {
 		# print a list of existing filters in the format of an appdb rule for easy comparison. Write to tmp file
 		$TC filter show dev "$tclan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
 		$TC filter show dev "$tcwan" parent 1: | sed -nE '/flowid/ { N; s/\n//g; s/.*flowid (1:1[0-7]).*mark 0x[48]0([0-9a-fA-F]{6}).*/<\2>\1/p }'
-	} > /tmp/${SCRIPTNAME}_checktcrules 2>/dev/null
+	} > /tmp/"$SCRIPTNAME"_checktcrules 2>/dev/null
 	OLDIFS="$IFS"
 	IFS=">"
 	filtermissing="0"
@@ -1586,8 +1574,8 @@ validate_tc_rules() {
 	do
 		if [ -n "$mark" ]; then
 			flowid="$(get_flowid "$class")"
-			mark="${mark//\*/0}"
-			if [ "$(/bin/grep -ic "<${mark}>${flowid}" /tmp/${SCRIPTNAME}_checktcrules)" -lt "2" ]; then
+			mark="$(echo "$mark" | sed 's/\*/0/g')"
+			if [ "$(/bin/grep -ic "<${mark}>${flowid}" /tmp/"$SCRIPTNAME"_checktcrules)" -lt "2" ]; then
 				filtermissing="$((filtermissing+1))"
 				break		# stop checking after the first missing rule is identified
 			fi
@@ -1600,14 +1588,14 @@ EOF
 		# reapply tc rules
 		return 1
 	else
-		rm /tmp/${SCRIPTNAME}_checktcrules 2>/dev/null
+		rm /tmp/"$SCRIPTNAME"_checktcrules 2>/dev/null
 		return 0
 	fi
 } # validate_tc_rules
 
 schedule_check_job() {
 	# Schedule check for 5 minutes after startup to ensure no qos tc resets
-	cru a ${SCRIPTNAME}_5min "$(/bin/date -D '%s' +'%M %H %d %m %a' -d $(($(/bin/date +%s)+300))) $SCRIPTPATH -check"
+	cru a "$SCRIPTNAME"_5min "$(/bin/date -D '%s' +'%M %H %d %m %a' -d $(($(/bin/date +%s)+300))) $SCRIPTPATH -check"
 } # schedule_check_job
 
 startup() {
@@ -1627,8 +1615,8 @@ startup() {
 		iptables_static_rules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logmsg "Applying iptables custom rules"
-			. /tmp/${SCRIPTNAME}_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
-			if [ "$(am_settings_get ${SCRIPTNAME}_conntrack)" != "0" ]; then
+			. /tmp/"$SCRIPTNAME"_iprules 2>&1 | logger -t "$SCRIPTNAME_DISPLAY"
+			if [ "$(am_settings_get "$SCRIPTNAME"_conntrack)" != "0" ]; then
 				# Flush conntrack table so that existing connections will be processed by new iptables rules
 				logmsg "Flushing conntrack table"
 				/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
@@ -1638,7 +1626,7 @@ startup() {
 		logmsg "iptables rules already present"
 	fi
 
-	cru d ${SCRIPTNAME}_5min 2>/dev/null
+	cru d "$SCRIPTNAME"_5min 2>/dev/null
 	sleepdelay=0
 	while check_qos_tc;
 	do
@@ -1646,13 +1634,13 @@ startup() {
 		sleep 10s
 		if [ "$sleepdelay" -ge "180" ]; then
 			logmsg "QoS state: Classes=${dlclasscnt} | Filters=${dlfiltercnt} | qdiscs=${dlqdisccnt}"
-			if [ ! -f /tmp/${SCRIPTNAME}_restartonce ]; then
-				touch /tmp/${SCRIPTNAME}_restartonce
+			if [ ! -f /tmp/"$SCRIPTNAME"_restartonce ]; then
+				touch /tmp/"$SCRIPTNAME"_restartonce
 				logmsg "TC Modification Delay reached maximum 180 seconds. Restarting QoS."
 				service "restart_qos;restart_firewall"
 			else
 				logmsg "TC Modification Delay reached maximum 180 seconds again. Canceling startup!"
-				rm /tmp/${SCRIPTNAME}_restartonce 2>/dev/null
+				rm /tmp/"$SCRIPTNAME"_restartonce 2>/dev/null
 			fi
 			return 1
 		else
@@ -1660,7 +1648,7 @@ startup() {
 		fi
 	done
 	[ "$sleepdelay" -gt "0" ] && logmsg "TC Modification delayed for $sleepdelay seconds"
-	rm /tmp/${SCRIPTNAME}_restartonce 2>/dev/null
+	rm /tmp/"$SCRIPTNAME"_restartonce 2>/dev/null
 
 	set_tc_variables
 
@@ -1673,11 +1661,11 @@ startup() {
 
 		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
 			logmsg "Applying AppDB rules and TC rates"
-			if ! $TC -force -batch /tmp/${SCRIPTNAME}_tcrules >/tmp/${SCRIPTNAME}_tcrules.log 2>&1; then
-				cp -f /tmp/${SCRIPTNAME}_tcrules /tmp/${SCRIPTNAME}_tcrules.err
+			if ! $TC -force -batch /tmp/"$SCRIPTNAME"_tcrules >/tmp/"$SCRIPTNAME"_tcrules.log 2>&1; then
+				cp -f /tmp/"$SCRIPTNAME"_tcrules /tmp/"$SCRIPTNAME"_tcrules.err
 				logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
 			else
-				rm /tmp/${SCRIPTNAME}_tmp_tcfilterdown /tmp/${SCRIPTNAME}_tmp_tcfilterup /tmp/${SCRIPTNAME}_tcrules.log /tmp/${SCRIPTNAME}_checktcrules /tmp/${SCRIPTNAME}_tcrules.err 2>/dev/null
+				rm /tmp/"$SCRIPTNAME"_tmp_tcfilterdown /tmp/"$SCRIPTNAME"_tmp_tcfilterup /tmp/"$SCRIPTNAME"_tcrules.log /tmp/"$SCRIPTNAME"_checktcrules /tmp/"$SCRIPTNAME"_tcrules.err 2>/dev/null
 			fi
 		fi
 
@@ -1718,9 +1706,9 @@ generate_bwdpi_arrays() {
 	# generate if js file is smaller than source file (source not present yet during boot)
 	# prepend wc variables with zero in case file doesn't exist, to avoid bad number error
 	if [ ! -f "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || \
-		[ /jffs/signature/rule.trf -nt "/www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js" ] || \
+		[ "$(/bin/date -r /jffs/signature/rule.trf +%s)" -gt "$(/bin/date -r /www/user/"$SCRIPTNAME"/"$SCRIPTNAME"_arrays.js +%s)" ] || \
 		[ "$1" = "force" ] || \
-		[ "0$(wc -c < /www/user/${SCRIPTNAME}/${SCRIPTNAME}_arrays.js)" -lt "0$(wc -c 2>/dev/null < /tmp/bwdpi/bwdpi.app.db)" ]; then
+		[ "0$(wc -c < /www/user/"$SCRIPTNAME"/"$SCRIPTNAME"_arrays.js)" -lt "0$(wc -c 2>/dev/null < /tmp/bwdpi/bwdpi.app.db)" ]; then
 	{
 		printf "var catdb_mark_array = [ \"000000\""
 		awk -F, '{ printf(", \"%02X****\"",$1) }' /tmp/bwdpi/bwdpi.cat.db 2>/dev/null
@@ -1750,19 +1738,19 @@ PressEnter(){
 }
 
 Kill_Lock() {
-	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" ]; then
-		logmsg "[*] Killing Delayed Process (pid=$(sed -n '1p' /tmp/${SCRIPTNAME}.lock))"
-		logmsg "[*] $(ps | awk -v pid="$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" '$1 == pid')"
-		kill "$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)"
+	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)" ]; then
+		logmsg "[*] Killing Delayed Process (pid=$(sed -n '1p' /tmp/"$SCRIPTNAME".lock))"
+		logmsg "[*] $(ps | awk -v pid="$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)" '$1 == pid')"
+		kill "$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)"
 	fi
-	rm -rf /tmp/${SCRIPTNAME}.lock
+	rm -rf /tmp/"$SCRIPTNAME".lock
 } # Kill_Lock
 
 Check_Lock() {
-	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" ] && [ "$(sed -n '1p' /tmp/${SCRIPTNAME}.lock)" != "$$" ]; then
+	if [ -f "/tmp/${SCRIPTNAME}.lock" ] && [ -d "/proc/$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)" ] && [ "$(sed -n '1p' /tmp/"$SCRIPTNAME".lock)" != "$$" ]; then
 		Kill_Lock
 	fi
-	printf "%s\n" "$$" > /tmp/${SCRIPTNAME}.lock
+	printf "%s\n" "$$" > /tmp/"$SCRIPTNAME".lock
 	lock="true"
 } # Check_Lock
 
@@ -1845,7 +1833,7 @@ get_wan_mtu() {
 } # get_wan_mtu
 
 arg1="${1#-}"
-if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # FlexQoS" /jffs/scripts/firewall-start; then
+if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # $SCRIPTNAME_DISPLAY" /jffs/scripts/firewall-start; then
 	arg1="install"
 fi
 
