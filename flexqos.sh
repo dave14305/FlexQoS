@@ -1753,91 +1753,53 @@ Check_Lock() {
 	lock="true"
 } # Check_Lock
 
-get_wanif() {
+get_wan_setting() {
+	local varname varval
+	varname="${1}"
 	prefixes="wan0_ wan1_"
 
 	if [ "$(nvram get wans_mode)" = "lb" ] ; then
 		for prefix in $prefixes; do
-			state=$(nvram get "${prefix}"state_t)
-			sbstate=$(nvram get "${prefix}"sbstate_t)
-			auxstate=$(nvram get "${prefix}"auxstate_t)
+			state="$(nvram get "${prefix}"state_t)"
+			sbstate="$(nvram get "${prefix}"sbstate_t)"
+			auxstate="$(nvram get "${prefix}"auxstate_t)"
 
 			# is_wan_connect()
-			[ "$state" = "2" ] || continue
-			[ "$sbstate" = "0" ] || continue
-			[ "$auxstate" = "0" ] || [ "$auxstate" = "2" ] || continue
+			[ "${state}" = "2" ] || continue
+			[ "${sbstate}" = "0" ] || continue
+			[ "${auxstate}" = "0" ] || [ "${auxstate}" = "2" ] || continue
 
 			# get_wan_ifname()
-			proto=$(nvram get "${prefix}"proto)
-			if [ "$proto" = "pppoe" ] || [ "$proto" = "pptp" ] || [ "$proto" = "l2tp" ] ; then
-				ifname=$(nvram get "${prefix}"pppoe_ifname)
+			proto="$(nvram get "${prefix}"proto)"
+			if [ "${proto}" = "pppoe" ] || [ "${proto}" = "pptp" ] || [ "${proto}" = "l2tp" ] ; then
+				varval="$(nvram get "${prefix}"pppoe_"${varname}")"
 			else
-				ifname=$(nvram get "${prefix}"ifname)
+				varval="$(nvram get "${prefix}""${varname}")"
 			fi
 		done
 	else
 		for prefix in $prefixes; do
-			primary=$(nvram get "${prefix}"primary)
-			[ "$primary" = "1" ] && break
+			primary="$(nvram get "${prefix}"primary)"
+			[ "${primary}" = "1" ] && break
 		done
 
-		[ "$primary" = "1" ] || ifname="eth0"
-
-		# get_wan_ifname()
-		proto=$(nvram get "${prefix}"proto)
-		if [ "$proto" = "pppoe" ] || [ "$proto" = "pptp" ] || [ "$proto" = "l2tp" ] ; then
-			ifname=$(nvram get "${prefix}"pppoe_ifname)
+		proto="$(nvram get "${prefix}"proto)"
+		if [ "${proto}" = "pppoe" ] || [ "${proto}" = "pptp" ] || [ "${proto}" = "l2tp" ] ; then
+			varval="$(nvram get "${prefix}"pppoe_"${varname}")"
 		else
-			ifname=$(nvram get "${prefix}"ifname)
+			varval="$(nvram get "${prefix}""${varname}")"
 		fi
 	fi
-	printf "%s" "$ifname"
-} # get_wanif
-
-get_wan_mtu() {
-	prefixes="wan0_ wan1_"
-
-	if [ "$(nvram get wans_mode)" = "lb" ] ; then
-		for prefix in $prefixes; do
-			state=$(nvram get "${prefix}"state_t)
-			sbstate=$(nvram get "${prefix}"sbstate_t)
-			auxstate=$(nvram get "${prefix}"auxstate_t)
-
-			# is_wan_connect()
-			[ "$state" = "2" ] || continue
-			[ "$sbstate" = "0" ] || continue
-			[ "$auxstate" = "0" ] || [ "$auxstate" = "2" ] || continue
-
-			proto=$(nvram get "${prefix}"proto)
-			if [ "$proto" = "pppoe" ] || [ "$proto" = "pptp" ] || [ "$proto" = "l2tp" ] ; then
-				mtu=$(nvram get "${prefix}"pppoe_mtu)
-			else
-				mtu=$(nvram get "${prefix}"mtu)
-			fi
-		done
-	else
-		for prefix in $prefixes; do
-			primary=$(nvram get "${prefix}"primary)
-			[ "$primary" = "1" ] && break
-		done
-
-		proto=$(nvram get "${prefix}"proto)
-		if [ "$proto" = "pppoe" ] || [ "$proto" = "pptp" ] || [ "$proto" = "l2tp" ] ; then
-			mtu=$(nvram get "${prefix}"pppoe_mtu)
-		else
-			mtu=$(nvram get "${prefix}"mtu)
-		fi
-	fi
-	printf "%s" "$mtu"
-} # get_wan_mtu
+	printf "%s" "${varval}"
+} # get_wan_setting
 
 arg1="${1#-}"
 if [ -z "$arg1" ] || [ "$arg1" = "menu" ] && ! /bin/grep -qE "${SCRIPTPATH} .* # $SCRIPTNAME_DISPLAY" /jffs/scripts/firewall-start; then
 	arg1="install"
 fi
 
-wan="$(get_wanif)"
-WANMTU="$(get_wan_mtu)"
+wan="$(get_wan_setting 'ifname')"
+WANMTU="$(get_wan_setting 'mtu')"
 lan="$(nvram get lan_ifname)"
 needrestart=0		# initialize variable used in prompt_restart()
 
