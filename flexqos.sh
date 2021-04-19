@@ -957,26 +957,15 @@ download_file() {
 
 compare_remote_version() {
 	# Check version on Github and determine the difference with the installed version
-	# Outcomes: Version update, Hotfix (w/o version change), or no update
-	local remotever localmd5 remotemd5 localmd5asp remotemd5asp
+	# Outcomes: Version update, or no update
+	local remotever
 	# Fetch version of the shell script on Github
 	remotever="$(curl -fsN --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename "$SCRIPTPATH")" | /bin/grep "^version=" | sed -e 's/version=//')"
 	if [ "$( echo "$version" | sed 's/\.//g' )" -lt "$( echo "$remotever" | sed 's/\.//g' )" ]; then		# strip the . from version string for numeric comparison
 		# version upgrade
 		echo "$remotever"
 	else
-		# If no version change, calculate md5sum of local and remote files
-		# to determine if a hotfix has been published
-		localmd5="$(md5sum "$0" | awk '{print $1}')"
-		remotemd5="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename "$SCRIPTPATH")" | md5sum | awk '{print $1}')"
-		localmd5asp="$(md5sum "$WEBUIPATH" | awk '{print $1}')"
-		remotemd5asp="$(curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/$(basename "$WEBUIPATH")" | md5sum | awk '{print $1}')"
-		if [ "$localmd5" != "$remotemd5" ] || [ "$localmd5asp" != "$remotemd5asp" ]; then
-			# hotfix
-			printf "Hotfix\n"
-		else
-			printf "NoUpdate\n"
-		fi
+		printf "NoUpdate\n"
 	fi
 } # compare_remote_version
 
@@ -991,7 +980,7 @@ update() {
 	updatestatus="$(compare_remote_version)"
 	# Check to make sure we got back a valid status from compare_remote_version(). If not, indicate Error.
 	case "$updatestatus" in
-		'NoUpdate'|'Hotfix'|[0-9].[0-9].[0-9]) ;;
+		'NoUpdate'|[0-9].[0-9].[0-9]) ;;
 		*) updatestatus="Error"
 	esac
 	printf "var verUpdateStatus = \"%s\";\n" "$updatestatus" > /www/ext/"$SCRIPTNAME"/detect_update.js
@@ -1005,10 +994,6 @@ update() {
 		'NoUpdate')
 			Green " You have the latest version installed"
 			printf " Would you like to overwrite your existing installation anyway? [1=Yes 2=No]: "
-			;;
-		'Hotfix')
-			Green " $SCRIPTNAME_DISPLAY hotfix is available."
-			printf " Would you like to update now? [1=Yes 2=No]: "
 			;;
 		'Error')
 			Red " Error determining remote version status!"
