@@ -952,13 +952,13 @@ download_file() {
 	if curl -fsL --retry 3 --connect-timeout 3 "${GIT_URL}/${1}" -o "/tmp/${1}"; then
 		if [ "$(md5sum "/tmp/${1}" | awk '{print $1}')" != "$(md5sum "${2}" 2>/dev/null | awk '{print $1}')" ]; then
 			mv -f "/tmp/${1}" "${2}"
-			logmsg "Updated $(echo "${1}" | awk -F / '{print $NF}')"
+			logmsg "Updated $(basename "${1}")"
 		else
-			logmsg "File $(echo "${2}" | awk -F / '{print $NF}') is already up-to-date"
+			logmsg "File $(basename "${2}") is already up-to-date"
 			rm -f "/tmp/${1}" 2>/dev/null
 		fi
 	else
-		logmsg "Updating $(echo "${1}" | awk -F / '{print $NF}') failed"
+		logmsg "Updating $(basename "${1}") failed"
 	fi
 } # download_file
 
