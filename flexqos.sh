@@ -99,9 +99,7 @@ Yellow() {
 }
 
 get_class_mark() {
-	local class
-	class="${1}"
-	case "${class}" in
+	case "${1}" in
 		0) printf "%s\n" "${Net_mark}" ;;
 		1) printf "%s\n" "${Gaming_mark}" ;;
 		2) printf "%s\n" "${Streaming_mark}" ;;
@@ -116,11 +114,8 @@ get_class_mark() {
 
 iptables_static_rules() {
 	local OUTPUTCLS
-	OUTPUTCLS="$(am_settings_get "${SCRIPTNAME}"_OUTPUTCLS)"
-	if [ -z "${OUTPUTCLS}" ]; then
-		OUTPUTCLS="5"
-	fi
-	OUTPUTCLS="$(get_class_mark "${OUTPUTCLS}")"
+	OUTPUTCLS="$(am_settings_get "${SCRIPTNAME}"_outputcls)"
+	OUTPUTCLS="$(get_class_mark "${OUTPUTCLS:-5}")"		# If setting not found, use default value of 5 (File Transfers)
 	printf "Applying iptables static rules\n"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
