@@ -51,7 +51,7 @@ Charts display 50 data points, with the total time window depending upon your se
 * Rate: a 10-second average of the current number of bits per second flowing through each QoS class displayed in kilobits per second.
 * Total Data: the total number of bytes transferred within each QoS class in Bytes
 
-[![Traffic Line Charts](https://i.imgur.com/htAkaDq.png "Traffic Line Charts")](https://i.imgur.com/htAkaDq.png "Traffic Line Charts")
+![Traffic Charts](/images/graphs.png)
 
 The Tracked connections table provides a detailed list of LAN-to-WAN connections and how they were categorized by the Adaptive QoS engine and FlexQoS custom rules. Connections originating or terminating at the router are not tracked in this table.
 
@@ -80,6 +80,8 @@ The line charts and Tracked connections will auto-refresh every 3 seconds by def
 ### Customizing FlexQoS
 
 To customize your QoS experience to suit your browsing habits, click the Customize button in the upper right corner of the page to reveal the Customization options of FlexQoS.
+
+![Customization](/images/customize.png)
 
 To modify the default behavior of ASUS Adaptive QoS, we use iptables rules to modify our network packets in real-time to direct them to our preferred Class and QoS priority, and AppDB rules to change the Class assigned to traffic already identified by the Adaptive QoS engine.
 
@@ -116,7 +118,7 @@ To add a rule, click the ![plus](https://raw.githubusercontent.com/RMerl/asuswrt
 
 In the Create New Policy pop-up window, you will enter the data you gathered in your testing. Sample placeholder text is displayed in each field as a guide.
 
-[![Create New Rule](https://i.imgur.com/dbpABjg.png "Create New Rule")](https://i.imgur.com/dbpABjg.png "Create New Rule")
+![Create New Rule](/images/iptablesrule.png)
 
 * Local IP/CIDR: Enter a single IP or a CIDR block for a range of IP addresses. This should be from your LAN subnet. You may also negate the IP by preceding it with an exclamation point (!). As you type the IP address, it will auto-add the decimals. At any point while typing, you can type ! to negate the IP address. If the IP or CIDR entered is not valid, you will see an error below the field.
 * Remote IP/CIDR: Enter a single IP or a CIDR block for a range of IP addresses. You may also negate the IP by preceding it with an exclamation point (!). As you type the IP address, it will auto-add the decimals. At any point while typing, you can type ! to negate the IP address. If the IP or CIDR entered is not valid, you will see an error below the field.
@@ -134,7 +136,7 @@ To delete a rule, click the ![Delete](https://raw.githubusercontent.com/RMerl/as
 
 To edit an existing rule, click on any field within the row to toggle in-cell editing. Make the necessary changes and then click outside the area of the table to save your changes. The same shortcuts and validations apply to in-cell editing as when adding a rule via the add button.
 
-[![Customization Tables](https://i.imgur.com/cvus7VE.png "Customization Tables")](https://i.imgur.com/cvus7VE.png "Customization Tables")
+![Customization Tables](/images/iptables_editing.png)
 
 To reset the iptables rules to the default rules provided by FlexQoS, click the Reset link in the iptables Rules heading. Changes do not take effect until you click Apply.
 
