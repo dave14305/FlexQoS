@@ -1,6 +1,6 @@
 # FlexQoS - Flexible QoS Enhancement Script for Adaptive QoS on ASUSWRT-Merlin
 
-[![Build Status](https://travis-ci.com/dave14305/FlexQoS.svg?branch=develop)](https://travis-ci.com/dave14305/FlexQoS)
+![Shellcheck](https://github.com/dave14305/FlexQoS/actions/workflows/shellcheck.yml/badge.svg)
 
 This script has been tested on ASUS RT-AC68U, running ASUSWRT-Merlin 384.18, using Adaptive QoS with Manual Bandwidth Settings
 
