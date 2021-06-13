@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # initialize Merlin Addon API helper functions
+# shellcheck disable=SC1091
 . /usr/sbin/helper.sh
 
 if [ ! -f /jffs/scripts/FreshJR_QOS ]; then
@@ -9,35 +10,35 @@ if [ ! -f /jffs/scripts/FreshJR_QOS ]; then
 fi
 echo "Removing old FreshJR_QOS files. Reinstall with amtm if necessary."
 # Remove profile aliases
-echo -n "Removing profile aliases..."
-sed -i '/FreshJR_QOS/d' /jffs/configs/profile.add 2>/dev/null && Green "Done." || Red "Failed!"
+printf "Removing profile aliases..."
+sed -i '/FreshJR_QOS/d' /jffs/configs/profile.add 2>/dev/null && printf "Done.\n" || printf "Failed!\n"
 # Remove cron
-echo -n "Removing cron job..."
-cru d FreshJR_QOS 2>/dev/null && Green "Done." || Red "Failed!"
+printf "Removing cron job..."
+cru d FreshJR_QOS 2>/dev/null && printf "Done.\n" || printf "Failed!\n"
 # Remove mount
 if mount | /bin/grep -q QoS_Stats.asp; then
-	echo -n "Removing old webui mount..."
-	umount /www/QoS_Stats.asp 2>/dev/null && Green "Done." || Red "Failed!"
+	printf "Removing old webui mount..."
+	umount /www/QoS_Stats.asp 2>/dev/null && printf "Done.\n" || printf "Failed!\n"
 fi
 # Remove entries from scripts
-echo -n "Removing firewall-start entry..."
-sed -i '/FreshJR_QOS/d' /jffs/scripts/firewall-start 2>/dev/null && Green "Done." || Red "Failed!"
+printf "Removing firewall-start entry..."
+sed -i '/FreshJR_QOS/d' /jffs/scripts/firewall-start 2>/dev/null && printf "Done.\n" || printf "Failed!\n"
 # Remove script file
 if [ -f /jffs/scripts/FreshJR_QOS ]; then
-	echo -n "Removing FreshJR_QOS script..."
-	rm -f /jffs/scripts/FreshJR_QOS 2>/dev/null && Green "Done." || Red "Failed!"
+	printf "Removing FreshJR_QOS script..."
+	rm -f /jffs/scripts/FreshJR_QOS 2>/dev/null && printf "Done.\n" || printf "Failed!\n"
 fi
 # Remove asp file
 if [ -f /jffs/scripts/www_FreshJR_QoS_Stats.asp ]; then
-	echo -n "Removing FreshJR_QOS webpage..."
-	rm -f /jffs/scripts/www_FreshJR_QoS_Stats.asp 2>/dev/null && Green "Done." || Red "Failed!"
+	printf "Removing FreshJR_QOS webpage..."
+	rm -f /jffs/scripts/www_FreshJR_QoS_Stats.asp 2>/dev/null && printf "Done.\n" || printf "Failed!\n"
 fi
 # convert_nvram
 OLDIFS=$IFS
 IFS=";"
 
 if [ "$(nvram get fb_comment | sed 's/>/;/g' | tr -cd ';' | wc -c)" = "20" ] && [ -z "$(am_settings_get flexqos_iptables)" ]; then
-	read \
+	read -r \
 		e1 e2 e3 e4 e5 e6 e7 \
 		f1 f2 f3 f4 f5 f6 f7 \
 		g1 g2 g3 g4 g5 g6 g7 \
@@ -46,7 +47,8 @@ $(nvram get fb_comment | sed 's/>/;/g' )
 EOF
 fi
 if [ "$(nvram get fb_email_dbg | sed 's/>/;/g' | tr -cd ';' | wc -c)" = "48" ]; then
-	read \
+# shellcheck disable=SC2034
+	read -r \
 		h1 h2 h3 h4 h5 h6 h7 \
 		r1 d1 \
 		r2 d2 \
