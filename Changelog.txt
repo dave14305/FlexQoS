@@ -1,0 +1,145 @@
+v1.2.5 (13-Jun-2021)
+  - NEW: Added Shellcheck integration with Github Actions (stolen from @JackYaz again)
+  - CHANGED: Removed support for Hotfix updates. Updates will only be detected by a version number change from now on.
+  - CHANGED: Updated code generation of iptables rules for handling multiple protocol options (BOTH = -p all).
+  - CHANGED: Create predictable qdisc handles for fq_codel to make it easier to relate fq_codel back to parent htb class.
+  - CHANGED: Many code style changes to adapt to the Shellcheck integration.
+  - CHANGED: Moved README screenshots from imgur.com to Github repo.
+
+v1.2.4 (11-Apr-2021)
+  - CHANGED: Improved webui mounting during startup, adopting community locking standard.
+  - FIXED: iptables rules were not properly evaluated in the connection list when a rule contained multiple ports for both local and remote ports.
+  - FIXED: Hide last update check result when initiating new check for update.
+
+v1.2.3 (21-Mar-2021)
+  - NEW: Added ability to remember filter settings between sessions. See the Remember checkbox in the Filter Connections header. Saved filters are stored as browser cookies and not as a configuration setting.
+  - CHANGED: Made fq_codel the default qdisc option. Can be disabled by choosing "ASUS" as the QoS Mode.
+  - CHANGED: Delay FlexQoS startup until all qdiscs are created by Adaptive QoS, since we now replace them with fq_codel by default.
+  - CHANGED: During startup check, if QoS fails to initialize, only attempt to restart qos one time before erroring out. This avoids endless qos restart loops from happening if an unrecoverable error happens with Adaptive QoS.
+  - CHANGED: Adopt sqm-scripts minimum quantum/burst/cburst of 1749 based on worst-case ATM overhead for one packet of MTU size.
+  - CHANGED: Renamed File Downloads to File Transfers to more closely resemble the stock File Transferring label.
+  - CHANGED: Renamed Game Downloads category back to Learn-From-Home. Changed built-in Game Downloads rule to use File Transferring category for new rules. Existing Game Downloads rules will still direct to the Learn-From-Home priority level.
+  - CHANGED: Show full stock category names in CLI appdb command output.
+  - CHANGED: Moved FlexQoS tab to the third tab between QoS and Classification.
+  - CHANGED: All Class dropdowns are now listed in the user-defined priority order.
+  - CHANGED: Moved version number and update check under Options panel
+  - CHANGED: Moved graph scale option to the main page under the refresh dropdown
+  - FIXED: When disabling Refresh in the WebUI, don't refresh one last time.
+  - FIXED: Fixed Overhead dropdown display issue when using 384 firmware.
+
+v1.2.2 (07-Mar-2021)
+  - NEW: Add well-known rule for Google Meet.
+  - NEW: Add overhead and ATM settings to WebUI Options panel.
+  - NEW: Add user-defined iptables rules to well-known rules dropdown to enable re-ordering of iptables rules via delete and add.
+  - NEW: Add WebUI mounting lock mechanism being adopted by handsome addon developers everywhere (courtesy of @Martineau).
+  - CHANGED: Don't write default settings to custom_settings.txt when saving.
+  - CHANGED: Remove extra IPv6 syslog message during startup.
+  - CHANGED: In fq_codel mode, make better optimizations for low-bandwidth links.
+  - CHANGED: Removed legacy 500 kbps threshold for applying custom rates.
+  - CHANGED: Support exact matches in IP fields in Tracked Connections filter. Append $ to indicate exact match syntax (e.g. 192.168.1.10$).
+  - FIXED: Don't print custom rate info in debug mode when Automatic Bandwidth is selected on QoS page.
+  - FIXED: Moved iptables Reset link to accommodate changes in 386.1 tableApi.js.
+
+v1.2.1 (07-Mar-2021)
+  - FIXED: Fix wrong MTU value on some configurations
+  - FIXED: Only log 1 debug message before restarting QoS
+	
+v1.2.0 (07-Feb-2021)
+  - NEW: Users can now customize the QoS class used for outbound traffic generated locally by the router (excluding DNS and NTP). Default is File Downloads. This was previously a hard-coded rule in the script.
+  - NEW: The trimphant return of fq_codel to FlexQoS! This is an optional queue discipline choice (you must opt-in under Customize / Options).
+         In 384.x firmware, the Default choice respects the Queue Discipline chosen on the main QoS page.
+         In 386.x firmware, the Default choice implies Stochastic Fair Queuing (sfq), since there is no longer a choice in the firmware.
+         In all firmware, the fq_codel choice replaces the secondary htb queue discipline used to manage per-device traffic within an application category.
+  - CHANGED: HTB burst parameter now is based on "burst by duration" concept borrowed from SQM scripts @ OpenWRT. Burst is now defined as the number of bytes that can be sent at line speed in 1 millisecond.
+  - CHANGED: Improved local client name mapping in the Tracked connections table, including IPv6 connections.
+  - CHANGED: Reorganized bandwidth rates settings with new name and ordering
+  - CHANGED: Reinstate firewall restart as the trigger for FlexQoS startup (spdMerlin users should use its develop branch until the next official release by Jack)
+  - CHANGED: Add custom rate commands and fq_codel qdisc commands to debug output
+  - CHANGED: Changed wording of backup deletion prompt (contributed by @maghuro)
+  - CHANGED: Removed Advertisements from default appdb rules (rarely seen in the wild)
+  - CHANGED: Added additional debug logging during startup while waiting for Adaptive QoS setup
+  - CHANGED: Reduced startup wait time from 5 to 3 minutes
+  - CHANGED: Force QoS restart after 3-minute startup delay to work around 386.1 Adaptive QoS startup issues on some models
+  - CHANGED: Refactored code into more discrete functions to avoid repetition
+  - FIXED: Page title now conforms to firmware standard title wording
+  - FIXED: Properly parsed integers in comma function
+  - FIXED: Cleaned up temporary file left behind during an update download
+  - FIXED: 5-minute Cronjob might fail if Entware coreutils-date is also installed
+
+v1.1.0 (13-Dec-2020)
+  - NEW: Replaced total data transferred pie charts and Bandwidth Util bars with running rate line charts. Available with regular linear y-axis scale or logarithmic scale for dealing with large rate differences among classes.
+  - CHANGED: Added support for user locale number formatting (1,000.00 or 1 000,00 or 1.000,00 depending on where you live).
+  - CHANGED: Added WebUI Options panel for changing line chart graph scale and conntrack flushing.
+  - CHANGED: Reworked shell script functions for simplicity (debatable) and added comments to document the logic wherever possible.
+  - CHANGED: Explicitly call tc or realtc from /usr/sbin to avoid conflicts with tc-adv installed by CakeQOS-Merlin (tc-adv has bugs affecting htb class output).
+  - CHANGED: Converted echo output to printf wherever possible.
+  - CHANGED: Moved FlexQoS iptables rules to a dedicated chain in the mangle table.
+  - REMOVED: Removed support for Traditional QoS or Bandwidth Limiter QoS modes in WebUI. Please use Merlin's Classification page for those modes.
+
+v1.0.6 (20-Nov-2020)
+  - REMOVED: Removed support to migrate legacy FreshJR_QOS rules to new FlexQoS format. Separate script migrate_FreshJR.sh available on Github if needed.
+  - CHANGED: Revert am_get_webui_page function to Merlin's version. Allows support for 20 addon webpages in 386.1.
+  - CHANGED: Simplified service-event handler functions.
+  - CHANGED: Removed ability to disable conntrack flushing (always enabled)
+  - CHANGED: Combine update and install functions between CLI and webui.
+  - CHANGED: Add startup check to ensure JFFS scripts are enabled.
+  - CHANGED: Skip applying custom bandwidth settings if Adaptive QoS automatic bandwidth is enabled.
+  - CHANGED: Detect WAN interface name internally instead of relying on firewall-start passing it as argument.
+  - CHANGED: Trigger FlexQoS on service restart_qos as well as restart_firewall. This will allow easier integration with spdMerlin 4.0 with AutoBW in the future.
+
+v1.0.5 (25-Oct-2020)
+  - NEW: Order bandwidth table classes by user-defined QoS priorities (was a fixed order)
+  - NEW: Show effective rates after making bandwidth min/max changes
+  - CHANGED: Combine separate Download and Upload bandwidth tables into one
+  - CHANGED: Better handling of dual-WAN setups when determining WAN interface name
+  - CHANGED: Add better error handling when custom appdb or rate rules fail
+  - CHANGED: Disable certain UI features when QoS Bandwidth is Automatic (Bandwidth meters and effective BW rates)
+  - FIXED: Avoid jumping header during update check
+
+v1.0.4 (18-Oct-2020)
+  - NEW: Added WebUI-based Check for Update feature.
+  - NEW: Added dropdown menu for Well-Known rules (Default rules plus Skype/Teams and Zoom so far). Gaming rule defaults to Local IP of the router UI session.
+  - NEW: Allow iptables rules to use an inverted match for Mark (e.g. !1400C5, !04**** to match traffic not matching that Mark).
+  - NEW: Allow inverted filters for Tracked Connections using exclamation point (!). !443, !YouTube, !9.9.9.9, etc.
+  - NEW: Added Class dropdown menu on Application filter for Tracked Connections. (e.g. Net Control = Class:0). Based on user-selected priority order. Filter can also be inverted with ! after menu choice is made (e.g. !Class:0).
+  - CHANGED: Converted Local IP filter menu to free-text with dropdown based on Network Map data
+  - CHANGED: Brought back FreshJR_QOS feature to indicate AppDB redirection labels with a tilde ~. Only applies to specific marks (i.e. not wildcard marks nor Untracked mark). You can use tilde ~ in the Application name filter field to find AppDB redirected connections.
+  - CHANGED: Redirected startup tc errors to file instead of dumping in syslog.log
+  - FIXED: Now we filter Tracked Connections by Application Name AFTER rules logic applied (in case of label change). For best page performance, filter on any other field first to limit the number of connections processed by the rules logic.
+  - FIXED: Ignore Rule Name when detecting duplicate iptables rules (only evaluate the IP/port/proto/Mark fields)
+  - FIXED: Cleanup temp files created during FlexQoS start
+  - KNOWN ISSUES:
+     - Local IP filter will now do partial matches, so if you select a device with IP 192.168.1.10, it will also include 192.168.1.100, .102, etc. Hope to fix soon with regular expressions.
+     - Alignment of filter dropdowns is not optimal on iOS/iPadOS Safari
+
+v1.0.3 (05-Oct-2020)
+  - CHANGED: Now allow custom rate percentages as low as 1%. Was always 5% minimum in the FreshJR_QOS script.
+  - CHANGED: Recalculate burst and cburst when applying custom rates to ensure the HTB buckets are appropriately sized for the new rates.
+  - CHANGED: Always apply new quantum when modifying custom rates (old behavior would only apply quantum when it was large enough to cause the "quantum is big" messages).
+  - CHANGED: Set the minimum quantum at WAN MTU + 14.
+  - CHANGED: Extra script debugging with -x parameter: flexqos -x check > /tmp/home/root/flexqos.log 2>&1
+
+v1.0.2 (14-Sep-2020)
+  - CHANGED: Use QoS nvram priority list to differentiate Streaming from Learn-From-Home, eliminating the FlexQoS requirement that Learn-From-Home be a lower priority than Streaming. It's still not a good idea to have Learn-From-Home above Streaming or Web Surfing because it will still hijack any category 04 or 13 traffic since the first matching rule in the tc filter list will win. This change just fixes the script logic to differentiate which is which when reading the duplicate categories.
+  - CHANGED: Changed internal class marks from 0001 to ffff to avoid collisions with AppDB marks and rules
+  - FIXED: Fixed a long-standing issue where the device identification bits in the Adaptive QoS mask were zeroed out, resulting in all modified traffic hitting the default leaf class 1[0-7]:256. This would negatively impact anyone who is trying to use device priorities, even though it's usually been advised against.
+  - FIXED: Properly handle situation where an existing user-script does not end with a newline and we append our command to the end of file.
+
+v1.0.1 (07-Sep-2020)
+  - NEW: Added ability to set custom iptables rule names (27 char max)
+  - NEW: Added ability to force update when switching branches (@maghuro)
+  - NEW: WebUI appdb search will pre-fill Class with original Class value
+  - NEW: Added bandwidth utilization meters per class
+  - CHANGED: Reduced the number of slow tc calls
+  - CHANGED: Improved appdb and iptables rule validation during start and check functions
+  - CHANGED: Flush conntrack table by default (disable with flexqos noflushct)
+  - CHANGED: Simplified Tracked Connections sorting code by adopting Merlin's approach
+  - CHANGED: Increased webui Apply wait time from 15-30 seconds since QoS can be slow to initialize
+  - FIXED: Renamed VoIP to Work-From-Home in appdb CLI output
+
+v1.0.0 (07-Aug-2020)
+  - NEW: Rewrote the original script to use the Merlin Addon API.
+  - NEW: Allow more than 4 custom iptables rules and appdb rules.
+  - CHANGED: Added DNS-over-TLS port 853 to OUTPUT chain.
+  - FIXED: AppDB rule overrides were not being shown in Tracked Connections.
+  
