@@ -119,6 +119,10 @@ iptables_static_rules() {
 	printf "Applying iptables static rules\n"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
+	iptables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"ffff/0xc03fffff
+	iptables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+	iptables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"ffff/0xc03fffff
 	iptables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 	iptables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 	iptables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
@@ -126,6 +130,10 @@ iptables_static_rules() {
 	iptables -t mangle -N "${SCRIPTNAME_DISPLAY}" 2>/dev/null
 	iptables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}"
 	if [ "${IPv6_enabled}" != "disabled" ]; then
+		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"ffff/0xc03fffff
+		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"ffff/0xc03fffff
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
