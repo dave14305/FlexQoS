@@ -11,8 +11,8 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
-version=1.2.5
-release=2021-06-13
+version=1.2.6
+release=2021-09-02
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -728,6 +728,44 @@ parse_appdb_rule() {
 	fi # Is_Valid_Mark
 } # parse_appdb_rule
 
+create_ipset() {
+	# To translate IPv4 iptables rules using local IPv4 addresses, create 2 ipsets and 2 iptables rules to track
+	# corresponding IPv6 addresses for a given IPv4 local address
+	# Input: $1 = local IP/CIDR (minus optional negation)
+	# Output: stdout ipset and iptables commands
+	local LOCALIP IPV6LIFETIME IPV6RASTATE
+
+	# If IPv6 is disabled, return early
+	[ "${IPv6_enabled}" = "disabled" ] && return
+
+	# Strip optional negation if present
+	LOCALIP="${1}"
+	IPV6RASTATE="$(nvram get ipv6_autoconf_type)" # 0=Stateless, 1=Stateful
+	ipset -! create "${LOCALIP}-mac" hash:mac timeout "$(nvram get dhcp_lease)" 2>/dev/null
+
+	case "${IPv6_enabled}" in
+	dhcp6|other) #Native or Static
+		if [ "${IPV6RASTATE}" = "1" ]; then
+			# Stateful, get DHCP Lifetime
+			IPV6LIFETIME="$(nvram get ipv6_dhcp_lifetime)"
+		else
+			# Stateless, use hard-coded value from firmware
+			IPV6LIFETIME=600
+		fi
+		;;
+	*)
+		IPV6LIFETIME=600
+		;;
+	esac
+
+	ipset -! create "${LOCALIP}" hash:ip family inet6 timeout "${IPV6LIFETIME}" 2>/dev/null
+
+	printf "iptables -t mangle -D PREROUTING -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist 2>/dev/null\n" "${LOCALIP}" "${LOCALIP}"
+	printf "ip6tables -t mangle -D PREROUTING -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist 2>/dev/null\n" "${LOCALIP}" "${LOCALIP}"
+	printf "iptables -t mangle -I PREROUTING -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist\n" "${LOCALIP}" "${LOCALIP}"
+	printf "ip6tables -t mangle -I PREROUTING -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist\n" "${LOCALIP}" "${LOCALIP}"
+}
+
 parse_iptablerule() {
 	# Process an iptables custom rule into the appropriate iptables syntax
 	# Input: $1 = local IP (e.g. 192.168.1.100 !192.168.1.100 192.168.1.100/31 !192.168.1.100/31)
@@ -739,7 +777,8 @@ parse_iptablerule() {
 	#        $7 = class destination (e.g. 0-7)
 	# Output: stdout is written directly to the /tmp/flexqos_iprules file via redirect in write_iptables_rules(),
 	#         so don't add unnecessary output in this function.
-	local DOWN_Lip UP_Lip
+	local DOWN_Lip UP_Lip CIDR
+	local DOWN_Lip6 UP_Lip6
 	local DOWN_Rip UP_Rip
 	local PROTOS proto
 	local DOWN_Lport UP_Lport
@@ -752,9 +791,15 @@ parse_iptablerule() {
 		# print ! (if present) and remaining CIDR
 		DOWN_Lip="$(echo "${1}" | sed -E 's/^([!])?/\1 -d /')"
 		UP_Lip="$(echo "${1}" | sed -E 's/^([!])?/\1 -s /')"
+		DOWN_Lip6="$(echo "${1}" | sed -E 's/^([!])?(([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)/-m set \1 --match-set \2 dst/')"
+		UP_Lip6="$(echo "${1}" | sed -E 's/^([!])?(([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)/-m set \1 --match-set \2 src/')"
+		CIDR="$(echo "${1}" | sed -E 's/^!//')"
+		create_ipset "${CIDR}" # 2>/dev/null
 	else
 		DOWN_Lip=""
 		UP_Lip=""
+		DOWN_Lip6=""
+		UP_Lip6=""
 	fi
 
 	# remote IP
@@ -850,12 +895,12 @@ parse_iptablerule() {
 		printf "iptables -t mangle -A %s -o %s %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${lan}" "${DOWN_Lip}" "${DOWN_Rip}" "${proto}" "${DOWN_Lport}" "${DOWN_Rport}" "${DOWN_mark}" "${DOWN_dst}"
 		# upload ipv4
 		printf "iptables -t mangle -A %s -o %s %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${wan}" "${UP_Lip}" "${UP_Rip}" "${proto}" "${UP_Lport}" "${UP_Rport}" "${UP_mark}" "${UP_dst}"
-		# If rule contains no IPv4 local or remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
-		if [ "${IPv6_enabled}" != "disabled" ] && [ -z "${DOWN_Lip}" ] && [ -z "${DOWN_Rip}" ]; then
+		# If rule contains no IPv4 remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
+		if [ "${IPv6_enabled}" != "disabled" ] && [ -z "${DOWN_Rip}" ]; then
 			# download ipv6
-			printf "ip6tables -t mangle -A %s -o %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${lan}" "${proto}" "${DOWN_Lport}" "${DOWN_Rport}" "${DOWN_mark}" "${DOWN_dst}"
+			printf "ip6tables -t mangle -A %s -o %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${lan}" "${DOWN_Lip6}" "${proto}" "${DOWN_Lport}" "${DOWN_Rport}" "${DOWN_mark}" "${DOWN_dst}"
 			# upload ipv6
-			printf "ip6tables -t mangle -A %s -o %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${wan}" "${proto}" "${UP_Lport}" "${UP_Rport}" "${UP_mark}" "${UP_dst}"
+			printf "ip6tables -t mangle -A %s -o %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${wan}" "${UP_Lip6}" "${proto}" "${UP_Lport}" "${UP_Rport}" "${UP_mark}" "${UP_dst}"
 		fi
 	done
 } # parse_iptablerule

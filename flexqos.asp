@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!--
-FlexQoS v1.2.4 released 2021-04-11
+FlexQoS v1.2.6 released 2021-09-02
 FlexQoS maintained by dave14305
 Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 -->
@@ -1028,20 +1028,32 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 			}
 		}
 
-		// if rule has local IP specified and is not IPv6
+		// if rule has local IP specified
 		if (iptables_rules[i][0] & 16)
 		{
+			if ( CLip.indexOf(":") >= 0 ) {
+				// is IPv6, so translate to equivalent IPv4 address based on MAC
+				for ( var element of ipv6clientarray ) {			// Loop through IPv6 leases to find a IPv6 match
+					if ( element[2] ){
+						if( element[2].replace(/[0-9a-f]{2},|[0-9a-f]{2}$/g,"00").indexOf(CLip) >= 0 ) {		// replace last 2 chars with 00 due to TM bug. Multiple comma-separated entries can be present.
+							var clientMAC = element[1].toUpperCase(); // MAC address
+							if ( clientList[clientMAC] ) {
+								CLip = (clientList[clientMAC].ip == "offline") ? CLip : clientList[clientMAC].ip;
+								break;
+							}
+						}
+					}
+				}
+			}
+
 			if ( CLip.indexOf(":") < 0 ) {
 				var tmpCLip=ip2dec(CLip);
 				if ( !((tmpCLip >= iptables_rules[i][11] && tmpCLip <= iptables_rules[i][12])^(iptables_rules[i][10])) )
 				{
 					// console.log("local ip mismatch");
 					continue;
-					}
-			} // is IPv4
-			else
-				// is IPv6
-				continue;
+				}
+			}
 		 }
 
 		// if rule has remote IP specified
