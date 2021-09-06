@@ -791,10 +791,14 @@ parse_iptablerule() {
 		# print ! (if present) and remaining CIDR
 		DOWN_Lip="$(echo "${1}" | sed -E 's/^([!])?/\1 -d /')"
 		UP_Lip="$(echo "${1}" | sed -E 's/^([!])?/\1 -s /')"
-		DOWN_Lip6="$(echo "${1}" | sed -E 's/^([!])?(([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)/-m set \1 --match-set \2 dst/')"
-		UP_Lip6="$(echo "${1}" | sed -E 's/^([!])?(([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)/-m set \1 --match-set \2 src/')"
-		CIDR="$(echo "${1}" | sed -E 's/^!//')"
-		create_ipset "${CIDR}" # 2>/dev/null
+		# Only create ipset if there is no remote IP/CIDR defined, since the IPv6 rule would not work with remote IPv4 CIDR
+		if ! echo "${2}" | Is_Valid_CIDR; then
+			# Alternate syntax for IPv6 ipset matching
+			CIDR="$(echo "${1}" | sed -E 's/^!//')"
+			create_ipset "${CIDR}" # 2>/dev/null
+			DOWN_Lip6="$(echo "${1}" | sed -E 's/^([!])?(([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)/-m set \1 --match-set \2 dst/')"
+			UP_Lip6="$(echo "${1}" | sed -E 's/^([!])?(([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?)/-m set \1 --match-set \2 src/')"
+		fi
 	else
 		DOWN_Lip=""
 		UP_Lip=""

@@ -1031,8 +1031,8 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 		// if rule has local IP specified
 		if (iptables_rules[i][0] & 16)
 		{
-			if ( CLip.indexOf(":") >= 0 ) {
-				// is IPv6, so translate to equivalent IPv4 address based on MAC
+			if ( ( CLip.indexOf(":") >= 0 ) && !( iptables_rules[i][0] & 32 ) ) {
+				// Connection's Local IP is IPv6 and rule has no IPv4 Remote IP defined, so translate to equivalent IPv4 address based on MAC
 				for ( var element of ipv6clientarray ) {			// Loop through IPv6 leases to find a IPv6 match
 					if ( element[2] ){
 						if( element[2].replace(/[0-9a-f]{2},|[0-9a-f]{2}$/g,"00").indexOf(CLip) >= 0 ) {		// replace last 2 chars with 00 due to TM bug. Multiple comma-separated entries can be present.
