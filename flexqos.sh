@@ -1308,16 +1308,6 @@ Auto_FirewallStart() {
 	fi # is Skynet also installed?
 } # Auto_FirewallStart
 
-Auto_Crontab() {
-	# Setup cronjob for nightly check of QoS settings
-	local cmdline
-	cru a "${SCRIPTNAME}" "30 3 * * * ${SCRIPTPATH} -check"
-	Init_UserScript "services-start"
-	sed -i "\~${SCRIPTNAME_DISPLAY} Addition~d" /jffs/scripts/services-start
-	cmdline="cru a ${SCRIPTNAME} \"30 3 * * * ${SCRIPTPATH} -check\" # ${SCRIPTNAME_DISPLAY} Addition"
-	echo "${cmdline}" >> /jffs/scripts/services-start
-} # Auto_Crontab
-
 setup_aliases() {
 	# shortcuts to launching script
 	local cmdline
@@ -1380,8 +1370,6 @@ install() {
 	printf "Adding %s entries to Merlin user scripts...\n" "${SCRIPTNAME_DISPLAY}"
 	Auto_FirewallStart
 	Auto_ServiceEventEnd
-	printf "Adding nightly cron job...\n"
-	Auto_Crontab
 	setup_aliases
 
 	if [ "${mode}" = "interactive" ]; then
@@ -1399,6 +1387,9 @@ install() {
 	fi
 	# Remove setting if set to default value 1 (enabled)
 	sed -i "/^${SCRIPTNAME}_conntrack 1/d" /jffs/addons/custom_settings.txt
+	# Remove deprecated 3:30 AM cron job if exists
+	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/services-start 2>/dev/null
+	cru d "${SCRIPTNAME}" 2>/dev/null
 } # install
 
 uninstall() {
@@ -1406,12 +1397,10 @@ uninstall() {
 	printf "Removing entries from Merlin user scripts...\n"
 	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/firewall-start 2>/dev/null
 	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/service-event-end 2>/dev/null
-	sed -i "\~${SCRIPTNAME_DISPLAY}~d" /jffs/scripts/services-start 2>/dev/null
 	printf "Removing aliases and shortcuts...\n"
 	sed -i "/alias ${SCRIPTNAME}/d" /jffs/configs/profile.add 2>/dev/null
 	rm -f "/opt/bin/${SCRIPTNAME}" 2>/dev/null
-	printf "Removing cron job...\n"
-	cru d "${SCRIPTNAME}"
+	printf "Removing delayed cron job...\n"
 	cru d "${SCRIPTNAME}_5min" 2>/dev/null
 	remove_webui
 	printf "Removing %s settings...\n" "${SCRIPTNAME_DISPLAY}"
@@ -1864,8 +1853,6 @@ case "${arg1}" in
 	'disable')
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/firewall-start  2>/dev/null
 		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/service-event-end  2>/dev/null
-		sed -i "/${SCRIPTNAME}/d" /jffs/scripts/services-start  2>/dev/null
-		cru d "${SCRIPTNAME}"
 		remove_webui
 		needrestart=2
 		;;
