@@ -1,3 +1,9 @@
+v1.3.0 (xx-Sep-2021)
+  - NEW: Automatic IPv6 support for iptables rules using local IPv4 CIDRs. Local IPv4 CIDRs are mapped to equivalent IPv6 addresses via MAC address, using iptables and ipsets.
+  - CHANGED: Classify outbound DNS, DoT and NTP as Net Control Packets. This traffic previously bypassed QoS.
+  - FIXED: Avoid conflicts with Selective Routing fwmarks when combined with Adaptive QoS marks for outbound DNS from router
+  - REMOVED: Nightly check cronjob at 3:30 AM since it seems superfluous now.
+
 v1.2.5 (13-Jun-2021)
   - NEW: Added Shellcheck integration with Github Actions (stolen from @JackYaz again)
   - CHANGED: Removed support for Hotfix updates. Updates will only be detected by a version number change from now on.
@@ -43,7 +49,7 @@ v1.2.2 (07-Mar-2021)
 v1.2.1 (07-Mar-2021)
   - FIXED: Fix wrong MTU value on some configurations
   - FIXED: Only log 1 debug message before restarting QoS
-	
+
 v1.2.0 (07-Feb-2021)
   - NEW: Users can now customize the QoS class used for outbound traffic generated locally by the router (excluding DNS and NTP). Default is File Downloads. This was previously a hard-coded rule in the script.
   - NEW: The trimphant return of fq_codel to FlexQoS! This is an optional queue discipline choice (you must opt-in under Customize / Options).
@@ -142,4 +148,3 @@ v1.0.0 (07-Aug-2020)
   - NEW: Allow more than 4 custom iptables rules and appdb rules.
   - CHANGED: Added DNS-over-TLS port 853 to OUTPUT chain.
   - FIXED: AppDB rule overrides were not being shown in Tracked Connections.
-  
