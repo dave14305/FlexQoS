@@ -11,8 +11,8 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
-version=1.2.6
-release=2021-09-02
+version=2.0.0
+release=2021-10-31
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -42,6 +42,8 @@ readonly WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
 readonly SCRIPTPATH="${ADDON_DIR}/${SCRIPTNAME}.sh"
 readonly LOCKFILE="/tmp/addonwebui.lock"
 IPv6_enabled="$(nvram get ipv6_service)"
+qdisc="$(am_settings_get "${SCRIPTNAME}"_qdisc)"
+qdisc="${qdisc:=1}"	# default to fq_codel (1) if not set
 
 # Update version number in custom_settings.txt for reading in WebUI
 if [ "$(am_settings_get "${SCRIPTNAME}"_ver)" != "${version}" ]; then
@@ -74,6 +76,15 @@ Web_mark="18"
 Streaming_mark="04"
 Downloads_mark="03"
 Learn_mark="3f"
+
+Net_DSCP="CS6"
+Work_DSCP="AF41"
+Gaming_DSCP="CS6"
+Others_DSCP="CS0"
+Web_DSCP="CS0"
+Streaming_DSCP="AF41"
+Downloads_DSCP="CS1"
+Learn_DSCP="CS0"
 
 logmsg() {
 	if [ "$#" = "0" ]; then
@@ -119,27 +130,118 @@ iptables_static_rules() {
 	printf "Applying iptables static rules\n"
 	# Reference for VPN Fix origin: https://www.snbforums.com/threads/36836/page-78#post-412034
 	# Partially fixed in https://github.com/RMerl/asuswrt-merlin.ng/commit/f7d6478df7b934c9540fa9740ad71d49d84a1756
-	iptables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000 > /dev/null 2>&1		# Outbound DNS & NTP
-	iptables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000
-	iptables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000 > /dev/null 2>&1		# Outbound DNS and DoT
-	iptables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000
+	iptables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		# Outbound DNS & NTP
+	iptables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff
+	iptables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		# Outbound DNS and DoT
+	iptables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff
 	iptables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 	iptables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 	iptables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 	iptables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 	iptables -t mangle -N "${SCRIPTNAME_DISPLAY}" 2>/dev/null
+	iptables -t mangle -F "${SCRIPTNAME_DISPLAY}" 2>/dev/null
+	iptables -t mangle -D POSTROUTING -j "${SCRIPTNAME_DISPLAY}" 2>/dev/null
 	iptables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}"
 	if [ "${IPv6_enabled}" != "disabled" ]; then
-		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000 > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000
-		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000 > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff
+		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 		ip6tables -t mangle -N "${SCRIPTNAME_DISPLAY}" 2>/dev/null
+		ip6tables -t mangle -F "${SCRIPTNAME_DISPLAY}" 2>/dev/null
+		ip6tables -t mangle -D POSTROUTING -j "${SCRIPTNAME_DISPLAY}" 2>/dev/null
 		ip6tables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}"
+	fi
+	if [ "${qdisc}" = "2" ]; then
+		modprobe xt_comment
+		# Setup mark to DSCP mappings for CAKE tins
+		iptables -t mangle -N "${SCRIPTNAME_DISPLAY}_DSCP" 2>/dev/null
+		iptables -t mangle -F "${SCRIPTNAME_DISPLAY}_DSCP" 2>/dev/null
+		iptables -t mangle -D POSTROUTING -j "${SCRIPTNAME_DISPLAY}_DSCP" 2>/dev/null
+		iptables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}_DSCP"
+		# Setup chain for AppDB rules
+		iptables -t mangle -N "${SCRIPTNAME_DISPLAY}_AppDB" 2>/dev/null
+		iptables -t mangle -F "${SCRIPTNAME_DISPLAY}_AppDB" 2>/dev/null
+		iptables -t mangle -D POSTROUTING -j "${SCRIPTNAME_DISPLAY}_AppDB" 2>/dev/null
+		iptables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}_AppDB"
+		# Voice tin
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x060000/0x3f0000 -j DSCP --set-dscp-class CS6 -m comment --comment "VoIP services"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x060000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x080000/0x3f0000 -j DSCP --set-dscp-class CS6 -m comment --comment "Online games"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x080000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x090000/0x3f0000 -j DSCP --set-dscp-class CS6 -m comment --comment "Management tools and protocols"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x090000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x120000/0x3f0000 -j DSCP --set-dscp-class CS6 -m comment --comment "Network protocols"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x120000/0x3f0000 -j RETURN
+		# Video tin
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x000000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Instant messengers"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x000000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x040000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Media streaming services"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x040000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x050000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Email messaging services"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x050000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x110000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Business tools"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x110000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x0f0000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Web instant messengers"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x0f0000/0x3f0000 -j RETURN
+		# Bulk tin
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x010000/0x3f0000 -j DSCP --set-dscp-class CS1 -m comment --comment "Peer-to-peer networks"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x010000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x030000/0x3f0000 -j DSCP --set-dscp-class CS1 -m comment --comment "File sharing services and tools"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x030000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x0e0000/0x3f0000 -j DSCP --set-dscp-class CS1 -m comment --comment "Security update tools"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x0e0000/0x3f0000 -j RETURN
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x1a0000/0x3f0000 -j DSCP --set-dscp-class CS1 -m comment --comment "Advertisements"
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x1a0000/0x3f0000 -j RETURN
+		# Besteffort - default
+		iptables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -j DSCP --set-dscp-class CS0
+		if [ "${IPv6_enabled}" != "disabled" ]; then
+			# Setup mark to DSCP mappings for CAKE tins
+			ip6tables -t mangle -N "${SCRIPTNAME_DISPLAY}_DSCP" 2>/dev/null
+			ip6tables -t mangle -F "${SCRIPTNAME_DISPLAY}_DSCP" 2>/dev/null
+			ip6tables -t mangle -D POSTROUTING -j "${SCRIPTNAME_DISPLAY}_DSCP" 2>/dev/null
+			ip6tables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}_DSCP"
+			# Setup chain for AppDB rules
+			ip6tables -t mangle -N "${SCRIPTNAME_DISPLAY}_AppDB" 2>/dev/null
+			ip6tables -t mangle -F "${SCRIPTNAME_DISPLAY}_AppDB" 2>/dev/null
+			ip6tables -t mangle -D POSTROUTING -j "${SCRIPTNAME_DISPLAY}_AppDB" 2>/dev/null
+			ip6tables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}_AppDB"
+			# Voice tin
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x060000/0x3f0000 -j DSCP --set-dscp-class CS6 -m comment --comment "VoIP services"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x060000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x080000/0x3f0000 -j DSCP --set-dscp-class CS6 -m comment --comment "Online games"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x080000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x090000/0x3f0000 -j DSCP --set-dscp-class CS6 -m comment --comment "Management tools and protocols"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x090000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x120000/0x3f0000 -j DSCP --set-dscp-class CS6 -m comment --comment "Network protocols"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x120000/0x3f0000 -j RETURN
+			# Video tin
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x000000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Instant messengers"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x000000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x040000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Media streaming services"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x040000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x050000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Email messaging services"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x050000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x110000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Business tools"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x110000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x0f0000/0x3f0000 -j DSCP --set-dscp-class AF41 -m comment --comment "Web instant messengers"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x0f0000/0x3f0000 -j RETURN
+			# Bulk tin
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x010000/0x3f0000 -j DSCP --set-dscp-class CS1 -m comment --comment "Peer-to-peer networks"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x010000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x030000/0x3f0000 -j DSCP --set-dscp-class CS1 -m comment --comment "File sharing services and tools"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x030000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x0e0000/0x3f0000 -j DSCP --set-dscp-class CS1 -m comment --comment "Security update tools"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x0e0000/0x3f0000 -j RETURN
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x1a0000/0x3f0000 -j DSCP --set-dscp-class CS1 -m comment --comment "Advertisements"
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -m mark --mark 0x1a0000/0x3f0000 -j RETURN
+			# Besteffort - default
+			ip6tables -t mangle -A "${SCRIPTNAME_DISPLAY}_DSCP" -j DSCP --set-dscp-class CS0
+		fi
 	fi
 }
 
@@ -170,7 +272,7 @@ write_appdb_static_rules() {
 		get_static_filter "${Streaming_mark}" "${Streaming_flow}"
 		get_static_filter "${Downloads_mark}" "${Downloads_flow}"
 		get_static_filter "${Learn_mark}" "${Learn_flow}"
-	} > "/tmp/${SCRIPTNAME}_tcrules"
+	} >> "/tmp/${SCRIPTNAME}_tcrules"
 } # write_appdb_static_rules
 
 get_burst() {
@@ -185,7 +287,7 @@ get_burst() {
 	# https://github.com/tohojo/sqm-scripts/blob/master/src/functions.sh
 	# let's assume ATM/AAL5 to be the worst case encapsulation
 	# and 48 Bytes a reasonable worst case per packet overhead
-	MIN_BURST=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  ovehead
+	MIN_BURST=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  overhead
 	MIN_BURST=$(( MIN_BURST + 47 ))		# now do ceil(Min_BURST / 48) * 53 in shell integer arithmic
 	MIN_BURST=$(( MIN_BURST / 48 ))
 	MIN_BURST=$(( MIN_BURST * 53 ))		# for MTU 1489 to 1536 this will result in MIN_BURST = 1749 Bytes
@@ -216,7 +318,7 @@ get_cburst() {
 	# https://github.com/tohojo/sqm-scripts/blob/master/src/functions.sh
 	# let's assume ATM/AAL5 to be the worst case encapsulation
 	# and 48 Bytes a reasonable worst case per packet overhead
-	MIN_BURST=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  ovehead
+	MIN_BURST=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  overhead
 	MIN_BURST=$(( MIN_BURST + 47 ))		# now do ceil(Min_BURST / 48) * 53 in shell integer arithmic
 	MIN_BURST=$(( MIN_BURST / 48 ))
 	MIN_BURST=$(( MIN_BURST * 53 ))		# for MTU 1489 to 1536 this will result in MIN_BURST = 1749 Bytes
@@ -247,7 +349,7 @@ get_quantum() {
 	# https://github.com/tohojo/sqm-scripts/blob/master/src/functions.sh
 	# let's assume ATM/AAL5 to be the worst case encapsulation
 	# and 48 Bytes a reasonable worst case per packet overhead
-	MIN_QUANTUM=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  ovehead
+	MIN_QUANTUM=$(( WANMTU + 48 ))		# add 48 bytes to MTU for the  overhead
 	MIN_QUANTUM=$(( MIN_QUANTUM + 47 ))		# now do ceil(Min_BURST / 48) * 53 in shell integer arithmic
 	MIN_QUANTUM=$(( MIN_QUANTUM / 48 ))
 	MIN_QUANTUM=$(( MIN_QUANTUM * 53 ))		# for MTU 1489 to 1536 this will result in MIN_BURST = 1749 Bytes
@@ -265,6 +367,7 @@ get_quantum() {
 get_overhead() {
 	local NVRAM_OVERHEAD
 	local NVRAM_ATM
+	local NVRAM_MPU
 	local OVERHEAD
 
 	NVRAM_OVERHEAD="$(nvram get qos_overhead)"
@@ -272,13 +375,25 @@ get_overhead() {
 	if [ -n "${NVRAM_OVERHEAD}" ] && [ "${NVRAM_OVERHEAD}" -gt "0" ]; then
 		OVERHEAD="overhead ${NVRAM_OVERHEAD}"
 		NVRAM_ATM="$(nvram get qos_atm)"
-		if [ "${NVRAM_ATM}" = "1" ]; then
-			OVERHEAD="${OVERHEAD} linklayer atm"
-		else
-			OVERHEAD="${OVERHEAD} linklayer ethernet"
-		fi
+		case ${qdisc} in
+		2)  # CAKE
+			NVRAM_MPU="$(nvram get qos_mpu)"
+			if [ -n "${NVRAM_MPU}" ] && [ "${NVRAM_MPU}" -gt "0" ]; then
+				OVERHEAD="${OVERHEAD} mpu ${NVRAM_MPU}"
+			fi
+			if [ "${NVRAM_ATM}" = "1" ]; then
+				OVERHEAD="${OVERHEAD} atm"
+			elif [ "${NVRAM_ATM}" = "2" ]; then
+				OVERHEAD="${OVERHEAD} ptm"
+			fi
+			;;
+		*)
+			if [ "${NVRAM_ATM}" = "1" ]; then
+				OVERHEAD="${OVERHEAD} linklayer atm"
+			fi
+			;;
+		esac
 	fi
-
 	printf "%s" "${OVERHEAD}"
 } # get_overhead
 
@@ -489,7 +604,7 @@ appdb() {
 	# Search TrendMicro appdb file for matches to user-specified string. Return up to 25 matches
 	local line cat_decimal
 	/bin/grep -m 25 -i "${1}" /tmp/bwdpi/bwdpi.app.db | while read -r line; do
-		echo "${line}" | awk -F "," '{printf "  Application: %s\n         Mark: %02X%04X\nDefault Class: ", $4, $1, $2}'
+		echo "${line}" | awk -F "," '{printf "  Application: %s, Mark: %02X%04X, Default Class: ", $4, $1, $2}'
 		cat_decimal=$(echo "${line}" | cut -f 1 -d "," )
 		case "${cat_decimal}" in
 		'9'|'18'|'19'|'20')
@@ -517,7 +632,7 @@ appdb() {
 			printf "Unknown"
 			;;
 		esac
-		printf "\n\n"
+		printf "\n"
 	done
 } # appdb
 
@@ -608,9 +723,9 @@ debug() {
 	appdb_debug="$(am_settings_get "${SCRIPTNAME}"_appdb)"
 	printf "appdb rules: %s\n" "${appdb_debug:-Defaults}"
 	true > "/tmp/${SCRIPTNAME}_tcrules"
+	write_custom_qdisc
 	write_appdb_rules
 	write_custom_rates
-	write_custom_qdisc
 	cat "/tmp/${SCRIPTNAME}_tcrules"
 	Green "[/CODE][/SPOILER]"
 	# Since these tmp files aren't being used to apply rules, we delete them to avoid confusion about the last known ruleset
@@ -618,6 +733,26 @@ debug() {
 	printf "\n"
 	Yellow "Copy the text from [SPOILER] to [/SPOILER] and paste into a forum post at snbforums.com"
 } # debug
+
+get_dscp_class() {
+	# Map class destination field from webui settings to the established class/flowid based on user priorities
+	# flowid will be one of 1:10 - 1:17, depending on the user priority sequencing in the QoS GUI
+	# Input: numeric class destination from iptables rule
+	local dscp
+	case "${1}" in
+		0)	dscp="${Net_DSCP}" ;;
+		1)	dscp="${Gaming_DSCP}" ;;
+		2)	dscp="${Streaming_DSCP}" ;;
+		3)	dscp="${Work_DSCP}" ;;
+		4)	dscp="${Web_DSCP}" ;;
+		5)	dscp="${Downloads_DSCP}" ;;
+		6)	dscp="${Others_DSCP}" ;;
+		7)	dscp="${Learn_DSCP}" ;;
+		# return empty if destination missing
+		*)	dscp="CS0" ;;
+	esac
+	printf "%s\n" "${dscp}"
+} # get_dscp_class
 
 get_flowid() {
 	# Map class destination field from webui settings to the established class/flowid based on user priorities
@@ -650,6 +785,50 @@ Is_Valid_Port() {
 Is_Valid_Mark() {
 	/bin/grep -qE '^[!]?[A-Fa-f0-9]{2}([A-Fa-f0-9]{4}|[\*]{4})$'
 } # Is_Valid_Mark
+
+parse_appdb_rule_cake() {
+	# Process an appdb custom rule into the appropriate tc filter syntax
+	# Input: $1 = Mark from appdb rule XXYYYY XX=Category(hex) YYYY=ID(hex or ****)
+	#        $2 = Class destination
+	# Output: stdout is written directly to the /tmp/flexqos_iptables_rules file via redirect in write_appdb_rules(),
+	#         so don't add unnecessary output in this function.
+	local cat id
+	local mark
+	local dscp
+	# Only process if Mark is a valid format
+	if echo "${1}" | Is_Valid_Mark; then
+		# Extract category and appid from mark
+		cat="$(echo "${1}" | cut -c 1-2)"
+		id="$(echo "${1}" | cut -c 3-6)"
+		# check if wildcard mark
+		if [ "${id}" = "****" ]; then
+			# Replace asterisks with zeros and use category mask
+			# This mark and mask
+			mark="0x${cat}0000/0x3f0000"
+			appid="$(printf '%d,' 0x${cat})"
+			appname="$( grep ^${appid} /tmp/bwdpi/bwdpi.cat.db | cut -d, -f2 )"
+		elif [ "${1}" = "000000" ]; then
+			# unidentified traffic needs a special mask
+			mark="0x${1}/0x00ffff"
+			appname="Untracked"
+		else
+			# specific application mark
+			mark="0x${1}/0x3fffff"
+			appid="$(printf '%d,%d,' 0x${cat} 0x${id})"
+			appname="$( grep ^${appid} /tmp/bwdpi/bwdpi.app.db | cut -d, -f4 )"
+		fi
+
+		# get destination dscp class
+		dscp="$(get_dscp_class "${2}")"
+
+		printf "iptables -t mangle -A %s_AppDB -m mark --mark %s -j DSCP --set-dscp-class %s -m comment --comment \"%s\"\n" "${SCRIPTNAME_DISPLAY}" "${mark}" "${dscp}" "${appname}"
+		printf "iptables -t mangle -A %s_AppDB -m mark --mark %s -j RETURN\n" "${SCRIPTNAME_DISPLAY}" "${mark}"
+		if [ "${IPv6_enabled}" != "disabled" ]; then
+			printf "ip6tables -t mangle -A %s_AppDB -m mark --mark %s -j DSCP --set-dscp-class %s -m comment --comment \"%s\"\n" "${SCRIPTNAME_DISPLAY}" "${mark}" "${dscp}" "${appname}"
+			printf "ip6tables -t mangle -A %s_AppDB -m mark --mark %s -j RETURN\n" "${SCRIPTNAME_DISPLAY}" "${mark}"
+		fi
+	fi # Is_Valid_Mark
+} # parse_appdb_rule_cake
 
 parse_appdb_rule() {
 	# Process an appdb custom rule into the appropriate tc filter syntax
@@ -1477,26 +1656,34 @@ validate_iptables_rules() {
 	# Basic check to ensure the number of rules present in the iptables chain matches the number of expected rules
 	# Does not verify that the rules present match the rules in the config, since the config hasn't been parsed at this point.
 	local iptables_rules_defined iptables_rules_expected iptables_rulespresent
+	local fail
+	fail=0
 	iptables_rules_defined="$(echo "${iptables_rules}" | sed 's/</\n/g' | /bin/grep -vc "^$")"
-	iptables_rules_expected=$((iptables_rules_defined*2+1)) # 1 downlaod and upload rule per user rule, plus 1 for chain definition
+	iptables_rules_expected=$((iptables_rules_defined*2+1)) # 1 download and upload rule per user rule, plus 1 for chain definition
 	iptables_rulespresent="$(iptables -t mangle -S ${SCRIPTNAME_DISPLAY} | wc -l)" # count rules in chain plus chain itself
 	if [ "${iptables_rulespresent}" -lt "${iptables_rules_expected}" ]; then
-		return 1
-	else
-		return 0
+		fail=1
 	fi
+	if [ "${qdisc}" = "2" ]; then
+		iptables_rulespresent="$(iptables -t mangle -S ${SCRIPTNAME_DISPLAY}_DSCP | wc -l)" # count rules in DSCP chain plus chain itself
+		if [ "${iptables_rulespresent}" -lt "13" ]; then
+			fail=1
+		fi
+		iptables_rules_defined="$(echo "${appdb_rules}" | sed 's/</\n/g' | /bin/grep -vc "^$")"
+		iptables_rules_expected=$((iptables_rules_defined*2+1)) # 1 set and 1 return rule per user rule, plus 1 for chain definition
+		iptables_rulespresent="$(iptables -t mangle -S ${SCRIPTNAME_DISPLAY}_AppDB | wc -l)" # count rules in AppDB chain plus chain itself
+		if [ "${iptables_rulespresent}" -lt "${iptables_rules_expected}" ]; then
+			fail=1
+		fi
+	fi
+	return ${fail}
 } # validate_iptables_rules
 
 write_iptables_rules() {
 	# loop through iptables rules and write an iptables command to a temporary file for later execution
 	local OLDIFS
 	local localip remoteip proto lport rport mark class
-	{
-		printf "iptables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}"
-		if [ "${IPv6_enabled}" != "disabled" ]; then
-			printf "ip6tables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}"
-		fi
-	} > "/tmp/${SCRIPTNAME}_iprules"
+	true > "/tmp/${SCRIPTNAME}_iprules"
 	OLDIFS="${IFS}"		# Save existing field separator
 	IFS=">"				# Set custom field separator to match rule format
 	# read the rules, 1 per line and break into separate fields
@@ -1528,7 +1715,12 @@ write_appdb_rules() {
 	do
 		# Ensure the appdb mark is populated
 		if [ -n "${mark}" ]; then
-			parse_appdb_rule "${mark}" "${class}" >> "/tmp/${SCRIPTNAME}_tcrules" 2>/dev/null
+			case "${qdisc}" in
+			2) parse_appdb_rule_cake "${mark}" "${class}" >> "/tmp/${SCRIPTNAME}_iprules" 2>/dev/null
+			;;
+			*) parse_appdb_rule "${mark}" "${class}" >> "/tmp/${SCRIPTNAME}_tcrules" 2>/dev/null
+			;;
+			esac
 		fi
 	done
 	IFS="${OLDIFS}"		# Restore old field separator
@@ -1560,19 +1752,79 @@ get_fq_target() {
 	fi
 } # get_fq_target
 
+check_nvram() {
+	case ${qdisc} in
+	2)  # CAKE
+		if [ "$(nvram get runner_disable_force)" != "1" ]; then
+			nvram set runner_disable_force=1
+			nvram set runner_disable=1
+			nvram commit
+			runner disable
+			fc config --hw-accel 0 2>/dev/null
+		fi
+		if [ "$(nvram get fc_disable_force)" != "1" ]; then
+			nvram set fc_disable_force=1
+			nvram set fc_disable=1
+			nvram commit
+			fc disable
+			fc flush
+		fi
+		;;
+	*)	# fq_codel
+		if [ "$(nvram get runner_disable_force)" = "1" ]; then
+			nvram unset runner_disable_force
+			nvram set runner_disable=0
+			nvram commit
+			runner enable
+			fc config --hw-accel 1 2>/dev/null
+			archerctl sysport_tm disable 2>/dev/null
+		fi
+		if [ "$(nvram get fc_disable_force)" = "1" ]; then
+			nvram unset fc_disable_force
+			nvram set fc_disable=0
+			nvram commit
+			fc enable
+			fc flush
+		fi
+		;;
+	esac
+}
+
 write_custom_qdisc() {
 	local i
-	if [ "$(am_settings_get "${SCRIPTNAME}"_qdisc)" != "0" ]; then
-		{
-			printf "qdisc replace dev %s parent 1:2 handle 102: fq_codel limit 1000 noecn\n" "${tclan}"
-			printf "qdisc replace dev %s parent 1:2 handle 102: fq_codel limit 1000 noecn\n" "${tcwan}"
-			for i in 0 1 2 3 4 5 6 7
-			do
-				printf "qdisc replace dev %s parent 1:1%s handle 11%s: fq_codel %s limit 1000 %s\n" "${tclan}" "${i}" "${i}" "$(get_fq_quantum "${DownCeil}")" "$(get_fq_target "${DownCeil}")"
-				printf "qdisc replace dev %s parent 1:1%s handle 11%s: fq_codel %s limit 1000 %s noecn\n" "${tcwan}" "${i}" "${i}" "$(get_fq_quantum "${UpCeil}")" "$(get_fq_target "${UpCeil}")"
-			done
-		} >> "/tmp/${SCRIPTNAME}_tcrules" 2>/dev/null
-	fi
+	case ${qdisc} in
+	1)	# fq_codel
+		check_nvram
+		if [ "$(${TC} qdisc show dev ${tclan} parent 1: | grep -c fq_codel)" -lt "9" ]; then
+			{
+				printf "qdisc replace dev %s parent 1:2 handle 102: fq_codel limit 1000 noecn\n" "${tclan}"
+				printf "qdisc replace dev %s parent 1:2 handle 102: fq_codel limit 1000 noecn\n" "${tcwan}"
+				for i in 0 1 2 3 4 5 6 7
+				do
+					printf "qdisc replace dev %s parent 1:1%s handle 11%s: fq_codel %s limit 1000 %s\n" "${tclan}" "${i}" "${i}" "$(get_fq_quantum "${DownCeil}")" "$(get_fq_target "${DownCeil}")"
+					printf "qdisc replace dev %s parent 1:1%s handle 11%s: fq_codel %s limit 1000 %s noecn\n" "${tcwan}" "${i}" "${i}" "$(get_fq_quantum "${UpCeil}")" "$(get_fq_target "${UpCeil}")"
+				done
+			} >> "/tmp/${SCRIPTNAME}_tcrules" 2>/dev/null
+		fi
+		;;
+	2)  # CAKE
+		check_nvram
+		if [ "$(${TC} qdisc show dev ${tclan} parent 1:1 | grep -c cake)" -lt "1" ]; then
+			{
+				# Download
+				printf "qdisc del dev %s root\n" "${tclan}"
+				printf "qdisc add dev %s root handle 1: htb default 1\n" "${tclan}"
+				printf "class add dev %s parent 1: classid 1:2 htb prio 0 rate 10Gbit ceil 10Gbit quantum 200000\n" "${tclan}"
+				printf "filter add dev %s parent 1: protocol all prio 1 u32 match mark 0x0000 0xc0000000 flowid 1:2\n" "${tclan}"
+				printf "class add dev %s parent 1: classid 1:1 htb prio 0 rate 10Gbit ceil 10Gbit quantum 200000\n" "${tclan}"
+				printf "qdisc add dev %s parent 1:1 handle 110: cake bandwidth %skbit diffserv4 dual-dsthost ingress %s\n"  "${tclan}" "${DownCeil}" "$(get_overhead)"
+				# Upload
+				printf "qdisc del dev %s root\n" "${tcwan}"
+				printf "qdisc add dev %s root handle 120: cake bandwidth %skbit diffserv4 dual-srchost nat %s\n" "${tcwan}" "${UpCeil}" "$(get_overhead)"
+			} >> "/tmp/${SCRIPTNAME}_tcrules" 2>/dev/null
+		fi
+		;;
+	esac
 } # write_custom_qdisc
 
 check_qos_tc() {
@@ -1583,7 +1835,15 @@ check_qos_tc() {
 	dlqdisccnt="$("${TC}" qdisc show dev br0 | /bin/grep -c " parent 1:1[0-7] ")" # should be 8
 	# Check class count, filter count, qdisc count, and tcwan interface name defined with an htb qdisc
 	if [ "${dlclasscnt}" -lt "8" ] || [ "${dlfiltercnt}" -lt "39" ] || [ "${dlqdisccnt}" -lt "8" ] || [ -z "$("${TC}" qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
-		return 0
+		if [ "${qdisc}" = "2" ]; then
+			# CAKE might already be active, so Adaptive QoS tc structures may not be present
+			dlqdisccnt="$("${TC}" qdisc show dev br0 | /bin/grep -c " cake ")" # should be 1
+			if [ "${dlqdisccnt}" -eq 1 ]; then
+				return 1
+			fi
+		else
+			return 0
+		fi
 	else
 		return 1
 	fi
@@ -1630,6 +1890,23 @@ schedule_check_job() {
 	cru a "${SCRIPTNAME}"_5min "$(/bin/date -D '%s' +'%M %H %d %m %a' -d $(($(/bin/date +%s)+300))) ${SCRIPTPATH} -check"
 } # schedule_check_job
 
+get_cake_stats(){
+	local wanif refresh
+	refresh="$(am_settings_get flexqos_refresh)"
+	refresh="${refresh:=3}"  # default to 3 seconds if unset
+	wanif="$(tc qdisc ls | grep -v br0 | grep cake | cut -d' ' -f5)"
+	while true; do
+		[ -z "$(nvram get login_timestamp)" ] && break
+		STATS_TIME="$(/bin/date +%s)"
+		STATS_UPLOAD="$(tc -s -j qdisc show dev ${wanif} root 2>/dev/null)"
+		STATS_DOWNLOAD="$(tc -s -j qdisc show dev br0 parent 1:1 2>/dev/null)"
+		[ -z "$STATS_UPLOAD" ] && STATS_UPLOAD='[]'
+		[ -z "$STATS_DOWNLOAD" ] && STATS_DOWNLOAD='[]'
+		printf "var tcdata_wan_array=%s;\nvar tcdata_lan_array=%s;\nvar cake_statstime=%d;\n<%% bwdpi_conntrack(); %%>;\n" "$STATS_UPLOAD" "$STATS_DOWNLOAD" "$STATS_TIME" > /www/ext/${SCRIPTNAME}/ajax_gettcdata.asp
+		sleep ${refresh}
+	done &
+}
+
 startup() {
 	local sleepdelay
 	if [ "$(nvram get qos_enable)" != "1" ] || [ "$(nvram get qos_type)" != "1" ]; then
@@ -1637,14 +1914,24 @@ startup() {
 		return 1
 	fi # adaptive qos not enabled
 
+	if [ "${qdisc}" = "2" ] && ! nvram get rc_support | tr ' ' '\n' | grep -q "^cake$"; then
+		logmsg "CAKE is not available in this firmware version. Reverting to fq_codel qdisc."
+		qdisc=1
+	fi
+
 	Check_Lock
 	install_webui mount
 	generate_bwdpi_arrays
 	get_config
 
+	# Check if iptables rules present
+		# htb+fq_codel: compare existing rules in FlexQoS chain to settings
+		# cake: compare existing rules in FlexQoS chain to settings; check for full FlexQoS_DSCP chain populated; check for FlexQoS_AppDB chain populated
+	[ -f "/tmp/${SCRIPTNAME}_iprules" ] && rm "/tmp/${SCRIPTNAME}_iprules"
 	if ! validate_iptables_rules; then
-		write_iptables_rules
 		iptables_static_rules 2>&1 | logger -t "${SCRIPTNAME_DISPLAY}"
+		write_iptables_rules
+		[ "${qdisc}" = "2" ] && write_appdb_rules
 		if [ -s "/tmp/${SCRIPTNAME}_iprules" ]; then
 			logmsg "Applying iptables custom rules"
 			. "/tmp/${SCRIPTNAME}_iprules" 2>&1 | logger -t "${SCRIPTNAME_DISPLAY}"
@@ -1659,6 +1946,12 @@ startup() {
 	fi
 
 	cru d "${SCRIPTNAME}"_5min 2>/dev/null
+
+	# Wait for QoS to finish starting up
+		# is it starting from scratch ?  Count classes, qdiscs and filters
+		# is it a check after a successful start ?
+			# if htb+fq_codel, count classes, qdiscs and filters again.
+			# if cake, check for 2 cake qdiscs and continue
 	sleepdelay=0
 	while check_qos_tc;
 	do
@@ -1684,26 +1977,32 @@ startup() {
 
 	set_tc_variables
 
-	# if TC modifcations have not been applied then run modification script
-	if ! validate_tc_rules; then
-		write_appdb_static_rules
-		write_appdb_rules
-		write_custom_rates
-		write_custom_qdisc
+	[ -f "/tmp/${SCRIPTNAME}_tcrules" ] && rm "/tmp/${SCRIPTNAME}_tcrules"
 
-		if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
-			logmsg "Applying AppDB rules and TC rates"
-			if ! "${TC}" -force -batch "/tmp/${SCRIPTNAME}_tcrules" >"/tmp/${SCRIPTNAME}_tcrules.log" 2>&1; then
-				cp -f "/tmp/${SCRIPTNAME}_tcrules" "/tmp/${SCRIPTNAME}_tcrules.err"
-				logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
-			else
-				rm "/tmp/${SCRIPTNAME}_tmp_tcfilterdown" "/tmp/${SCRIPTNAME}_tmp_tcfilterup" "/tmp/${SCRIPTNAME}_tcrules.log" "/tmp/${SCRIPTNAME}_checktcrules" "/tmp/${SCRIPTNAME}_tcrules.err" 2>/dev/null
-			fi
+	# Update qdisc if not present (fq_codel or cake)
+	# Update classes (htb+fq_codel)
+	# Update appdb filter rules (htb/fq_codel)
+	write_custom_qdisc
+
+	if [ "${qdisc}" != "2" ]; then
+		# if TC modifcations have not been applied then run modification script
+		if ! validate_tc_rules; then
+				write_appdb_static_rules
+				write_appdb_rules
+				write_custom_rates
+		else
+			logmsg "No TC modifications necessary"
 		fi
-
-		schedule_check_job
-	else
-		logmsg "No TC modifications necessary"
+	fi
+	if [ -s "/tmp/${SCRIPTNAME}_tcrules" ]; then
+		logmsg "Applying AppDB rules and TC rates"
+		if ! "${TC}" -force -batch "/tmp/${SCRIPTNAME}_tcrules" >"/tmp/${SCRIPTNAME}_tcrules.log" 2>&1; then
+			cp -f "/tmp/${SCRIPTNAME}_tcrules" "/tmp/${SCRIPTNAME}_tcrules.err"
+			logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
+		else
+			rm "/tmp/${SCRIPTNAME}_tmp_tcfilterdown" "/tmp/${SCRIPTNAME}_tmp_tcfilterup" "/tmp/${SCRIPTNAME}_tcrules.log" "/tmp/${SCRIPTNAME}_checktcrules" "/tmp/${SCRIPTNAME}_tcrules.err" 2>/dev/null
+			schedule_check_job
+		fi
 	fi
 } # startup
 
@@ -1899,6 +2198,9 @@ case "${arg1}" in
 	'noflushct')
 		am_settings_set "${SCRIPTNAME}_conntrack" "0"
 		Yellow "Disabled conntrack flushing."
+		;;
+	stats)
+		get_cake_stats
 		;;
 	*)
 		show_help

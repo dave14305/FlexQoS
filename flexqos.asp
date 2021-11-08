@@ -2728,6 +2728,7 @@ function DelCookie(cookiename){
 		<th>QoS Mode</th>
 		<td>
 			<input type="radio" name="flexqos_qdisc" class="input" value="1">fq_codel
+			<input type="radio" name="flexqos_qdisc" class="input" value="2">CAKE
 			<input type="radio" name="flexqos_qdisc" class="input" value="0">ASUS
 		</td>
 	</tr>
