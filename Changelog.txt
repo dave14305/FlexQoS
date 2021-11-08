@@ -1,4 +1,4 @@
-v1.3.0 (xx-Sep-2021)
+v1.3.0 (07-Nov-2021)
   - NEW: Automatic IPv6 support for iptables rules using local IPv4 CIDRs. Local IPv4 CIDRs are mapped to equivalent IPv6 addresses via MAC address, using iptables and ipsets.
   - CHANGED: Classify outbound DNS, DoT and NTP as Net Control Packets. This traffic previously bypassed QoS.
   - FIXED: Avoid conflicts with Selective Routing fwmarks when combined with Adaptive QoS marks for outbound DNS from router

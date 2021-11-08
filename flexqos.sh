@@ -12,7 +12,7 @@
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
 version=2.0.0
-release=2021-10-31
+release=2021-11-07
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -143,10 +143,10 @@ iptables_static_rules() {
 	iptables -t mangle -D POSTROUTING -j "${SCRIPTNAME_DISPLAY}" 2>/dev/null
 	iptables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}"
 	if [ "${IPv6_enabled}" != "disabled" ]; then
-		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
+		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		# Outbound DNS & NTP
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff
-		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
-		ip6tables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0000/0xc03f0000
+		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		# Outbound DNS and DoT
+		ip6tables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport --dports 53,853 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
@@ -921,6 +921,7 @@ create_ipset() {
 	LOCALIP="${1}"
 	IPV6RASTATE="$(nvram get ipv6_autoconf_type)" # 0=Stateless, 1=Stateful
 	ipset -! create "${LOCALIP}-mac" hash:mac timeout "$(nvram get dhcp_lease)" 2>/dev/null
+	ipset -! flush "${LOCALIP}-mac" 2>/dev/null
 
 	case "${IPv6_enabled}" in
 	dhcp6|other) #Native or Static
@@ -938,11 +939,12 @@ create_ipset() {
 	esac
 
 	ipset -! create "${LOCALIP}" hash:ip family inet6 timeout "${IPV6LIFETIME}" 2>/dev/null
+	ipset -! flush "${LOCALIP}" 2>/dev/null
 
-	printf "iptables -t mangle -D PREROUTING -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist 2>/dev/null\n" "${LOCALIP}" "${LOCALIP}"
-	printf "ip6tables -t mangle -D PREROUTING -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist 2>/dev/null\n" "${LOCALIP}" "${LOCALIP}"
-	printf "iptables -t mangle -I PREROUTING -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist\n" "${LOCALIP}" "${LOCALIP}"
-	printf "ip6tables -t mangle -I PREROUTING -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist\n" "${LOCALIP}" "${LOCALIP}"
+	printf "iptables -t mangle -D PREROUTING -i %s -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist 2>/dev/null\n" "${lan}" "${LOCALIP}" "${LOCALIP}"
+	printf "ip6tables -t mangle -D PREROUTING -i %s -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist 2>/dev/null\n" "${lan}" "${LOCALIP}" "${LOCALIP}"
+	printf "iptables -t mangle -I PREROUTING -i %s -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist\n" "${lan}" "${LOCALIP}" "${LOCALIP}"
+	printf "ip6tables -t mangle -I PREROUTING -i %s -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist\n" "${lan}" "${LOCALIP}" "${LOCALIP}"
 }
 
 parse_iptablerule() {
