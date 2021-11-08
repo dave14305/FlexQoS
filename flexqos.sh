@@ -742,6 +742,7 @@ create_ipset() {
 	LOCALIP="${1}"
 	IPV6RASTATE="$(nvram get ipv6_autoconf_type)" # 0=Stateless, 1=Stateful
 	ipset -! create "${LOCALIP}-mac" hash:mac timeout "$(nvram get dhcp_lease)" 2>/dev/null
+	ipset -! flush "${LOCALIP}-mac" 2>/dev/null
 
 	case "${IPv6_enabled}" in
 	dhcp6|other) #Native or Static
@@ -759,11 +760,12 @@ create_ipset() {
 	esac
 
 	ipset -! create "${LOCALIP}" hash:ip family inet6 timeout "${IPV6LIFETIME}" 2>/dev/null
+	ipset -! flush "${LOCALIP}" 2>/dev/null
 
-	printf "iptables -t mangle -D PREROUTING -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist 2>/dev/null\n" "${LOCALIP}" "${LOCALIP}"
-	printf "ip6tables -t mangle -D PREROUTING -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist 2>/dev/null\n" "${LOCALIP}" "${LOCALIP}"
-	printf "iptables -t mangle -I PREROUTING -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist\n" "${LOCALIP}" "${LOCALIP}"
-	printf "ip6tables -t mangle -I PREROUTING -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist\n" "${LOCALIP}" "${LOCALIP}"
+	printf "iptables -t mangle -D PREROUTING -i %s -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist 2>/dev/null\n" "${lan}" "${LOCALIP}" "${LOCALIP}"
+	printf "ip6tables -t mangle -D PREROUTING -i %s -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist 2>/dev/null\n" "${lan}" "${LOCALIP}" "${LOCALIP}"
+	printf "iptables -t mangle -I PREROUTING -i %s -m conntrack --ctstate NEW -s %s -j SET --add-set %s-mac src --exist\n" "${lan}" "${LOCALIP}" "${LOCALIP}"
+	printf "ip6tables -t mangle -I PREROUTING -i %s -m conntrack --ctstate NEW -m set --match-set %s-mac src -j SET --add-set %s src --exist\n" "${lan}" "${LOCALIP}" "${LOCALIP}"
 }
 
 parse_iptablerule() {
