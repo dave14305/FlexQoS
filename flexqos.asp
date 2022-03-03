@@ -266,12 +266,12 @@ var logarithmicFormatter = function(tickValue, index, ticks) {
 	var significand = tickValue / (Math.pow(10, Math.floor(helpers.log10(tickValue))));
 	var emptyTick = labelOpts.removeEmptyLines === true ? undefined : '';
 	var namedIndex = '';
-	 if (index === 0) {
+	if (index === 0) {
 		namedIndex = 'min';
 	} else if (index === ticks.length - 1) {
 		namedIndex = 'max';
 	}
-	 if (labelOpts === 'all'
+	if (labelOpts === 'all'
 		|| labelSignificand.indexOf(significand) !== -1
 		|| labelIndex.indexOf(index) !== -1
 		|| labelIndex.indexOf(namedIndex) !== -1
@@ -530,7 +530,7 @@ function setsort(newfield) {
 	if (newfield != sortfield) {
 		sortdir = 0;
 		sortfield = newfield;
-	 } else {
+	} else {
 		sortdir = (sortdir ? 0 : 1);
 	}
 }
@@ -1054,7 +1054,7 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 					continue;
 				}
 			}
-		 }
+		}
 
 		// if rule has remote IP specified
 		if (iptables_rules[i][0] & 32)
