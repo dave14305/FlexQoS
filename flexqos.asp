@@ -1287,6 +1287,19 @@ function change_chart_scale(input) {
 			cookie.unset("flexqos_rate_graph_scale");
 			break;
 	}
+
+	var chartObj = window['line_obj_dl'];
+	if ( chartObj ) {
+		lineOptions.title.text = "Download";
+		chartObj.options = lineOptions;
+		chartObj.update();
+	}
+	chartObj = window['line_obj_ul'];
+	if ( chartObj ) {
+		lineOptions.title.text = "Upload";
+		chartObj.options = lineOptions;
+		chartObj.update();
+	}
 } // change_chart_scale
 
 function rate2kbs(rate)
