@@ -1054,6 +1054,9 @@ function eval_rule(CLip, CRip, CProto, CLport, CRport, CCat, CId, CDesc){
 					continue;
 				}
 			}
+			else
+				// is unknown IPv6
+				continue;
 		}
 
 		// if rule has remote IP specified
