@@ -386,7 +386,3 @@ This may be useful for users with IOT devices or cameras that establish connecti
 See <a href="https://www.snbforums.com/forums/asuswrt-merlin-addons.60/?prefix_id=8" rel="nofollow">SmallNetBuilder Forums</a> for more information & discussion
 
 Development issues can be posted here on GitHub under the Issues tab.
-
-## Donate
-
-I'm not in this for the money, but donations are humbly accepted via [PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=KAEKTNUTUDTT4&item_name=FlexQoS+development&currency_code=USD&source=url).
