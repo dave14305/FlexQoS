@@ -127,8 +127,10 @@ iptables_static_rules() {
 	iptables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 	iptables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 	iptables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
-	iptables -t mangle -N "${SCRIPTNAME_DISPLAY}" 2>/dev/null
-	iptables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}"
+	iptables -t mangle -N "${SCRIPTNAME_DISPLAY}_down" 2>/dev/null
+	iptables -t mangle -N "${SCRIPTNAME_DISPLAY}_up" 2>/dev/null
+	iptables -t mangle -A POSTROUTING -o "${lan}" -j "${SCRIPTNAME_DISPLAY}_down"
+	iptables -t mangle -A POSTROUTING -o "${wan}" -j "${SCRIPTNAME_DISPLAY}_up"
 	if [ "${IPv6_enabled}" != "disabled" ]; then
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		# Outbound DNS & NTP
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff
@@ -138,8 +140,10 @@ iptables_static_rules() {
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport ! --dports 53,123 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff > /dev/null 2>&1		#VPN Fix - (Fixes upload traffic not detected when the router is acting as a VPN Client)
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
-		ip6tables -t mangle -N "${SCRIPTNAME_DISPLAY}" 2>/dev/null
-		ip6tables -t mangle -A POSTROUTING -j "${SCRIPTNAME_DISPLAY}"
+		ip6tables -t mangle -N "${SCRIPTNAME_DISPLAY}_down" 2>/dev/null
+		ip6tables -t mangle -N "${SCRIPTNAME_DISPLAY}_up" 2>/dev/null
+		ip6tables -t mangle -A POSTROUTING -o "${lan}" -j "${SCRIPTNAME_DISPLAY}_down"
+		ip6tables -t mangle -A POSTROUTING -o "${wan}" -j "${SCRIPTNAME_DISPLAY}_up"
 	fi
 }
 
@@ -603,7 +607,7 @@ debug() {
 	printf "iptables settings: %s\n" "${ipt_debug:-Defaults}"
 	write_iptables_rules
 	# Remove superfluous commands from the output in order to focus on the parsed details
-	/bin/sed -E "/^ip[6]?tables -t mangle -F ${SCRIPTNAME_DISPLAY}/d; s/ip[6]?tables -t mangle -A ${SCRIPTNAME_DISPLAY} //g; s/[[:space:]]{2,}/ /g" "/tmp/${SCRIPTNAME}_iprules"
+	/bin/sed -E "/^ip[6]?tables -t mangle -F ${SCRIPTNAME_DISPLAY}/d; s/ip[6]?tables -t mangle -A ${SCRIPTNAME_DISPLAY}_(down|up) //g; s/[[:space:]]{2,}/ /g" "/tmp/${SCRIPTNAME}_iprules"
 	printf "**************\n"
 	appdb_debug="$(am_settings_get "${SCRIPTNAME}"_appdb)"
 	printf "appdb rules: %s\n" "${appdb_debug:-Defaults}"
@@ -898,15 +902,15 @@ parse_iptablerule() {
 	# If proto=both we have to create 2 statements, one for tcp and one for udp.
 	for proto in ${PROTOS}; do
 		# download ipv4
-		printf "iptables -t mangle -A %s -o %s %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${lan}" "${DOWN_Lip}" "${DOWN_Rip}" "${proto}" "${DOWN_Lport}" "${DOWN_Rport}" "${DOWN_mark}" "${DOWN_dst}"
+		printf "iptables -t mangle -A %s %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}_down" "${DOWN_Lip}" "${DOWN_Rip}" "${proto}" "${DOWN_Lport}" "${DOWN_Rport}" "${DOWN_mark}" "${DOWN_dst}"
 		# upload ipv4
-		printf "iptables -t mangle -A %s -o %s %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${wan}" "${UP_Lip}" "${UP_Rip}" "${proto}" "${UP_Lport}" "${UP_Rport}" "${UP_mark}" "${UP_dst}"
+		printf "iptables -t mangle -A %s %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}_up" "${UP_Lip}" "${UP_Rip}" "${proto}" "${UP_Lport}" "${UP_Rport}" "${UP_mark}" "${UP_dst}"
 		# If rule contains no IPv4 remote addresses, and IPv6 is enabled, add a corresponding rule for IPv6
 		if [ "${IPv6_enabled}" != "disabled" ] && [ -z "${DOWN_Rip}" ]; then
 			# download ipv6
-			printf "ip6tables -t mangle -A %s -o %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${lan}" "${DOWN_Lip6}" "${proto}" "${DOWN_Lport}" "${DOWN_Rport}" "${DOWN_mark}" "${DOWN_dst}"
+			printf "ip6tables -t mangle -A %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}_down" "${DOWN_Lip6}" "${proto}" "${DOWN_Lport}" "${DOWN_Rport}" "${DOWN_mark}" "${DOWN_dst}"
 			# upload ipv6
-			printf "ip6tables -t mangle -A %s -o %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}" "${wan}" "${UP_Lip6}" "${proto}" "${UP_Lport}" "${UP_Rport}" "${UP_mark}" "${UP_dst}"
+			printf "ip6tables -t mangle -A %s %s -p %s %s %s %s %s\n" "${SCRIPTNAME_DISPLAY}_up" "${UP_Lip6}" "${proto}" "${UP_Lport}" "${UP_Rport}" "${UP_mark}" "${UP_dst}"
 		fi
 	done
 } # parse_iptablerule
@@ -1480,8 +1484,8 @@ validate_iptables_rules() {
 	# Does not verify that the rules present match the rules in the config, since the config hasn't been parsed at this point.
 	local iptables_rules_defined iptables_rules_expected iptables_rulespresent
 	iptables_rules_defined="$(echo "${iptables_rules}" | sed 's/</\n/g' | /bin/grep -vc "^$")"
-	iptables_rules_expected=$((iptables_rules_defined*2+1)) # 1 downlaod and upload rule per user rule, plus 1 for chain definition
-	iptables_rulespresent="$(iptables -t mangle -S ${SCRIPTNAME_DISPLAY} | wc -l)" # count rules in chain plus chain itself
+	iptables_rules_expected=$((iptables_rules_defined+1)) # 1 downlaod and upload rule per user rule, plus 1 for chain definition
+	iptables_rulespresent="$(iptables -t mangle -S ${SCRIPTNAME_DISPLAY}_down | wc -l)" # count rules in chain plus chain itself
 	if [ "${iptables_rulespresent}" -lt "${iptables_rules_expected}" ]; then
 		return 1
 	else
@@ -1494,9 +1498,11 @@ write_iptables_rules() {
 	local OLDIFS
 	local localip remoteip proto lport rport mark class
 	{
-		printf "iptables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}"
+		printf "iptables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}_down"
+		printf "iptables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}_up"
 		if [ "${IPv6_enabled}" != "disabled" ]; then
-			printf "ip6tables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}"
+			printf "ip6tables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}_down"
+			printf "ip6tables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}_up"
 		fi
 	} > "/tmp/${SCRIPTNAME}_iprules"
 	OLDIFS="${IFS}"		# Save existing field separator
