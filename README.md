@@ -2,25 +2,24 @@
 
 ![Shellcheck](https://github.com/dave14305/FlexQoS/actions/workflows/shellcheck.yml/badge.svg)
 
-This script has been tested on ASUS RT-AC68U, running ASUSWRT-Merlin 384.18, using Adaptive QoS with Manual Bandwidth Settings
+This script has been tested on ASUS RT-AC86U, running ASUSWRT-Merlin 386.7_2, using Adaptive QoS with Manual Bandwidth Settings
 
 ## Quick Overview:
 
 - Script allows reclassifying Untracked traffic (mark 000000) from current default class to any class
-- Script Changes Minimum Guaranteed Bandwidth per QoS category to user defined percentages for upload and download.
-- Script allows for multiple custom QoS rules using iptables rules
+- Script changes Minimum Guaranteed Bandwidth per QoS category to user defined percentages for upload and download.
+- Script allows for multiple custom QoS rules using iptables
 - Script allows for redirection of existing identified traffic using AppDB rules
 
 ## Adaptive QoS Setup
 
-1. Enable Adaptive QoS in the router's GUI.
+1. Enable QoS in the router's GUI.
 2. Set QoS Type to Adaptive QoS
 3. Set Bandwidth Setting to Manual Setting
-4. Set WAN packet overhead to match your WAN connection type (up to Merlin v384.19)
-5. Set your Upload Bandwidth in Mb/s to 85-95% of your worst speedtest results without QoS enabled
-6. Set your Download Bandwidth in Mb/s to 85-95% of your worst speedtest results without QoS enabled
-7. Set your QoS priority mode to one of the predefined modes or choose Customize and set your own. If you customize, it is recommended that you keep Learn-From-Home at the bottom of the priority list.
-8. Hit Apply.
+4. Set your Upload Bandwidth in Mb/s to 85-95% of your worst speedtest results without QoS enabled
+5. Set your Download Bandwidth in Mb/s to 85-95% of your worst speedtest results without QoS enabled
+6. Set your QoS priority mode to one of the predefined modes or choose Customize and set your own. If you customize, it is recommended that you keep Learn-From-Home at the bottom of the priority list.
+7. Hit Apply.
 
 ## Installation:
 
@@ -29,12 +28,6 @@ FlexQoS requires ASUSWRT-Merlin version 384.15 or higher.
 In your SSH Client:
 
 ``` /usr/sbin/curl "https://raw.githubusercontent.com/dave14305/FlexQoS/master/flexqos.sh" -o /jffs/addons/flexqos/flexqos.sh --create-dirs && chmod +x /jffs/addons/flexqos/flexqos.sh && sh /jffs/addons/flexqos/flexqos.sh -install ```
-
-If you are migrating from FreshJR_QOS, there is a separate migration script that will convert your old settings to the new FlexQoS format.
-
-``` /usr/sbin/curl "https://raw.githubusercontent.com/dave14305/FlexQoS/master/migrate_FreshJR.sh" -o /jffs/addons/flexqos/migrate_FreshJR.sh --create-dirs && chmod +x /jffs/addons/flexqos/migrate_FreshJR.sh && sh /jffs/addons/flexqos/migrate_FreshJR.sh ```
-
-A backup of your FreshJR_QOS settings will be saved in ```/jffs/addons/flexqos/restore_freshjr_nvram.sh```.
 
 If you are reinstalling FlexQoS and a previous backup file is found at ```/jffs/addons/flexqos/restore_flexqos_settings.sh``` you will be prompted to restore the previous settings.
 
@@ -144,8 +137,6 @@ There is currently a limit of 24 iptables rules to ensure we do not overflow the
 
 Every connection is evaluated against all iptables rules in your rule list, and the last rule to match your connection is the rule that will determine the final priority of that connection. If multiple iptables rules can match your connection, be sure that your most important rule is at the bottom of the list.
 
-Add your rules carefully because you cannot change the order of existing rules once created. You will need to delete and re-add to the bottom of the list to get the desired sequence of rules. Duplicate rules are not allowed.
-
 FlexQoS installs with the following default iptables rules:
 
 * WiFi Calling: Remote UDP ports 500 and 4500 to Work-From-Home
@@ -169,7 +160,9 @@ If you wish to create the Gaming rule manually, add a rule with these parameters
 
 Additional well-known rules are available in the "Add Well-Known iptables Rule" dropdown list, including the built-in default rules in case you delete them and want to later put them back.
 
-iptables rules that do not specify any IPv4 local or remote IP addresses will also apply to IPv6 traffic. IPv6 addresses are not permitted in any rule.
+To re-order your rules, you can delete rules from the list and re-add them in your preferred order by selecting them from the "Add Well-Known iptables Rule" menu under the *User-defined rules* section. Duplicate rules are not allowed.
+
+iptables rules that do not specify any IPv4 remote IP addresses will also apply to IPv6 traffic. IPv6 addresses are not permitted in any rule.
 
 #### AppDB Redirection Rules
 
