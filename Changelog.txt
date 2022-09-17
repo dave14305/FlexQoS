@@ -1,3 +1,12 @@
+v1.3.2 (16-Sep-2022)
+  - CHANGED: Split iptables rules into separate upload and download chains to avoid unnecessary rule traversal
+  - CHANGED: Tweaked 'debug' command output formatting for better readability
+
+v1.3.1 (15-Mar-2022)
+  - FIXED: IPv6 connections sometimes incorrectly mapped to an incorrect rule with a local IPv4 address defined.
+  - CHANGED: Changing graph scale from Linear to Logarithmic is now instantaneous instead of waiting until the next refresh.
+  - REMOVED: FreshJR_QOS migration script
+
 v1.3.0 (07-Nov-2021)
   - NEW: Automatic IPv6 support for iptables rules using local IPv4 CIDRs. Local IPv4 CIDRs are mapped to equivalent IPv6 addresses via MAC address, using iptables and ipsets.
   - CHANGED: Classify outbound DNS, DoT and NTP as Net Control Packets. This traffic previously bypassed QoS.
