@@ -1586,7 +1586,7 @@ check_qos_tc() {
 	# Check the status of the existing tc class and filter setup by stock Adaptive QoS before custom settings applied.
 	# Only br0 interface is checked since we have not yet identified the tcwan interface name yet.
 	dlclasscnt="$("${TC}" class show dev br0 parent 1: | /bin/grep -c "parent")" # should be 8
-	dlfiltercnt="$("${TC}" filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7] *$")" # should be 39 or 40
+	dlfiltercnt="$("${TC}" filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7]")" # should be 39 or 40
 	dlqdisccnt="$("${TC}" qdisc show dev br0 | /bin/grep -c " parent 1:1[0-7] ")" # should be 8
 	# Check class count, filter count, qdisc count, and tcwan interface name defined with an htb qdisc
 	if [ "${dlclasscnt}" -lt "8" ] || [ "${dlfiltercnt}" -lt "39" ] || [ "${dlqdisccnt}" -lt "8" ] || [ -z "$("${TC}" qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
