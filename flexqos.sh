@@ -341,9 +341,9 @@ set_tc_variables() {
 	# Determine the WAN interface name used by tc by finding the existing htb root qdisc that is NOT br0.
 	# If not found, check the dev_wan file created by Adaptive QoS.
 	# If still not determined, assume eth0 but something is probably wrong at this point.
-	tcwan="$("${TC}" qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')"
+	tcwan="$("${TC}" qdisc show root | sed -nE '/dev br[0-9] root/d; s/^qdisc htb 1: dev ([a-z0-9]+) root.*$/\1/p')"
 	if [ -z "${tcwan}" ] && [ -s "/tmp/bwdpi/dev_wan" ]; then
-		tcwan="$(/bin/grep -oE "eth[0-9]|usb[0-9]" /tmp/bwdpi/dev_wan)"
+		tcwan="$(/bin/grep -oE "eth[0-9]|usb[0-9]|bond[0-9]" /tmp/bwdpi/dev_wan)"
 	fi
 	if [ -z "${tcwan}" ]; then
 		tcwan="eth0"
@@ -1589,7 +1589,7 @@ check_qos_tc() {
 	dlfiltercnt="$("${TC}" filter show dev br0 parent 1: | /bin/grep -cE "flowid 1:1[0-7]")" # should be 39 or 40
 	dlqdisccnt="$("${TC}" qdisc show dev br0 | /bin/grep -c " parent 1:1[0-7] ")" # should be 8
 	# Check class count, filter count, qdisc count, and tcwan interface name defined with an htb qdisc
-	if [ "${dlclasscnt}" -lt "8" ] || [ "${dlfiltercnt}" -lt "39" ] || [ "${dlqdisccnt}" -lt "8" ] || [ -z "$("${TC}" qdisc ls | sed -n 's/qdisc htb.*dev \([^b][^r].*\) root.*/\1/p')" ]; then
+	if [ "${dlclasscnt}" -lt "8" ] || [ "${dlfiltercnt}" -lt "39" ] || [ "${dlqdisccnt}" -lt "8" ] || [ -z "$("${TC}" qdisc show root | sed -nE '/dev br[0-9] root/d; s/^qdisc htb 1: dev ([a-z0-9]+) root.*$/\1/p')" ]; then
 		return 0
 	else
 		return 1
