@@ -11,8 +11,8 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
-version=1.3.3
-release=2023-08-09
+version=1.3.4
+release=2023-09-21
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -879,8 +879,11 @@ parse_iptablerule() {
 			UP_mark="${UP_mark} --mark 0x40${tmpMark}/0xc03fffff"
 		fi
 	else
-		DOWN_mark=""
-		UP_mark=""
+		# filter on valid download and upload marks, to workaround
+		# crashes on HND5.04 routers when mark changes to 0x10000000
+		# due to new features in versions 388.3 and higher
+		DOWN_mark="-m mark --mark 0x80000000/0xc0000000"
+		UP_mark="-m mark --mark 0x40000000/0xc0000000"
 	fi
 
 	# if all parameters are empty stop processing the rule
