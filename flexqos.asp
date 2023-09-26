@@ -148,6 +148,7 @@ box-shadow: #6C604F 5px 0px 0px 0px inset;
 </style>
 
 <script>
+AUTOLOGOUT_MAX_MINUTE = 0;
 <% login_state_hook(); %>
 var custom_settings = <% get_custom_settings(); %>;
 var tabledata;		//tabled of tracked connections after device-filtered
