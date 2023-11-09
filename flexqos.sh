@@ -11,8 +11,8 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
-version=1.3.4
-release=2023-09-21
+version=1.3.5
+release=2023-11-08
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -129,8 +129,8 @@ iptables_static_rules() {
 	iptables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 	iptables -t mangle -N "${SCRIPTNAME_DISPLAY}_down" 2>/dev/null
 	iptables -t mangle -N "${SCRIPTNAME_DISPLAY}_up" 2>/dev/null
-	iptables -t mangle -A POSTROUTING -o "${lan}" -j "${SCRIPTNAME_DISPLAY}_down"
-	iptables -t mangle -A POSTROUTING -o "${wan}" -j "${SCRIPTNAME_DISPLAY}_up"
+	iptables -t mangle -A POSTROUTING -o "${lan}" -m mark --mark 0x80000000/0xc0000000 -j "${SCRIPTNAME_DISPLAY}_down"
+	iptables -t mangle -A POSTROUTING -o "${wan}" -m mark --mark 0x40000000/0xc0000000 -j "${SCRIPTNAME_DISPLAY}_up"
 	if [ "${IPv6_enabled}" != "disabled" ]; then
 		ip6tables -t mangle -D OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff > /dev/null 2>&1		# Outbound DNS & NTP
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p udp -m multiport --dports 53,123 -j MARK --set-mark 0x40"${Net_mark}"0fff/0xc03f0fff
@@ -142,8 +142,8 @@ iptables_static_rules() {
 		ip6tables -t mangle -A OUTPUT -o "${wan}" -p tcp -m multiport ! --dports 53,853 -j MARK --set-mark 0x40"${OUTPUTCLS}"ffff/0xc03fffff
 		ip6tables -t mangle -N "${SCRIPTNAME_DISPLAY}_down" 2>/dev/null
 		ip6tables -t mangle -N "${SCRIPTNAME_DISPLAY}_up" 2>/dev/null
-		ip6tables -t mangle -A POSTROUTING -o "${lan}" -j "${SCRIPTNAME_DISPLAY}_down"
-		ip6tables -t mangle -A POSTROUTING -o "${wan}" -j "${SCRIPTNAME_DISPLAY}_up"
+		ip6tables -t mangle -A POSTROUTING -o "${lan}" -m mark --mark 0x80000000/0xc0000000 -j "${SCRIPTNAME_DISPLAY}_down"
+		ip6tables -t mangle -A POSTROUTING -o "${wan}" -m mark --mark 0x40000000/0xc0000000 -j "${SCRIPTNAME_DISPLAY}_up"
 	fi
 }
 
@@ -879,11 +879,8 @@ parse_iptablerule() {
 			UP_mark="${UP_mark} --mark 0x40${tmpMark}/0xc03fffff"
 		fi
 	else
-		# filter on valid download and upload marks, to workaround
-		# crashes on HND5.04 routers when mark changes to 0x10000000
-		# due to new features in versions 388.3 and higher
-		DOWN_mark="-m mark --mark 0x80000000/0xc0000000"
-		UP_mark="-m mark --mark 0x40000000/0xc0000000"
+		DOWN_mark=""
+		UP_mark=""
 	fi
 
 	# if all parameters are empty stop processing the rule
