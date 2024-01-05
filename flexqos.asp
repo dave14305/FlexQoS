@@ -814,9 +814,25 @@ function get_qos_class(category, appid) {
 	return 7;
 }
 
+// Reference: https://stackoverflow.com/a/74494129
 function compIPV6(input) {
-	input = input.replace(/\b(?:0+:){2,}/, ':');
-	return input.replace(/(^|:)0{1,4}/g, ':');
+  //First remove the leading 0s of the octets. If it's '0000', replace with '0'
+  let output = input.split(':').map(terms => terms.replace(/\b0+/g, '') || '0').join(":");
+
+  //Then search for all occurrences of continuous '0' octets
+  let zeros = [...output.matchAll(/\b:?(?:0+:?){2,}/g)];
+
+  //If there are occurences, see which is the longest one and replace it with '::'
+  if (zeros.length > 0) {
+	let max = '';
+	zeros.forEach(item => {
+		if (item[0].replaceAll(':', '').length > max.replaceAll(':', '').length) {
+			max = item[0];
+		}
+	})
+	output = output.replace(max, '::');
+  }
+  return output;
 }
 
 function create_rule(Lip, Rip, Proto, Lport, Rport, Mark, Dst, Desc){
