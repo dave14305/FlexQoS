@@ -338,15 +338,10 @@ set_tc_variables() {
 	local i
 
 	tclan="br0"
-	# Determine the WAN interface name used by tc by finding the existing htb root qdisc that is NOT br0.
-	# If not found, check the dev_wan file created by Adaptive QoS.
-	# If still not determined, assume eth0 but something is probably wrong at this point.
-	tcwan="$("${TC}" qdisc ls | sed -nE '/dev br[0-9] root/d; s/^qdisc htb 1: dev ([a-z0-9]+) root.*$/\1/p')"
-	if [ -z "${tcwan}" ] && [ -s "/tmp/bwdpi/dev_wan" ]; then
-		tcwan="$(/bin/grep -oE "eth[0-9]|usb[0-9]|bond[0-9]" /tmp/bwdpi/dev_wan)"
-	fi
-	if [ -z "${tcwan}" ]; then
-		tcwan="eth0"
+	if [ -f /sys/module/tdts_udb/parameters/qos_wan ]; then
+		tcwan="$(cat /sys/module/tdts_udb/parameters/qos_wan)"
+	else
+		tcwan="$(nvram get wan_ifname)"
 	fi
 
 	# Detect the default filter rule for Untracked traffic (Mark 000000) if it exists.
