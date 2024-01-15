@@ -157,8 +157,13 @@ var sortdir = 0;
 var sortfield = 5;
 var dhcp_start = '<% nvram_get("dhcp_start"); %>';
 dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
+var ipv6_service = '<% nvram_get("ipv6_service"); %>';
 var ipv6_prefix = '<% nvram_get("ipv6_prefix"); %>';
-ipv6_prefix = ipv6_prefix.substr(0, ipv6_prefix.lastIndexOf("::")+1);
+if ( ipv6_service != "disabled" )
+	ipv6_prefix = ipv6_prefix.substr(0, ipv6_prefix.lastIndexOf("::")+1);
+else
+	ipv6_prefix = "";
+
 <% get_ipv6net_array(); %>
 
 const iptables_default_rules = "<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>5";
@@ -465,7 +470,7 @@ function draw_conntrack_table() {
 		}
 
 		//SHOW LOCAL DEVICES AT LEFT SIDE OF TABLE (FLIP POSITION IF REQUIRED)
-		if (bwdpi_conntrack[i][3].startsWith(dhcp_start) || bwdpi_conntrack[i][3].startsWith(ipv6_prefix))
+		if (bwdpi_conntrack[i][3].startsWith(dhcp_start) || (ipv6_service != "disabled" && bwdpi_conntrack[i][3].startsWith(ipv6_prefix)))
 		{
 			var temp = bwdpi_conntrack[i][3];
 			bwdpi_conntrack[i][3] = bwdpi_conntrack[i][1];
