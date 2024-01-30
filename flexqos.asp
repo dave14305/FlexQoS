@@ -160,9 +160,12 @@ dhcp_start = dhcp_start.substr(0, dhcp_start.lastIndexOf(".")+1);
 var ipv6_service = '<% nvram_get("ipv6_service"); %>';
 var ipv6_prefix = '<% nvram_get("ipv6_prefix"); %>';
 if ( ipv6_service != "disabled" )
-	ipv6_prefix = ipv6_prefix.substr(0, ipv6_prefix.lastIndexOf("::")+1);
+	if ( ipv6_prefix )
+		ipv6_prefix = ipv6_prefix.substr(0, ipv6_prefix.lastIndexOf("::")+1);
+	else
+		ipv6_prefix = "none";
 else
-	ipv6_prefix = "";
+	ipv6_prefix = "none";
 
 <% get_ipv6net_array(); %>
 
