@@ -1344,7 +1344,7 @@ Firmware_Check() {
 
 install() {
 	# Install script and download webui file
-	# This is also called by the update process once a new script is downlaoded by update() function
+	# This is also called by the update process once a new script is downloaded by update() function
 	if [ "${mode}" = "interactive" ]; then
 		clear
 		scriptinfo
@@ -1479,7 +1479,7 @@ validate_iptables_rules() {
 	# Does not verify that the rules present match the rules in the config, since the config hasn't been parsed at this point.
 	local iptables_rules_defined iptables_rules_expected iptables_rulespresent
 	iptables_rules_defined="$(echo "${iptables_rules}" | sed 's/</\n/g' | /bin/grep -vc "^$")"
-	iptables_rules_expected=$((iptables_rules_defined+1)) # 1 downlaod and upload rule per user rule, plus 1 for chain definition
+	iptables_rules_expected=$((iptables_rules_defined+1)) # 1 download and upload rule per user rule, plus 1 for chain definition
 	iptables_rulespresent="$(iptables -t mangle -S ${SCRIPTNAME_DISPLAY}_down | wc -l)" # count rules in chain plus chain itself
 	if [ "${iptables_rulespresent}" -lt "${iptables_rules_expected}" ]; then
 		return 1
