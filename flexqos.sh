@@ -11,6 +11,7 @@
 # FlexQoS maintained by dave14305
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
+# amtm NoMD5check
 version=1.3.5
 release=2023-11-08
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
