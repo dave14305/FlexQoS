@@ -1571,12 +1571,12 @@ write_custom_qdisc() {
 	local i
 	if [ "$(am_settings_get "${SCRIPTNAME}"_qdisc)" != "0" ]; then
 		{
-			printf "qdisc replace dev %s parent 1:2 handle 102: fq_codel limit 1000 noecn\n" "${tclan}"
-			printf "qdisc replace dev %s parent 1:2 handle 102: fq_codel limit 1000 noecn\n" "${tcwan}"
+			printf "qdisc replace dev %s parent 1:2 handle 102: fq_codel noecn\n" "${tclan}"
+			printf "qdisc replace dev %s parent 1:2 handle 102: fq_codel noecn\n" "${tcwan}"
 			for i in 0 1 2 3 4 5 6 7
 			do
-				printf "qdisc replace dev %s parent 1:1%s handle 11%s: fq_codel %s limit 1000 %s\n" "${tclan}" "${i}" "${i}" "$(get_fq_quantum "${DownCeil}")" "$(get_fq_target "${DownCeil}")"
-				printf "qdisc replace dev %s parent 1:1%s handle 11%s: fq_codel %s limit 1000 %s noecn\n" "${tcwan}" "${i}" "${i}" "$(get_fq_quantum "${UpCeil}")" "$(get_fq_target "${UpCeil}")"
+				printf "qdisc replace dev %s parent 1:1%s handle 11%s: fq_codel %s %s\n" "${tclan}" "${i}" "${i}" "$(get_fq_quantum "${DownCeil}")" "$(get_fq_target "${DownCeil}")"
+				printf "qdisc replace dev %s parent 1:1%s handle 11%s: fq_codel %s %s noecn\n" "${tcwan}" "${i}" "${i}" "$(get_fq_quantum "${UpCeil}")" "$(get_fq_target "${UpCeil}")"
 			done
 		} >> "/tmp/${SCRIPTNAME}_tcrules" 2>/dev/null
 	fi
