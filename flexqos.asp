@@ -266,6 +266,13 @@ Number.prototype.toLocaleFixed = function(n) {
 	});
 };
 
+helpcontent["FlexQoS"] = new Array("",
+"Choose the queue discipline used with each QoS class. fq_codel replaces the default htb+sfq structure.",
+"Control Broadcom Flow Cache for iptables conflicts. Auto will disable flow cache only if iptables rules are present, flow cache is active, and ISP bandwidth is less than 400 Mbps. Auto is the default.",
+"After new rules are applied, flush the existing connection tracking so all connections are re-evaluated against the new iptables rules.",
+"Assign a QoS class to outbound traffic originating from the router such as VPN client traffic, amtm updates, etc."
+);
+
 /* helper function from https://github.com/chartjs/Chart.js/issues/4722#issuecomment-353067548 */
 var helpers = Chart.helpers;
 /* logarithmic formatter function */
@@ -2778,7 +2785,7 @@ function DelCookie(cookiename){
 		</td>
 	</tr>
 	<tr>
-		<th>QoS Mode</th>
+		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint('FlexQoS',1);">QoS Mode</th>
 		<td>
 			<input type="radio" name="flexqos_qdisc" class="input" value="1">fq_codel
 			<input type="radio" name="flexqos_qdisc" class="input" value="0">ASUS
@@ -2795,7 +2802,7 @@ function DelCookie(cookiename){
 		</td>
 	</tr>
 	<tr>
-		<th>Flowcache Control</th>
+		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint('FlexQoS',2);">Flow Cache Control</th>
 		<td>
 			<select name="flexqos_fccontrol" id="flexqos_fccontrol" class="input_option">
 				<option value="0">Off</option>
@@ -2804,14 +2811,14 @@ function DelCookie(cookiename){
 			</select>
 	</tr>
 	<tr>
-		<th>Enable Conntrack Flushing</th>
+		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint('FlexQoS',3);">Enable Conntrack Flushing</th>
 		<td>
 			<input type="radio" name="flexqos_conntrack" class="input" value="1">Yes
 			<input type="radio" name="flexqos_conntrack" class="input" value="0">No
 		</td>
 	</tr>
 	<tr>
-		<th>Router/VPN Client Outbound Traffic Class</th>
+		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint('FlexQoS',4);">Router/VPN Client Outbound Traffic Class</th>
 		<td>
 			<select name="flexqos_outputcls" id="flexqos_outputcls" class="input_option">
 			</select>
