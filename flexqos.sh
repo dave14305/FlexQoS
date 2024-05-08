@@ -1472,6 +1472,10 @@ EOF
 			sed -i "/^${SCRIPTNAME}_bandwidth /d" /jffs/addons/custom_settings.txt
 		fi
 	fi
+	fccontrol="$(am_settings_get "${SCRIPTNAME}"_fccontrol)"
+	if [ -z "${fccontrol}" ]; then
+		fccontrol="2" # default to Auto from GUI
+	fi
 } # get_config
 
 validate_iptables_rules() {
@@ -1644,6 +1648,29 @@ startup() {
 	install_webui mount
 	generate_bwdpi_arrays
 	get_config
+
+	case "$(uname -r)" in
+	4.19.*)
+		if \
+		[ "$(nvram get qos_ibw)" -lt 409600 ] && \
+		[ "$(nvram get qos_obw)" -lt 409600 ] && \
+		[ "$(nvram get fc_disable)" = "0" ] && \
+		[ -n "$iptables_rules" ] && \
+		[ "${fccontrol}" = "2" ]
+		then
+			logmsg "Auto-disabling flowcache"
+			fc disable
+			fc flush
+		elif \
+		[ -n "$iptables_rules" ] && \
+		[ "${fccontrol}" = "1" ]
+		then
+			logmsg "Disabling flowcache"
+			fc disable
+			fc flush
+		fi
+		;;
+	esac
 
 	if ! validate_iptables_rules; then
 		write_iptables_rules

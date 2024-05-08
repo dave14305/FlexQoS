@@ -2108,6 +2108,11 @@ function set_FlexQoS_mod_vars()
 		}
 	}
 
+	if ( custom_settings.flexqos_fccontrol == undefined )		// auto
+		document.form.flexqos_fccontrol.value = "2";
+	else
+		document.form.flexqos_fccontrol.value = custom_settings.flexqos_fccontrol;
+
 	if ( custom_settings.flexqos_conntrack == undefined )		// disabled
 		document.form.flexqos_conntrack.value = "1";
 	else
@@ -2291,6 +2296,11 @@ function FlexQoS_mod_apply() {
 		delete custom_settings.flexqos_bwrates;
 	else
 		custom_settings.flexqos_bwrates = bandwidth;
+	if (document.form.flexqos_fccontrol.value == 2)
+		delete custom_settings.flexqos_fccontrol;
+	else
+		custom_settings.flexqos_fccontrol = document.form.flexqos_fccontrol.value;
+
 	if (custom_settings.flexqos_conntrack) {					// already saved so assume enabled
 		if (document.form.flexqos_conntrack.value == 1)		// if enabled in the GUI
 			delete custom_settings.flexqos_conntrack;
@@ -2783,6 +2793,15 @@ function DelCookie(cookiename){
 			<input style="margin-left:40px;" type="checkbox" name="qos_atm_x" id="qos_atm_x" <% nvram_match("qos_atm", "1", "checked"); %>>
 			<label for="qos_atm_x">ATM</label>
 		</td>
+	</tr>
+	<tr>
+		<th>Flowcache Control</th>
+		<td>
+			<select name="flexqos_fccontrol" id="flexqos_fccontrol" class="input_option">
+				<option value="0">Off</option>
+				<option value="1">On</option>
+				<option value="2">Auto</option>
+			</select>
 	</tr>
 	<tr>
 		<th>Enable Conntrack Flushing</th>
