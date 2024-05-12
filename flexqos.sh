@@ -1474,7 +1474,7 @@ EOF
 	fi
 	fccontrol="$(am_settings_get "${SCRIPTNAME}"_fccontrol)"
 	if [ -z "${fccontrol}" ]; then
-		fccontrol="2" # default to Auto from GUI
+		fccontrol="0" # default to Off from GUI
 	fi
 } # get_config
 

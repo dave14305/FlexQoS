@@ -267,8 +267,8 @@ Number.prototype.toLocaleFixed = function(n) {
 };
 
 helpcontent["FlexQoS"] = new Array("",
-"Choose the queue discipline used with each QoS class. fq_codel replaces the default htb+sfq structure.",
-"Control Broadcom Flow Cache for iptables conflicts. Auto will disable flow cache only if iptables rules are present, flow cache is active, and ISP bandwidth is less than 400 Mbps. Auto is the default.",
+"Choose the queue discipline used with each QoS class. fq_codel replaces the default ASUS htb+sfq structure.",
+"Control Broadcom Flow Cache for iptables conflicts. Auto will disable flow cache only if iptables rules are present, flow cache is active, and ISP bandwidth is less than 400 Mbps. Off is the default.",
 "After new rules are applied, flush the existing connection tracking so all connections are re-evaluated against the new iptables rules.",
 "Assign a QoS class to outbound traffic originating from the router such as VPN client traffic, amtm updates, etc."
 );
@@ -2116,7 +2116,7 @@ function set_FlexQoS_mod_vars()
 	}
 
 	if ( custom_settings.flexqos_fccontrol == undefined )		// auto
-		document.form.flexqos_fccontrol.value = "2";
+		document.form.flexqos_fccontrol.value = "0";
 	else
 		document.form.flexqos_fccontrol.value = custom_settings.flexqos_fccontrol;
 
@@ -2303,7 +2303,7 @@ function FlexQoS_mod_apply() {
 		delete custom_settings.flexqos_bwrates;
 	else
 		custom_settings.flexqos_bwrates = bandwidth;
-	if (document.form.flexqos_fccontrol.value == 2)
+	if (document.form.flexqos_fccontrol.value == 0)
 		delete custom_settings.flexqos_fccontrol;
 	else
 		custom_settings.flexqos_fccontrol = document.form.flexqos_fccontrol.value;
