@@ -772,6 +772,8 @@ function initial() {
 	// Setup appdb auto-complete menu
 	autocomplete(document.getElementById("appdb_search_x"), catdb_label_array);
 	build_overhead_presets();
+	if (based_modelid == "RT-AX88U_PRO" || based_modelid == "GT-AX11000_PRO" || based_modelid == "GT-AX6000" || based_modelid == "GT-AXE16000" || based_modelid == "RT-AX86U_PRO" || based_modelid == "XT12" )
+		document.getElementById('flexqos_fccontrol_tr').style.display = "";
 }
 
 function build_overhead_presets(){
@@ -2801,7 +2803,7 @@ function DelCookie(cookiename){
 			<label for="qos_atm_x">ATM</label>
 		</td>
 	</tr>
-	<tr>
+	<tr id="flexqos_fccontrol_tr" style="display:none;">
 		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint('FlexQoS',2);">Flow Cache Control</th>
 		<td>
 			<select name="flexqos_fccontrol" id="flexqos_fccontrol" class="input_option">
