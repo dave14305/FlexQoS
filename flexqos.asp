@@ -2033,7 +2033,7 @@ function set_FlexQoS_mod_vars()
 			iptables_rulelist_array = iptables_default_rules;
 			iptables_rulename_array = decodeURIComponent(iptables_default_rulenames);
 		}
-	else { // rules are migrated to new API variables
+	else if ( custom_settings.flexqos_iptables != "0" ) { // rules are migrated to new API variables
 		iptables_rulelist_array = custom_settings.flexqos_iptables;
 		if ( custom_settings.flexqos_iptables_names == undefined ) {
 			iptables_rulename_array = "";
@@ -2249,17 +2249,22 @@ function FlexQoS_mod_apply() {
 
 	iptables_rulelist_array = "";
 	iptables_rulename_array = "";
-	for(var i = 0; i < iptables_temp_array.length; i++) {
-		if(iptables_temp_array[i].length != 0) {
-			iptables_rulelist_array += "<";
-			iptables_rulename_array += "<";
-			for(var j = 0; j < iptables_temp_array[i].length; j++) {
-				if ( j == 0 )
-					iptables_rulename_array += encodeURIComponent(iptables_temp_array[i][j]);
-				else {
-					iptables_rulelist_array += iptables_temp_array[i][j];
-					if( (j + 1) != iptables_temp_array[i].length)
-						iptables_rulelist_array += ">";
+
+	if ( iptables_temp_array.length == 0 )
+		iptables_rulelist_array = "0";
+	else {
+		for(var i = 0; i < iptables_temp_array.length; i++) {
+			if(iptables_temp_array[i].length != 0) {
+				iptables_rulelist_array += "<";
+				iptables_rulename_array += "<";
+				for(var j = 0; j < iptables_temp_array[i].length; j++) {
+					if ( j == 0 )
+						iptables_rulename_array += encodeURIComponent(iptables_temp_array[i][j]);
+					else {
+						iptables_rulelist_array += iptables_temp_array[i][j];
+						if( (j + 1) != iptables_temp_array[i].length)
+							iptables_rulelist_array += ">";
+					}
 				}
 			}
 		}
@@ -2292,6 +2297,9 @@ function FlexQoS_mod_apply() {
 	}
 	if (iptables_rulelist_array == iptables_default_rules && iptables_rulename_array == iptables_default_rulenames) {
 		delete custom_settings.flexqos_iptables;
+		delete custom_settings.flexqos_iptables_names;
+	} else if ( iptables_rulelist_array == 0 ) {
+		custom_settings.flexqos_iptables = iptables_rulelist_array;
 		delete custom_settings.flexqos_iptables_names;
 	} else {
 		custom_settings.flexqos_iptables = iptables_rulelist_array;

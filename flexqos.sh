@@ -1443,6 +1443,8 @@ get_config() {
 	iptables_rules="$(am_settings_get "${SCRIPTNAME}"_iptables)"
 	if [ -z "${iptables_rules}" ]; then
 		iptables_rules="<>>udp>>500,4500>>3<>>udp>16384:16415>>>3<>>tcp>>119,563>>5<>>tcp>>80,443>08****>5"
+	elif [ "${iptables_rules}" = "0" ]; then
+		iptables_rules=""
 	fi
 	appdb_rules="$(am_settings_get "${SCRIPTNAME}"_appdb)"
 	if [ -z "${appdb_rules}" ]; then
@@ -1482,6 +1484,10 @@ validate_iptables_rules() {
 	# Basic check to ensure the number of rules present in the iptables chain matches the number of expected rules
 	# Does not verify that the rules present match the rules in the config, since the config hasn't been parsed at this point.
 	local iptables_rules_defined iptables_rules_expected iptables_rulespresent
+
+	if [ "${iptables_rules}" = "0" ]; then
+		return 0
+	fi
 	iptables_rules_defined="$(echo "${iptables_rules}" | sed 's/</\n/g' | /bin/grep -vc "^$")"
 	iptables_rules_expected=$((iptables_rules_defined+1)) # 1 download and upload rule per user rule, plus 1 for chain definition
 	iptables_rulespresent="$(iptables -t mangle -S ${SCRIPTNAME_DISPLAY}_down | wc -l)" # count rules in chain plus chain itself
@@ -1496,6 +1502,9 @@ write_iptables_rules() {
 	# loop through iptables rules and write an iptables command to a temporary file for later execution
 	local OLDIFS
 	local localip remoteip proto lport rport mark class
+	if [ "${iptables_rules}" = "0" ]; then
+		return 0
+	fi
 	{
 		printf "iptables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}_down"
 		printf "iptables -t mangle -F %s 2>/dev/null\n" "${SCRIPTNAME_DISPLAY}_up"
@@ -1655,14 +1664,14 @@ startup() {
 		[ "$(nvram get qos_ibw)" -lt 409600 ] && \
 		[ "$(nvram get qos_obw)" -lt 409600 ] && \
 		[ "$(nvram get fc_disable)" = "0" ] && \
-		[ -n "$iptables_rules" ] && \
+		[ "${iptables_rules}" != "0" ] && \
 		[ "${fccontrol}" = "2" ]
 		then
 			logmsg "Auto-disabling flowcache"
 			fc disable
 			fc flush
 		elif \
-		[ -n "$iptables_rules" ] && \
+		[ "${iptables_rules}" != "0" ] && \
 		[ "${fccontrol}" = "1" ]
 		then
 			logmsg "Disabling flowcache"
@@ -1684,8 +1693,6 @@ startup() {
 				/usr/sbin/conntrack -F conntrack >/dev/null 2>&1
 			fi
 		fi
-	else
-		logmsg "iptables rules already present"
 	fi
 
 	cru d "${SCRIPTNAME}"_5min 2>/dev/null
