@@ -1,3 +1,28 @@
+v1.4.1 (13-May-2024)
+  - CHANGED: Allow all iptables rules to be deleted. Previously, removing all iptables rules was equivalent to resetting to the default rules.
+
+v1.4.0 (11-May-2024)
+  - NEW: Added flow control option, letting users with HND5.04 routers disable Broadcom flow cache if they want iptables rules to work as intended.
+    This option is off by  default and includes an Auto setting that will only disable flow cache if iptables rules are configured AND the QoS bandwidth is less than 400 Mbps.
+  - CHANGED: Prevent auto-logout on WebUI page
+  - CHANGED: Improved IPv6 address compression algorithm in Tracked Connections
+  - CHANGED: Ensure local IPv6 addresses always appear as local in Tracked Connections
+  - CHANGED: Simplify WAN interface detection logic to account for newer router permutations
+  - CHANGED: Prevent amtm from detecting hotfix/minor updates. Only version bumps will trigger an amtm update prompt.
+  - CHANGED: Added tooltip help popups on some FlexQoS WebUI options
+  - REMOVED: fq_codel queue limit of 1024 was removed, letting 10240 default value prevail.
+
+v1.3.5 (08-Nov-2023)
+  - CHANGED: Move iptables mark filter to POSTROUTING chain instead of individual rules
+  - FIXED: WAN interface detection on older routers with older iproute2 versions
+
+v1.3.4 (21-Sep-2023)
+  - CHANGED: Workaround new skb mark behavior affecting iptables rules on HND5.04 routers by ignoring packets that do not have the usual download or upload mark mask.
+
+v1.3.3 (09-Aug-2023)
+  - FIXED: tc filter detection was broken on newer HND5.04 routers with kernel 4.19
+  - FIXED: WAN interface detection for bonded interfaces (e.g. bond1)
+
 v1.3.2 (16-Sep-2022)
   - CHANGED: Split iptables rules into separate upload and download chains to avoid unnecessary rule traversal
   - CHANGED: Tweaked 'debug' command output formatting for better readability
