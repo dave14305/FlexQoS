@@ -2024,8 +2024,6 @@ function set_FlexQoS_mod_vars()
 {
 	if ( custom_settings.flexqos_ver != undefined )
 		document.getElementById("flexqos_version").innerText = "v" + custom_settings.flexqos_ver;
-	if ( custom_settings.flexqos_branch != undefined )
-		document.getElementById("flexqos_version").innerText += " Dev";
 
 	if ( custom_settings.flexqos_iptables == undefined )  // rules not yet converted to API format
 		{
@@ -2505,7 +2503,7 @@ function update_status(){
 					document.getElementById("versionStatus").style.display = "";
 					}
 				else {
-					/* version update or hotfix available */
+					/* version update available */
 					/* toggle update button */
 					document.getElementById("versionStatus").innerText = " " + verUpdateStatus + " available!";
 					document.getElementById("versionStatus").style.display = "";

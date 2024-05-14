@@ -31,12 +31,7 @@ fi
 # Global variables
 readonly SCRIPTNAME_DISPLAY="FlexQoS"
 readonly SCRIPTNAME="flexqos"
-readonly GIT_REPO="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}"
-GIT_BRANCH="$(am_settings_get "${SCRIPTNAME}_branch")"
-if [ -z "${GIT_BRANCH}" ]; then
-	GIT_BRANCH="master"
-fi
-GIT_URL="${GIT_REPO}/${GIT_BRANCH}"
+readonly GIT_URL="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}/master"
 
 readonly ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 readonly WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
@@ -554,9 +549,6 @@ scriptinfo() {
 	[ "${mode}" = "interactive" ] || return
 	printf "\n"
 	Green "${SCRIPTNAME_DISPLAY} v${version} released ${release}"
-	if [ "${GIT_BRANCH}" != "master" ]; then
-		Yellow " Development channel"
-	fi
 	printf "\n"
 } # scriptinfo
 
@@ -1761,8 +1753,6 @@ Available commands:
   ${SCRIPTNAME} -disable            disable   script but do not delete from disk
   ${SCRIPTNAME} -backup             backup user settings
   ${SCRIPTNAME} -debug              print debug info
-  ${SCRIPTNAME} -develop            switch to development channel
-  ${SCRIPTNAME} -stable             switch to stable channel
   ${SCRIPTNAME} -menu               interactive main menu
 
 EOF
@@ -1904,24 +1894,6 @@ case "${arg1}" in
 		;;
 	update*)		# updatecheck, updatesilent, or plain update
 		update "${arg1#update}"		# strip 'update' from arg1 to pass to update function
-		;;
-	'develop')
-		if [ "$(am_settings_get "${SCRIPTNAME}_branch")" = "develop" ]; then
-			printf "Already set to development branch.\n"
-		else
-			am_settings_set "${SCRIPTNAME}_branch" "develop"
-			printf "Set to development branch. Triggering update...\n"
-			exec "${0}" updatesilent
-		fi
-		;;
-	'stable')
-		if [ -z "$(am_settings_get "${SCRIPTNAME}_branch")" ]; then
-			printf "Already set to stable branch.\n"
-		else
-			sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
-			printf "Set to stable branch. Triggering update...\n"
-			exec "${0}" updatesilent
-		fi
 		;;
 	'menu'|'')
 		menu
