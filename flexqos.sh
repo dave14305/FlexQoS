@@ -12,8 +12,8 @@
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
 # amtm NoMD5check
-version=1.4.1
-release=2024-05-13
+version=1.4.2
+release=2024-05-18
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -1485,7 +1485,7 @@ validate_iptables_rules() {
 	# Does not verify that the rules present match the rules in the config, since the config hasn't been parsed at this point.
 	local iptables_rules_defined iptables_rules_expected iptables_rulespresent
 
-	if [ "${iptables_rules}" = "0" ]; then
+	if [ -z "${iptables_rules}" ]; then
 		return 0
 	fi
 	iptables_rules_defined="$(echo "${iptables_rules}" | sed 's/</\n/g' | /bin/grep -vc "^$")"
@@ -1502,7 +1502,7 @@ write_iptables_rules() {
 	# loop through iptables rules and write an iptables command to a temporary file for later execution
 	local OLDIFS
 	local localip remoteip proto lport rport mark class
-	if [ "${iptables_rules}" = "0" ]; then
+	if [ -z "${iptables_rules}" ]; then
 		return 0
 	fi
 	{
@@ -1664,14 +1664,14 @@ startup() {
 		[ "$(nvram get qos_ibw)" -lt 409600 ] && \
 		[ "$(nvram get qos_obw)" -lt 409600 ] && \
 		[ "$(nvram get fc_disable)" = "0" ] && \
-		[ "${iptables_rules}" != "0" ] && \
+		[ -n "${iptables_rules}" ] && \
 		[ "${fccontrol}" = "2" ]
 		then
 			logmsg "Auto-disabling flowcache"
 			fc disable
 			fc flush
 		elif \
-		[ "${iptables_rules}" != "0" ] && \
+		[ -n "${iptables_rules}" ] && \
 		[ "${fccontrol}" = "1" ]
 		then
 			logmsg "Disabling flowcache"
