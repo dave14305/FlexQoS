@@ -1470,6 +1470,10 @@ EOF
 	if [ -z "${fccontrol}" ]; then
 		fccontrol="0" # default to Off from GUI
 	fi
+	# Delete obsolete setting
+	if [ -n "$(am_settings_get "${SCRIPTNAME}"_branch)" ];
+		sed -i "/^${SCRIPTNAME}_branch /d" /jffs/addons/custom_settings.txt
+	fi
 } # get_config
 
 validate_iptables_rules() {
