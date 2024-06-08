@@ -20,7 +20,7 @@ Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/
 <link rel="stylesheet" type="text/css" href="device-map/device-map.css">
 <link rel="stylesheet" type="text/css" href="/js/table/table.css">
 <script type="text/javascript" src="/js/jquery.js"></script>
-<script type="text/javascript" src="/js/chart.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js" integrity="sha256-t9UJPrESBeG2ojKTIcFLPGF7nHi2vEc7f5A2KpH/UBU=" crossorigin="anonymous"></script>
 <script type="text/javascript" src="/state.js"></script>
 <script type="text/javascript" src="/help.js"></script>
 <script type="text/javascript" src="/general.js"></script>
