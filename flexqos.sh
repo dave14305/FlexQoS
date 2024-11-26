@@ -12,8 +12,8 @@
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
 # amtm NoMD5check
-version=1.4.3
-release=2024-06-18
+version=1.4.4
+release=2024-11-26
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -1657,8 +1657,8 @@ startup() {
 	case "$(uname -r)" in
 	4.19.*)
 		if \
-		[ "$(nvram get qos_ibw)" -lt 409600 ] && \
-		[ "$(nvram get qos_obw)" -lt 409600 ] && \
+		[ "$(printf "%.0f" "$(nvram get qos_ibw)")" -lt 409600 ] && \
+		[ "$(printf "%.0f" "$(nvram get qos_obw)")" -lt 409600 ] && \
 		[ "$(nvram get fc_disable)" = "0" ] && \
 		[ -n "${iptables_rules}" ] && \
 		[ "${fccontrol}" = "2" ]
