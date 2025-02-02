@@ -162,6 +162,7 @@ write_appdb_static_rules() {
 	# so we want these filters to always take precedence over the built-in filters.
 	# File is overwritten (>) if it exists and later appended by write_appdb_rules() and write_custom_rates().
 	{
+	if [ -n "${iptables_rules}" ]; then
 		get_static_filter "${Net_mark}" "${Net_flow}"
 		get_static_filter "${Work_mark}" "${Work_flow}"
 		get_static_filter "${Gaming_mark}" "${Gaming_flow}"
@@ -170,6 +171,7 @@ write_appdb_static_rules() {
 		get_static_filter "${Streaming_mark}" "${Streaming_flow}"
 		get_static_filter "${Downloads_mark}" "${Downloads_flow}"
 		get_static_filter "${Learn_mark}" "${Learn_flow}"
+	fi
 	} > "/tmp/${SCRIPTNAME}_tcrules"
 } # write_appdb_static_rules
 
