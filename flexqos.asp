@@ -2436,8 +2436,8 @@ function check_bandwidth() {
 		urptot += parseInt(urp.value);
 		if ( qos_bwmode == 1 ) {
 			// Manual
-			dp_desc.innerText=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
-			up_desc.innerText=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1024 : 1)).toLocaleFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
+			dp_desc.innerText=(drp.value*qos_dlbw/100/(qos_dlbw>999 ? 1000 : 1)).toLocaleFixed(2) + " ~ " + (dcp.value*qos_dlbw/100/(qos_dlbw>999 ? 1000 : 1)).toLocaleFixed(2) + (qos_dlbw > 999 ? " Mb/s" : " Kb/s");
+			up_desc.innerText=(urp.value*qos_ulbw/100/(qos_ulbw>999 ? 1000 : 1)).toLocaleFixed(2) + " ~ " + (ucp.value*qos_ulbw/100/(qos_ulbw>999 ? 1000 : 1)).toLocaleFixed(2) + (qos_ulbw > 999 ? " Mb/s" : " Kb/s");
 		} else {
 			// Auto
 			dp_desc.innerText="Automatic BW mode";
