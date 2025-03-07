@@ -1732,7 +1732,7 @@ startup() {
 				cp -f "/tmp/${SCRIPTNAME}_tcrules" "/tmp/${SCRIPTNAME}_tcrules.err"
 				logmsg "ERROR! Check /tmp/${SCRIPTNAME}_tcrules.log"
 			else
-				rm "/tmp/${SCRIPTNAME}_tmp_tcfilterdown" "/tmp/${SCRIPTNAME}_tmp_tcfilterup" "/tmp/${SCRIPTNAME}_tcrules.log" "/tmp/${SCRIPTNAME}_checktcrules" "/tmp/${SCRIPTNAME}_tcrules.err" 2>/dev/null
+				rm "/tmp/${SCRIPTNAME}_tmp_tcfilterdown" "/tmp/${SCRIPTNAME}_tmp_tcfilterup" "/tmp/${SCRIPTNAME}_tcrules.log" "/tmp/${SCRIPTNAME}_checktcrules" "/tmp/${SCRIPTNAME}_tcrules.err" "/tmp/${SCRIPTNAME}_tcrules" 2>/dev/null
 			fi
 		fi
 
