@@ -8,12 +8,12 @@
 #      |_|     |_| \___|/_/\_\ \___\_\ \___/|_____/       #
 #                                                         #
 ###########################################################
-# FlexQoS maintained by dave14305
+# FlexQoS maintained by AMTM-OSR
 # Contributors: @maghuro
 # shellcheck disable=SC1090,SC1091,SC2039,SC2154,SC3043
 # amtm NoMD5check
-version=1.4.5
-release=2025-03-26
+version=1.4.6
+release=2025-05-18
 # Forked from FreshJR_QOS v8.8, written by FreshJR07 https://github.com/FreshJR07/FreshJR_QOS
 # License
 #  FlexQoS is free to use under the GNU General Public License, version 3 (GPL-3.0).
@@ -31,7 +31,7 @@ fi
 # Global variables
 readonly SCRIPTNAME_DISPLAY="FlexQoS"
 readonly SCRIPTNAME="flexqos"
-readonly GIT_URL="https://raw.githubusercontent.com/dave14305/${SCRIPTNAME_DISPLAY}/master"
+readonly GIT_URL="https://raw.githubusercontent.com/AMTM-OSR/${SCRIPTNAME_DISPLAY}/master"
 
 readonly ADDON_DIR="/jffs/addons/${SCRIPTNAME}"
 readonly WEBUIPATH="${ADDON_DIR}/${SCRIPTNAME}.asp"
@@ -913,7 +913,7 @@ License
 
 For discussion visit this thread:
   https://www.snbforums.com/forums/asuswrt-merlin-addons.60/?prefix_id=8
-  https://github.com/dave14305/FlexQoS (Source Code)
+  https://github.com/AMTM-OSR/FlexQoS (Source Code)
 
 About
   Script Changes Unidentified traffic destination away from Work-From-Home into Others
@@ -1195,7 +1195,7 @@ remove_webui() {
 		# Remove last mounted asp page
 		rm -f "/www/user/${prev_webui_page}" 2>/dev/null
 		# Look for previously mounted asp pages that are orphaned now and delete them
-		/bin/grep -l "${SCRIPTNAME_DISPLAY} maintained by dave14305" /www/user/user*.asp 2>/dev/null | while read -r oldfile
+		/bin/grep -l "${SCRIPTNAME_DISPLAY} maintained by " /www/user/user*.asp 2>/dev/null | while read -r oldfile
 		do
 			rm "${oldfile}"
 		done
